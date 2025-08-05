@@ -5,6 +5,7 @@ interface AppState {
   // 主题设置
   theme: 'light' | 'dark' | 'system'
   setTheme: (theme: 'light' | 'dark' | 'system') => void
+  initializeTheme: () => void
   
   // 侧边栏状态
   sidebarCollapsed: boolean
@@ -42,7 +43,41 @@ export const useAppStore = create<AppState>()(
     (set, get) => ({
       // 主题设置
       theme: 'system',
-      setTheme: (theme) => set({ theme }),
+      setTheme: (theme) => {
+        set({ theme })
+        // 立即应用主题
+        const root = document.documentElement
+        if (theme === 'dark' || (theme === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+          root.classList.add('dark')
+        } else {
+          root.classList.remove('dark')
+        }
+      },
+      initializeTheme: () => {
+        const { theme } = get()
+        const root = document.documentElement
+        
+        // 监听系统主题变化
+        const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)')
+        const handleChange = () => {
+          if (theme === 'system') {
+            if (mediaQuery.matches) {
+              root.classList.add('dark')
+            } else {
+              root.classList.remove('dark')
+            }
+          }
+        }
+        
+        mediaQuery.addEventListener('change', handleChange)
+        
+        // 初始化主题
+        if (theme === 'dark' || (theme === 'system' && mediaQuery.matches)) {
+          root.classList.add('dark')
+        } else {
+          root.classList.remove('dark')
+        }
+      },
       
       // 侧边栏状态
       sidebarCollapsed: false,
@@ -56,9 +91,9 @@ export const useAppStore = create<AppState>()(
       
       // 编辑器设置
       editorSettings: {
-        fontSize: 14,
-        fontFamily: 'Monaco, Menlo, "Ubuntu Mono", monospace',
-        lineHeight: 1.5,
+        fontSize: 16,
+        fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+        lineHeight: 1.6,
         wordWrap: true,
       },
       updateEditorSettings: (settings) => set((state) => ({

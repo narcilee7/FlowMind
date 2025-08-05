@@ -4,48 +4,50 @@
 
 @layer base {
   :root {
-    --background: 0 0% 100%;
-    --foreground: 222.2 84% 4.9%;
-    --card: 0 0% 100%;
-    --card-foreground: 222.2 84% 4.9%;
+    /* 明亮主题 - 简约现代风格 */
+    --background: 0 0% 98%; /* 极浅的灰白色背景 */
+    --foreground: 220 13% 18%; /* 深灰文字，提供良好对比度 */
+    --card: 0 0% 100%; /* 纯白卡片背景 */
+    --card-foreground: 220 13% 18%;
     --popover: 0 0% 100%;
-    --popover-foreground: 222.2 84% 4.9%;
-    --primary: 221.2 83.2% 53.3%;
-    --primary-foreground: 210 40% 98%;
-    --secondary: 210 40% 96%;
-    --secondary-foreground: 222.2 84% 4.9%;
-    --muted: 210 40% 96%;
-    --muted-foreground: 215.4 16.3% 46.9%;
-    --accent: 210 40% 96%;
-    --accent-foreground: 222.2 84% 4.9%;
-    --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 210 40% 98%;
-    --border: 214.3 31.8% 91.4%;
-    --input: 214.3 31.8% 91.4%;
-    --ring: 221.2 83.2% 53.3%;
-    --radius: 0.5rem;
+    --popover-foreground: 220 13% 18%;
+    --primary: 220 70% 50%; /* 现代蓝色主色调 */
+    --primary-foreground: 0 0% 100%;
+    --secondary: 220 14% 96%; /* 浅灰次要背景 */
+    --secondary-foreground: 220 13% 18%;
+    --muted: 220 14% 96%;
+    --muted-foreground: 220 9% 46%; /* 中等灰文字 */
+    --accent: 220 14% 96%;
+    --accent-foreground: 220 13% 18%;
+    --destructive: 0 84% 60%; /* 红色警告色 */
+    --destructive-foreground: 0 0% 100%;
+    --border: 220 13% 91%; /* 浅灰边框 */
+    --input: 220 13% 91%;
+    --ring: 220 70% 50%;
+    --radius: 0.75rem; /* 稍微增加圆角 */
   }
 
   .dark {
-    --background: 222.2 84% 4.9%;
-    --foreground: 210 40% 98%;
-    --card: 222.2 84% 4.9%;
-    --card-foreground: 210 40% 98%;
-    --popover: 222.2 84% 4.9%;
-    --popover-foreground: 210 40% 98%;
-    --primary: 217.2 91.2% 59.8%;
-    --primary-foreground: 222.2 84% 4.9%;
-    --secondary: 217.2 32.6% 17.5%;
-    --secondary-foreground: 210 40% 98%;
-    --muted: 217.2 32.6% 17.5%;
-    --muted-foreground: 215 20.2% 65.1%;
-    --accent: 217.2 32.6% 17.5%;
-    --accent-foreground: 210 40% 98%;
-    --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 210 40% 98%;
-    --border: 217.2 32.6% 17.5%;
-    --input: 217.2 32.6% 17.5%;
-    --ring: 224.3 76.3% 94.1%;
+    /* 暗色主题 - 护眼深色 */
+    --background: 220 13% 8%; /* 深灰背景，不是纯黑 */
+    --foreground: 220 9% 92%; /* 浅灰文字 */
+    --card: 220 13% 12%; /* 稍亮的卡片背景 */
+    --card-foreground: 220 9% 92%;
+    --popover: 220 13% 12%;
+    --popover-foreground: 220 9% 92%;
+    --primary: 220 70% 60%; /* 亮一点的蓝色 */
+    --primary-foreground: 220 13% 8%;
+    --secondary: 220 13% 16%; /* 深灰次要背景 */
+    --secondary-foreground: 220 9% 92%;
+    --muted: 220 13% 16%;
+    --muted-foreground: 220 9% 65%; /* 中等亮灰 */
+    --accent: 220 13% 16%;
+    --accent-foreground: 220 9% 92%;
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 220 9% 92%;
+    --border: 220 13% 20%; /* 深灰边框 */
+    --input: 220 13% 20%;
+    --ring: 220 70% 60%;
   }
 }
 
@@ -55,32 +57,99 @@
   }
   body {
     @apply bg-background text-foreground;
+    font-feature-settings: "rlig" 1, "calt" 1;
   }
 }
 
-/* 自定义滚动条样式 */
+/* 自定义滚动条样式 - 更简约的设计 */
 ::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
+  width: 8px;
+  height: 8px;
 }
 
 ::-webkit-scrollbar-track {
-  @apply bg-muted;
+  @apply bg-transparent;
 }
 
 ::-webkit-scrollbar-thumb {
-  @apply bg-muted-foreground/30 rounded-full;
+  @apply bg-muted-foreground/20 rounded-full;
+  transition: background-color 0.2s ease;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  @apply bg-muted-foreground/50;
+  @apply bg-muted-foreground/40;
 }
 
 /* Monaco Editor 样式覆盖 */
 .monaco-editor {
-  @apply rounded-md border border-border;
+  @apply rounded-lg border border-border bg-background;
 }
 
 .monaco-editor .margin {
-  @apply bg-muted/50;
+  @apply bg-muted/30;
+}
+
+/* 编辑器内容区域样式 */
+.editor-content {
+  @apply bg-background text-foreground;
+}
+
+/* 预览区域样式 */
+.preview-content {
+  @apply prose prose-sm max-w-none;
+}
+
+.preview-content h1,
+.preview-content h2,
+.preview-content h3,
+.preview-content h4,
+.preview-content h5,
+.preview-content h6 {
+  @apply text-foreground font-semibold;
+}
+
+.preview-content p {
+  @apply text-foreground/80;
+}
+
+.preview-content code {
+  @apply bg-muted text-foreground px-1.5 py-0.5 rounded text-sm;
+}
+
+.preview-content pre {
+  @apply bg-muted border border-border rounded-lg p-4;
+}
+
+.preview-content blockquote {
+  @apply border-l-4 border-primary/30 bg-muted/50 pl-4 italic;
+}
+
+/* 暗色主题下的预览样式 */
+.dark .preview-content {
+  @apply prose-invert;
+}
+
+.dark .preview-content h1,
+.dark .preview-content h2,
+.dark .preview-content h3,
+.dark .preview-content h4,
+.dark .preview-content h5,
+.dark .preview-content h6 {
+  @apply text-foreground;
+}
+
+.dark .preview-content p {
+  @apply text-foreground/80;
+}
+
+.dark .preview-content code {
+  @apply bg-muted text-foreground;
+}
+
+.dark .preview-content pre {
+  @apply bg-muted border-border;
+}
+
+.dark .preview-content blockquote {
+  @apply border-primary/30 bg-muted/50;
 } 
