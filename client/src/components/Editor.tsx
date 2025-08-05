@@ -29,14 +29,15 @@ export const Editor: React.FC = () => {
   }
 
   return (
-    <div className="h-full flex flex-col">
+    <div className="h-full flex flex-col bg-background">
       {/* 工具栏 */}
-      <div className="h-12 border-b border-border bg-background flex items-center justify-between px-4">
+      <div className="h-12 border-b border-border bg-card flex items-center justify-between px-4 shadow-sm">
         <div className="flex items-center gap-2">
           <Button
             variant="outline"
             size="sm"
             onClick={() => setShowPreview(!showPreview)}
+            className="hover:bg-accent"
           >
             {showPreview ? (
               <>
@@ -57,6 +58,7 @@ export const Editor: React.FC = () => {
             variant="outline"
             size="sm"
             onClick={handleAIAssist}
+            className="hover:bg-accent"
           >
             <Sparkles className="h-4 w-4 mr-2" />
             AI助手
@@ -65,6 +67,7 @@ export const Editor: React.FC = () => {
           <Button
             variant="outline"
             size="sm"
+            className="hover:bg-accent"
           >
             <Upload className="h-4 w-4 mr-2" />
             导入
@@ -73,6 +76,7 @@ export const Editor: React.FC = () => {
           <Button
             variant="outline"
             size="sm"
+            className="hover:bg-accent"
           >
             <Download className="h-4 w-4 mr-2" />
             导出
@@ -82,6 +86,7 @@ export const Editor: React.FC = () => {
             onClick={handleSave}
             disabled={isLoading}
             size="sm"
+            className="bg-primary hover:bg-primary/90 text-primary-foreground"
           >
             <Save className="h-4 w-4 mr-2" />
             {isLoading ? '保存中...' : '保存'}
@@ -96,7 +101,7 @@ export const Editor: React.FC = () => {
           <textarea
             value={content}
             onChange={(e) => setContent(e.target.value)}
-            className="w-full h-full p-4 resize-none outline-none bg-background text-foreground"
+            className="w-full h-full p-6 resize-none outline-none bg-background text-foreground editor-content"
             style={{
               fontSize: `${editorSettings.fontSize}px`,
               fontFamily: editorSettings.fontFamily,
@@ -108,8 +113,8 @@ export const Editor: React.FC = () => {
 
         {/* 预览区 */}
         {showPreview && (
-          <div className="w-1/2 p-4 overflow-auto">
-            <div className="prose prose-sm max-w-none dark:prose-invert">
+          <div className="w-1/2 p-6 overflow-auto bg-background">
+            <div className="preview-content">
               <div dangerouslySetInnerHTML={{ 
                 __html: content.replace(/\n/g, '<br>') 
               }} />
