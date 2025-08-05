@@ -2,7 +2,7 @@ import React from 'react'
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom'
 import { useAppStore } from '@/stores/app-store'
 import { Sidebar } from '@/components/Sidebar'
-import { Editor } from '@/components/Editor'
+import { EditorLayout } from '@/components/Editor/templates/EditorLayout'
 import { Header } from '@/components/Header'
 import { ThemePreview } from '@/components/ThemePreview'
 
@@ -34,8 +34,8 @@ function App() {
           <Sidebar />
           <main className="flex-1 overflow-hidden">
             <Routes>
-              <Route path="/" element={<Editor />} />
-              <Route path="/editor" element={<Editor />} />
+              <Route path="/" element={<EditorLayout />} />
+              <Route path="/editor" element={<EditorLayout />} />
               <Route path="/theme" element={<ThemePreview />} />
             </Routes>
           </main>
