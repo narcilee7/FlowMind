@@ -5,6 +5,7 @@
 
 import { ViewAdapter } from '../types/ViewAdapter'
 import { EditorType, SceneTemplate } from '../types/EditorType'
+import { RichTextViewAdapter } from '../adapters/RichTextViewAdapter'
 
 /**
  * 视图适配器工厂
@@ -17,7 +18,7 @@ export default class ViewAdapterFactory {
      */
     static init(): void {
         // 注册各种适配器
-        // this.registerAdapter(EditorType.RICH_TEXT, RichTextViewAdapter)
+        this.registerAdapter(EditorType.RICH_TEXT, RichTextViewAdapter)
         // this.registerAdapter(EditorType.GRAPH, GraphViewAdapter)
         // this.registerAdapter(EditorType.CANVAS, CanvasViewAdapter)
         // this.registerAdapter(EditorType.TABLE, TableViewAdapter)
