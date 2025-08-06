@@ -103,11 +103,25 @@ export const EditorCore: React.FC<EditorCoreProps> = ({
         setIsLoading(true)
         try {
             // 创建适配器
-            const adapter = ViewAdapterFactory.createAdapter(editorType, sceneTemplate)
+            const adapter = ViewAdapterFactory.createAdapter(editorType, {
+                sceneTemplate,
+                options: {
+                    type: editorType,
+                    sceneTemplate,
+                    theme: effectiveTheme,
+                    enableSelection: true,
+                    enableDrag: true,
+                    enableResize: true,
+                    enableContextMenu: true,
+                },
+                onError: (error) => {
+                    console.error('Adapter error:', error)
+                }
+            })
             adapterRef.current = adapter
 
-            // 配置适配器选项
-            const options: ViewAdapterOptions = {
+            // 初始化适配器
+            await adapter.create(containerRef.current, {
                 type: editorType,
                 sceneTemplate,
                 theme: effectiveTheme,
@@ -115,10 +129,7 @@ export const EditorCore: React.FC<EditorCoreProps> = ({
                 enableDrag: true,
                 enableResize: true,
                 enableContextMenu: true,
-            }
-
-            // 初始化适配器
-            await adapter.create(containerRef.current, options)
+            })
 
             // 渲染初始AST
             adapter.render(ast)
