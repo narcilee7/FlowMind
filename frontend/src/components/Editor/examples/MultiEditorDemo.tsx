@@ -1,6 +1,7 @@
 import React, { useState } from 'react'
-import { EditorProvider, EditorType, EditorMode } from '../core/EditorProvider'
-import { EditorCoreV2 } from '../organisms/EditorCoreV2'
+import { EditorProvider } from '@/components/Editor/core/EditorProvider'
+import { EditorType, EditorMode } from '@/components/Editor/types'
+import { EditorCoreV2 } from '@/components/Editor/organisms/EditorCoreV2'
 
 export const MultiEditorDemo: React.FC = () => {
   const [currentContent, setCurrentContent] = useState('# 欢迎使用 FlowMind 编辑器\n\n这是一个支持多种编辑器类型的知识管理编辑器。')

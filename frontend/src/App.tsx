@@ -5,6 +5,7 @@ import { Sidebar } from '@/components/Sidebar'
 import { Header } from '@/components/Header'
 import { ThemePreview } from '@/components/ThemePreview'
 import { MultiEditorDemo } from '@/components/Editor'
+import { AIEditorDemo } from '@/components/Editor/examples/AIEditorDemo'
 
 function App() {
   const { isOnline, setIsOnline, initializeTheme } = useAppStore()
@@ -36,7 +37,8 @@ function App() {
             <Routes>
               {/* <Route path="/" element={<EditorLayout />} /> */}
               {/* <Route path="/editor" element={<EditorLayout />} /> */}
-              <Route path="/" element={<MultiEditorDemo />} />
+              <Route path="/" element={<AIEditorDemo />} />
+              <Route path="/editor" element={<MultiEditorDemo />} />
               <Route path="/theme" element={<ThemePreview />} />
             </Routes>
           </main>

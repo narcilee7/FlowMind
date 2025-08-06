@@ -61,8 +61,10 @@ export interface PositionSection {
 
 // 选择范围接口
 export interface SelectionRange {
-    start: PositionSection
-    end: PositionSection
+    from: number
+    to: number
+    line: number
+    column: number
 }
 
 // 滚动位置接口
