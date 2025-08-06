@@ -257,13 +257,3 @@ export type TimelineGroupBy =
     | 'year'         // 按年分组
     | 'status'       // 按状态分组
     | 'assignee'     // 按负责人分组
-
-/**
- * 适配器工厂接口
- */
-export interface AdapterFactory {
-    createAdapter(type: EditorType, sceneTemplate: SceneTemplate): ViewAdapter
-    registerAdapter(type: EditorType, adapterClass: new (sceneTemplate: SceneTemplate) => ViewAdapter): void
-    getSupportedTypes(): EditorType[]
-    isSupported(type: EditorType): boolean
-}
