@@ -1,4 +1,5 @@
 import React from "react"
+import "./BottomView.scss"
 
 interface BottomViewProps {
     // children: React.ReactNode
@@ -8,12 +9,9 @@ interface BottomViewProps {
 
 const BottomView: React.FC<BottomViewProps> = ({ isSidebarCollapsed }) => {
     return (
-        <div className="absolute bottom-0 left-0 right-0 p-2 border-t border-border bg-card">
-            <div className={`
-                flex items-center gap-2 text-xs text-muted-foreground
-                ${isSidebarCollapsed ? 'justify-center' : 'px-2'}
-            `}>
-                <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+        <div className="bottom-view">
+            <div className={`bottom-view__icon ${isSidebarCollapsed ? 'bottom-view__icon--collapsed' : 'bottom-view__icon--expanded'}`}>
+                <div className="bottom-view__item"></div>
                 {!isSidebarCollapsed && <span>FlowMind v1.0</span>}
             </div>
         </div>

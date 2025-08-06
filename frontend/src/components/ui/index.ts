@@ -12,4 +12,4 @@ export { Resizable } from './resizable'
 export type { ResizableProps } from './resizable'
 
 export { Toolbar } from './toolbar'
-export type { ToolbarProps } from './toolbar' 
+export type { ToolbarProps } from './toolbar'

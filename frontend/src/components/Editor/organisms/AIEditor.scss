@@ -1,0 +1,123 @@
+/* AIEditor 组件样式 */
+
+.ai-editor {
+  /* 编辑器容器样式 */
+}
+
+/* 工具栏样式 */
+.border-b {
+  border-bottom-width: 1px;
+}
+
+.border-gray-200 {
+  border-color: #e5e7eb;
+}
+
+.dark .border-gray-700 {
+  border-color: #374151;
+}
+
+.bg-white {
+  background-color: #ffffff;
+}
+
+.dark .bg-gray-800 {
+  background-color: #1f2937;
+}
+
+/* 分隔线样式 */
+.w-px {
+  width: 1px;
+}
+
+.h-6 {
+  height: 1.5rem;
+}
+
+.bg-gray-300 {
+  background-color: #d1d5db;
+}
+
+.dark .bg-gray-600 {
+  background-color: #4b5563;
+}
+
+.mx-1 {
+  margin-left: 0.25rem;
+  margin-right: 0.25rem;
+}
+
+/* AI 功能按钮样式 */
+.text-purple-600 {
+  color: #9333ea;
+}
+
+.hover-text-purple-700:hover {
+  color: #7c3aed;
+}
+
+.hover-bg-purple-50:hover {
+  background-color: #faf5ff;
+}
+
+.dark .text-purple-400 {
+  color: #c084fc;
+}
+
+.dark .hover-text-purple-300:hover {
+  color: #d8b4fe;
+}
+
+.dark .hover-bg-purple-900-20:hover {
+  background-color: color-mix(in srgb, #581c87 20%, transparent);
+}
+
+.text-green-600 {
+  color: #16a34a;
+}
+
+.hover-text-green-700:hover {
+  color: #15803d;
+}
+
+.hover-bg-green-50:hover {
+  background-color: #f0fdf4;
+}
+
+.dark .text-green-400 {
+  color: #4ade80;
+}
+
+.dark .hover-text-green-300:hover {
+  color: #86efac;
+}
+
+.dark .hover-bg-green-900-20:hover {
+  background-color: color-mix(in srgb, #14532d 20%, transparent);
+}
+
+/* AI 面板样式 */
+.bg-purple-50 {
+  background-color: #faf5ff;
+}
+
+.dark .bg-purple-900-20 {
+  background-color: color-mix(in srgb, #581c87 20%, transparent);
+}
+
+/* 加载状态 */
+.flex {
+  display: flex;
+}
+
+.items-center {
+  align-items: center;
+}
+
+.justify-center {
+  justify-content: center;
+}
+
+.h-64 {
+  height: 16rem;
+} 
