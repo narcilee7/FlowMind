@@ -1,297 +1,213 @@
-import { EditorAdapter, EditorOptions, EditorType, PositionSection } from '../types'
+/**
+ * 富文本编辑器适配器 - 基于PRD重构
+ */
+
+import { EditorAdapter, EditorOptions, RichTextOptions } from '../types/editorAdapter'
+import { EditorType, SceneTemplate } from '../types/editorType'
+import { TOCItem } from '../types/editorState'
 
 export class RichTextAdapter implements EditorAdapter {
-  type = EditorType.RICH_TEXT
-  private editor: any = null
-  private element: HTMLElement | null = null
-  private eventListeners: Map<string, Function[]> = new Map()
-  private blocks: any[] = []
+    type: EditorType = EditorType.RICH_TEXT
+    sceneTemplate: SceneTemplate
+    private element: HTMLElement | null = null
+    private contentCallbacks: ((content: string) => void)[] = []
+    private selectionCallbacks: ((selection: string) => void)[] = []
+    private tocCallbacks: ((toc: TOCItem[]) => void)[] = []
 
-  async create(element: HTMLElement, options: EditorOptions): Promise<void> {
-    this.element = element
-    
-    // 使用块级编辑器架构
-    // 这里可以选择：Slate、ProseMirror、Tiptap等
-    // 暂时使用简单的div实现，后续可以替换为更强大的引擎
-    
-    this.editor = document.createElement('div')
-    this.editor.className = 'rich-text-editor'
-    this.editor.contentEditable = 'true'
-    this.editor.style.cssText = `
-      width: 100%;
-      height: 100%;
-      border: none;
-      outline: none;
-      padding: 16px;
-      background: transparent;
-      color: inherit;
-      overflow-y: auto;
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-      font-size: 16px;
-      line-height: 1.6;
-    `
-    
-    // 初始化内容
-    this.initializeContent(options.value || '')
-    
-    element.appendChild(this.editor)
-    
-    // 绑定事件
-    this.bindEvents()
-    
-    // 应用配置
-    this.applyOptions(options)
-  }
-
-  destroy(): void {
-    if (this.editor && this.element) {
-      this.element.removeChild(this.editor)
-      this.editor = null
-      this.element = null
+    constructor(sceneTemplate: SceneTemplate) {
+        this.sceneTemplate = sceneTemplate
     }
-    this.eventListeners.clear()
-  }
 
-  getValue(): string {
-    return this.editor?.innerHTML || ''
-  }
+    async create(element: HTMLElement, options: EditorOptions): Promise<void> {
+        this.element = element
+        
+        // 创建富文本编辑器容器
+        element.innerHTML = `
+            <div class="rich-text-editor" contenteditable="true" style="
+                min-height: 400px;
+                padding: 20px;
+                border: 1px solid #ccc;
+                border-radius: 4px;
+                outline: none;
+                font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+                line-height: 1.6;
+            ">
+                ${options.content || this.getDefaultContent()}
+            </div>
+        `
 
-  setValue(value: string): void {
-    if (this.editor) {
-      this.initializeContent(value)
+        const editor = element.querySelector('.rich-text-editor') as HTMLElement
+        
+        // 设置事件监听
+        editor.addEventListener('input', () => {
+            const content = this.getValue()
+            this.contentCallbacks.forEach(callback => callback(content))
+        })
+
+        editor.addEventListener('keyup', () => {
+            const selection = this.getSelection()
+            this.selectionCallbacks.forEach(callback => callback(selection))
+        })
+
+        // 设置焦点
+        editor.focus()
     }
-  }
 
-  insertText(text: string, position?: PositionSection): void {
-    if (!this.editor) return
-    
-    // 在富文本编辑器中，插入文本需要考虑块级结构
-    const selection = window.getSelection()
-    if (selection && selection.rangeCount > 0) {
-      const range = selection.getRangeAt(0)
-      range.deleteContents()
-      range.insertNode(document.createTextNode(text))
-      this.emit('change', this.editor.innerHTML)
-    }
-  }
-
-  replaceSelection(text: string): void {
-    if (!this.editor) return
-    
-    const selection = window.getSelection()
-    if (selection && selection.rangeCount > 0) {
-      const range = selection.getRangeAt(0)
-      range.deleteContents()
-      range.insertNode(document.createTextNode(text))
-      this.emit('change', this.editor.innerHTML)
-    }
-  }
-
-  getSelection(): string {
-    const selection = window.getSelection()
-    if (selection && selection.rangeCount > 0) {
-      const range = selection.getRangeAt(0)
-      return range.toString()
-    }
-    return ''
-  }
-
-  setSelection(start: PositionSection, end: PositionSection): void {
-    // 在富文本编辑器中，位置计算更复杂
-    // 这里需要根据块级结构来计算位置
-    console.log('setSelection not implemented for rich text editor')
-  }
-
-  focus(): void {
-    this.editor?.focus()
-  }
-
-  blur(): void {
-    this.editor?.blur()
-  }
-
-  on(event: string, callback: Function): void {
-    if (!this.eventListeners.has(event)) {
-      this.eventListeners.set(event, [])
-    }
-    this.eventListeners.get(event)!.push(callback)
-  }
-
-  off(event: string, callback: Function): void {
-    const listeners = this.eventListeners.get(event)
-    if (listeners) {
-      const index = listeners.indexOf(callback)
-      if (index > -1) {
-        listeners.splice(index, 1)
-      }
-    }
-  }
-
-  // 富文本编辑器特有方法
-  insertBlock(blockType: string, content?: string): void {
-    if (!this.editor) return
-    
-    const block = this.createBlock(blockType, content)
-    this.editor.appendChild(block)
-    this.emit('change', this.editor.innerHTML)
-  }
-
-  deleteBlock(blockElement: HTMLElement): void {
-    if (!this.editor) return
-    
-    if (this.editor.contains(blockElement)) {
-      this.editor.removeChild(blockElement)
-      this.emit('change', this.editor.innerHTML)
-    }
-  }
-
-  private createBlock(blockType: string, content?: string): HTMLElement {
-    const block = document.createElement('div')
-    block.className = `block block-${blockType}`
-    block.contentEditable = 'true'
-    
-    switch (blockType) {
-      case 'paragraph':
-        block.innerHTML = content || '<br>'
-        break
-      case 'heading':
-        const heading = document.createElement('h1')
-        heading.textContent = content || ''
-        block.appendChild(heading)
-        break
-      case 'list':
-        const list = document.createElement('ul')
-        const item = document.createElement('li')
-        item.textContent = content || ''
-        list.appendChild(item)
-        block.appendChild(list)
-        break
-      case 'code':
-        const code = document.createElement('pre')
-        code.innerHTML = `<code>${content || ''}</code>`
-        block.appendChild(code)
-        break
-      default:
-        block.innerHTML = content || '<br>'
-    }
-    
-    return block
-  }
-
-  private initializeContent(content: string): void {
-    if (!this.editor) return
-    
-    if (content.trim()) {
-      // 如果有内容，尝试解析为HTML
-      this.editor.innerHTML = content
-    } else {
-      // 创建默认的段落块
-      const defaultBlock = this.createBlock('paragraph')
-      this.editor.appendChild(defaultBlock)
-    }
-  }
-
-  private bindEvents(): void {
-    if (!this.editor) return
-    
-    this.editor.addEventListener('input', () => {
-      this.emit('change', this.editor.innerHTML)
-    })
-    
-    this.editor.addEventListener('keydown', (e: KeyboardEvent) => {
-      this.handleKeyDown(e)
-      this.emit('keydown', e)
-    })
-    
-    this.editor.addEventListener('keyup', (e: KeyboardEvent) => {
-      this.emit('keyup', e)
-    })
-    
-    this.editor.addEventListener('focus', () => {
-      this.emit('focus')
-    })
-    
-    this.editor.addEventListener('blur', () => {
-      this.emit('blur')
-    })
-    
-    this.editor.addEventListener('scroll', () => {
-      this.emit('scroll', {
-        scrollTop: this.editor.scrollTop,
-        scrollLeft: this.editor.scrollLeft
-      })
-    })
-  }
-
-  private handleKeyDown(e: KeyboardEvent): void {
-    // 处理富文本编辑器的快捷键
-    switch (e.key) {
-      case 'Enter':
-        if (e.shiftKey) {
-          // Shift+Enter: 在块内换行
-          return
-        } else {
-          // Enter: 创建新块
-          e.preventDefault()
-          this.insertBlock('paragraph')
+    destroy(): void {
+        if (this.element) {
+            this.element.innerHTML = ''
+            this.element = null
         }
-        break
-      case 'Backspace':
-        // 处理空块的删除
+        this.contentCallbacks = []
+        this.selectionCallbacks = []
+        this.tocCallbacks = []
+    }
+
+    getValue(): string {
+        if (!this.element) return ''
+        const editor = this.element.querySelector('.rich-text-editor') as HTMLElement
+        return editor?.innerHTML || ''
+    }
+
+    setValue(value: string): void {
+        if (!this.element) return
+        const editor = this.element.querySelector('.rich-text-editor') as HTMLElement
+        if (editor) {
+            editor.innerHTML = value
+        }
+    }
+
+    getSelection(): string {
         const selection = window.getSelection()
-        if (selection && selection.rangeCount > 0) {
-          const range = selection.getRangeAt(0)
-          const block = this.getBlockElement(range.startContainer)
-          if (block && this.isBlockEmpty(block)) {
-            e.preventDefault()
-            this.deleteBlock(block)
-          }
+        return selection?.toString() || ''
+    }
+
+    setSelection(start: number, end: number): void {
+        // 简化实现，实际应该根据字符位置设置选择范围
+        console.log('Setting selection:', start, end)
+    }
+
+    generateTOC(): TOCItem[] {
+        if (!this.element) return []
+        
+        const editor = this.element.querySelector('.rich-text-editor') as HTMLElement
+        const headings = editor?.querySelectorAll('h1, h2, h3, h4, h5, h6') || []
+        
+        const toc: TOCItem[] = []
+        let position = 0
+
+        headings.forEach((heading, index) => {
+            const level = parseInt(heading.tagName.charAt(1))
+            const title = heading.textContent || ''
+            const id = `heading-${index}`
+            
+            toc.push({
+                id,
+                title,
+                level,
+                children: [],
+                position: position++,
+            })
+        })
+
+        return toc
+    }
+
+    navigateToSection(sectionId: string): void {
+        if (!this.element) return
+        
+        const editor = this.element.querySelector('.rich-text-editor') as HTMLElement
+        const heading = editor?.querySelector(`[id="${sectionId}"]`) as HTMLElement
+        
+        if (heading) {
+            heading.scrollIntoView({ behavior: 'smooth' })
         }
-        break
-      case '/':
-        // 触发块类型选择器
-        this.emit('showBlockMenu')
-        break
     }
-  }
 
-  private getBlockElement(node: Node): HTMLElement | null {
-    let current = node
-    while (current && current !== this.editor) {
-      if (current.nodeType === Node.ELEMENT_NODE && 
-          (current as HTMLElement).classList.contains('block')) {
-        return current as HTMLElement
-      }
-      current = current.parentNode!
+    updateTOC(): void {
+        const toc = this.generateTOC()
+        this.tocCallbacks.forEach(callback => callback(toc))
     }
-    return null
-  }
 
-  private isBlockEmpty(block: HTMLElement): boolean {
-    return block.textContent?.trim() === '' || block.innerHTML === '<br>'
-  }
-
-  private applyOptions(options: EditorOptions): void {
-    if (!this.editor) return
-    
-    // 应用富文本特定配置
-    if (options.richTextOptions) {
-      const rtOptions = options.richTextOptions
-      
-      if (rtOptions.showToolbar !== undefined) {
-        // 这里可以实现工具栏显示逻辑
-      }
-      
-      if (rtOptions.blockTypes) {
-        // 这里可以配置支持的块类型
-      }
+    async processAIInput(input: string): Promise<void> {
+        // 模拟AI处理
+        console.log('Processing AI input:', input)
+        
+        // 这里应该调用实际的AI API
+        // 暂时只是简单地在编辑器末尾添加内容
+        const currentContent = this.getValue()
+        const aiResponse = `<p><strong>AI建议:</strong> ${input}</p>`
+        this.setValue(currentContent + aiResponse)
     }
-  }
 
-  private emit(event: string, data?: any): void {
-    const listeners = this.eventListeners.get(event)
-    if (listeners) {
-      listeners.forEach(callback => callback(data))
+    async applyAISuggestion(suggestionId: string): Promise<void> {
+        console.log('Applying AI suggestion:', suggestionId)
+        // 实现AI建议应用逻辑
     }
-  }
+
+    onContentChange(callback: (content: string) => void): void {
+        this.contentCallbacks.push(callback)
+    }
+
+    onSelectionChange(callback: (selection: string) => void): void {
+        this.selectionCallbacks.push(callback)
+    }
+
+    onTOCChange(callback: (toc: TOCItem[]) => void): void {
+        this.tocCallbacks.push(callback)
+    }
+
+    focus(): void {
+        const editor = this.element?.querySelector('.rich-text-editor') as HTMLElement
+        editor?.focus()
+    }
+
+    blur(): void {
+        const editor = this.element?.querySelector('.rich-text-editor') as HTMLElement
+        editor?.blur()
+    }
+
+    isFocused(): boolean {
+        const editor = this.element?.querySelector('.rich-text-editor') as HTMLElement
+        return document.activeElement === editor
+    }
+
+    private getDefaultContent(): string {
+        const templates = {
+            [SceneTemplate.WRITING]: `
+                <h1>新文档</h1>
+                <p>开始写作...</p>
+            `,
+            [SceneTemplate.RESEARCH]: `
+                <h1>研究文档</h1>
+                <h2>研究目标</h2>
+                <p>描述你的研究目标...</p>
+                <h2>研究方法</h2>
+                <p>描述你的研究方法...</p>
+            `,
+            [SceneTemplate.LEARNING]: `
+                <h1>学习笔记</h1>
+                <h2>学习目标</h2>
+                <p>记录你的学习目标...</p>
+                <h2>学习内容</h2>
+                <p>记录学习内容...</p>
+            `,
+            [SceneTemplate.PLANNING]: `
+                <h1>项目规划</h1>
+                <h2>项目目标</h2>
+                <p>定义项目目标...</p>
+                <h2>时间安排</h2>
+                <p>制定时间安排...</p>
+            `,
+            [SceneTemplate.CREATIVE]: `
+                <h1>创意项目</h1>
+                <h2>创意想法</h2>
+                <p>记录你的创意想法...</p>
+                <h2>灵感来源</h2>
+                <p>记录灵感来源...</p>
+            `,
+        }
+
+        return templates[this.sceneTemplate] || templates[SceneTemplate.WRITING]
+    }
 } 

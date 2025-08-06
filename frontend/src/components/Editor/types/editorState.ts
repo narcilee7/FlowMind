@@ -1,86 +1,102 @@
 /**
- * 编辑器状态接口
+ * 编辑器状态
  */
 
-import { PositionSection, ScrollPosition, SelectionRange, Viewport } from "./editorAdapter"
-import { EditorMode } from "./editorMode"
-import { EditorType } from "./editorType"
+import { EditorType, SceneTemplate, AICapability } from './editorType'
 
+/**
+ * 基础编辑器状态
+ */
 export interface EditorState {
-    content: string
-    language: string
-    theme: string
-    editorType: EditorType
-    editorMode: EditorMode
-    isReadOnly: boolean
-    isDirty: boolean
-    selection: string
-    // 光标和选择
-    cursorPosition: PositionSection
-    selectionRange: SelectionRange | null
-    // 滚动
-    scrollPosition: ScrollPosition
-    // 视口
-    viewport: Viewport
-    // 编辑器特定状态
-    markdownState?: MarkdownEditorState
-    richTextState?: RichTextEditorState
-    canvasState?: CanvasEditorState
+    // 核心状态
+    content: string                    // 当前内容
+    editorType: EditorType            // 当前编辑器类型
+    sceneTemplate: SceneTemplate      // 当前场景模板
+    
+    // AI相关状态
+    aiCapabilities: AICapability[]    // 启用的AI能力
+    isAIProcessing: boolean           // AI是否正在处理
+    aiSuggestions: AISuggestion[]     // AI建议列表
+    
+    // 文档状态
+    documentId: string                // 文档ID
+    version: number                   // 版本号
+    lastModified: Date                // 最后修改时间
+    isDirty: boolean                  // 是否有未保存的更改
+    
+    // 目录状态
+    tableOfContents: TOCItem[]        // 目录结构
+    currentSection: string            // 当前章节ID
+    
+    // UI状态
+    isFullscreen: boolean             // 是否全屏
+    sidebarVisible: boolean           // 侧边栏是否可见
+    toolbarVisible: boolean           // 工具栏是否可见
+    tocVisible: boolean               // 目录是否可见
 }
 
 /**
- * Markdown 编辑器特定状态
+ * 目录项
  */
-
-export interface MarkdownEditorState {
-    // 显示行号
-    showLineNumbers: boolean
-    // 显示边距
-    showGutter: boolean
-    // 换行
-    wordWrap: boolean
-    // 自动保存
-    autoSave: boolean
-    // 预览主题
-    previewTheme: string
-    // 数学渲染
-    mathRendering: boolean
-    // mermaid 渲染
-    mermaidRendering: boolean
+export interface TOCItem {
+    id: string
+    title: string
+    level: number                     // 标题级别 (1-6)
+    children: TOCItem[]
+    position: number                  // 在文档中的位置
+    isExpanded?: boolean              // 是否展开
 }
 
 /**
- * 富文本编辑器特定状态
+ * AI建议
  */
-
-export interface RichTextEditorState {
-    // 显示工具栏
-    showToolbar: boolean
-    // 显示格式栏
-    showFormatBar: boolean
-    // 块类型
-    blockTypes: string[]
-    // 自定义块
-    customBlocks: Record<string, any>
-    // 协作功能
-    collaborationEnabled: boolean
+export interface AISuggestion {
+    id: string
+    type: 'content' | 'structure' | 'research' | 'visualization'
+    title: string
+    description: string
+    confidence: number
+    action: () => void
 }
 
 /**
- * Canvas 编辑器特定状态
+ * 编辑器配置
  */
+export interface EditorConfig {
+    // 基础配置
+    autoSave: boolean                 // 自动保存
+    autoSaveInterval: number          // 自动保存间隔（毫秒）
+    
+    // AI配置
+    enableAI: boolean                 // 是否启用AI
+    aiCapabilities: AICapability[]    // 启用的AI能力
+    
+    // 目录配置
+    autoGenerateTOC: boolean          // 自动生成目录
+    tocUpdateInterval: number         // 目录更新间隔（毫秒）
+    
+    // 主题配置
+    theme: 'light' | 'dark' | 'auto'  // 主题
+    fontSize: number                  // 字体大小
+    
+    // 快捷键配置
+    enableShortcuts: boolean          // 是否启用快捷键
+}
 
-export interface CanvasEditorState {
-    // 缩放
-    zoom: number
-    // 平移
-    pan: { x: number; y: number }
-    // 选中的节点
-    selectedNodes: string[]
-    // 选中的边
-    selectedEdges: string[]
-    // 网格
-    gridEnabled: boolean
-    // 网格对齐
-    snapToGrid: boolean
+/**
+ * 编辑器操作
+ */
+export interface EditorAction {
+    type: string
+    payload?: any
+    timestamp: number
+}
+
+/**
+ * 编辑器历史记录
+ */
+export interface EditorHistory {
+    actions: EditorAction[]
+    currentIndex: number
+    maxHistorySize: number
 }

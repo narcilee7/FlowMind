@@ -1,19 +1,27 @@
-export { EditorLayout } from './templates/EditorLayout'
-export { EditorWorkspace } from './organisms/EditorWorkspace'
-export { MonacoEditor } from './organisms/MonacoEditor'
-export { EditorToolbar } from './molecules/EditorToolbar'
-export { TableOfContents } from './molecules/TableOfContents'
-export { FileTree } from './molecules/FileTree'
+/**
+ * 编辑器组件主入口 - 基于PRD重构
+ */
 
-// 新的多编辑器架构
-export { EditorProvider, useEditor } from './core/EditorProvider'
-export { EditorCoreV2 } from './organisms/EditorCoreV2'
-export { MultiEditorDemo } from './examples/MultiEditorDemo'
-export { AIEditor } from './organisms/AIEditor'
-export { AIEditorWorkspace } from './organisms/AIEditorWorkspace'
+// 核心组件
+export { EditorProvider } from './core/EditorProvider'
+export { EditorCore } from './core/EditorCore'
+export { default as EditorManager } from './core/EditorManager'
 export { default as EditorAdapterFactory } from './core/EditorAdapterFactory'
-export type { EditorAdapter, PositionSection, SelectionRange, ScrollPosition } from './types/editorAdapter'
-export { MarkdownAdapter } from './adapters/MarkdownAdapter'
-export { RichTextAdapter } from './adapters/RichTextAdapter'
-export { CanvasAdapter } from './adapters/CanvasAdapter'
-export * from './types'
+
+// 类型定义
+export * from './types/editorType'
+export * from './types/editorState'
+export * from './types/editorAdapter'
+export * from './types/editorContext'
+
+// 适配器
+export * from './adapters'
+
+// 插件
+export * from './plugins'
+
+// 工具函数
+export { useEditor } from './types/editorContext'
+
+// 默认导出
+export { EditorProvider as default } from './core/EditorProvider'
