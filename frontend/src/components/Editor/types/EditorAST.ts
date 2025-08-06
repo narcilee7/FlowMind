@@ -1,12 +1,48 @@
 /**
- * 编辑器AST数据结构定义
+ * 编辑器AST数据结构 - 多形态编辑器通信核心
+ * 支持富文本、图谱、Canvas、表格、时间线等多种视图模式
  */
 
 /**
- * AST节点类型
+ * 基础节点接口
  */
-export type ASTNodeType = 
-    | 'doc'           // 文档根节点
+export interface BaseNode {
+    id: string                    // 唯一标识符
+    type: string                  // 节点类型
+    position: Position            // 位置信息
+    metadata?: NodeMetadata       // 元数据
+    children?: ASTNode[]          // 子节点
+    parent?: string               // 父节点ID
+}
+
+/**
+ * 位置信息
+ */
+export interface Position {
+    x: number                     // X坐标
+    y: number                     // Y坐标
+    z?: number                    // Z坐标（用于3D）
+    width?: number                // 宽度
+    height?: number               // 高度
+    rotation?: number             // 旋转角度
+}
+
+/**
+ * 节点元数据
+ */
+export interface NodeMetadata {
+    createdAt: string             // 创建时间
+    updatedAt: string             // 更新时间
+    author?: string               // 作者
+    tags?: string[]               // 标签
+    version?: string              // 版本
+    [key: string]: any            // 扩展属性
+}
+
+/**
+ * 富文本节点类型
+ */
+export type RichTextNodeType = 
     | 'paragraph'     // 段落
     | 'heading'       // 标题
     | 'text'          // 文本
@@ -25,77 +61,331 @@ export type ASTNodeType =
     | 'tableRow'      // 表格行
     | 'tableCell'     // 表格单元格
     | 'horizontalRule' // 分割线
-    | 'graphNode'     // 图谱节点
-    | 'graphEdge'     // 图谱边
-    | 'canvas'        // Canvas
-    | 'aiBlock'       // AI生成块
 
 /**
- * AST节点属性
+ * 富文本节点
  */
-export interface ASTNodeAttrs {
+export interface RichTextNode extends BaseNode {
+    type: RichTextNodeType
+    content?: string              // 文本内容
+    attributes?: RichTextAttributes // 富文本属性
+    marks?: TextMark[]            // 文本标记
+}
+
+/**
+ * 富文本属性
+ */
+export interface RichTextAttributes {
+    level?: number                // 标题级别
+    language?: string             // 代码语言
+    href?: string                 // 链接地址
+    src?: string                  // 图片地址
+    alt?: string                  // 图片描述
+    ordered?: boolean             // 是否有序列表
     [key: string]: any
 }
 
 /**
- * AST节点
+ * 文本标记
  */
-export interface ASTNode {
-    type: ASTNodeType
-    attrs?: ASTNodeAttrs
-    content?: ASTNode[]
-    text?: string
-    marks?: ASTMark[]
+export interface TextMark {
+    type: string
+    attributes?: Record<string, any>
 }
 
 /**
- * AST标记
+ * 图谱节点类型
  */
-export interface ASTMark {
-    type: string
-    attrs?: ASTNodeAttrs
+export type GraphNodeType = 
+    | 'graphNode'     // 图谱节点
+    | 'graphEdge'     // 图谱边
+    | 'graphGroup'    // 图谱组
+
+/**
+ * 图谱节点
+ */
+export interface GraphNode extends BaseNode {
+    type: GraphNodeType
+    label: string                 // 节点标签
+    graphData?: GraphData         // 图谱数据
 }
+
+/**
+ * 图谱数据
+ */
+export interface GraphData {
+    nodeType?: string             // 节点类型（概念、实体、事件等）
+    properties?: Record<string, any> // 节点属性
+    connections?: string[]        // 连接的边ID
+    group?: string                // 所属组
+}
+
+/**
+ * 图谱边
+ */
+export interface GraphEdge extends BaseNode {
+    type: 'graphEdge'
+    source: string                // 源节点ID
+    target: string                // 目标节点ID
+    label?: string                // 边标签
+    edgeType?: string             // 边类型（关系类型）
+    weight?: number               // 权重
+    directed?: boolean            // 是否有向
+}
+
+/**
+ * Canvas节点类型
+ */
+export type CanvasNodeType = 
+    | 'shape'         // 形状
+    | 'image'         // 图片
+    | 'text'          // 文本
+    | 'group'         // 组
+    | 'path'          // 路径
+    | 'connector'     // 连接线
+
+/**
+ * Canvas节点
+ */
+export interface CanvasNode extends BaseNode {
+    type: CanvasNodeType
+    canvasData?: CanvasData       // Canvas数据
+}
+
+/**
+ * Canvas数据
+ */
+export interface CanvasData {
+    shapeType?: string            // 形状类型（矩形、圆形、三角形等）
+    fillColor?: string            // 填充颜色
+    strokeColor?: string          // 描边颜色
+    strokeWidth?: number          // 描边宽度
+    opacity?: number              // 透明度
+    text?: string                 // 文本内容
+    fontSize?: number             // 字体大小
+    fontFamily?: string           // 字体
+    points?: Point[]              // 路径点
+    [key: string]: any
+}
+
+/**
+ * 点坐标
+ */
+export interface Point {
+    x: number
+    y: number
+}
+
+/**
+ * 表格节点类型
+ */
+export type TableNodeType = 
+    | 'table'         // 表格
+    | 'tableRow'      // 表格行
+    | 'tableCell'     // 表格单元格
+    | 'tableHeader'   // 表格头部
+
+/**
+ * 表格节点
+ */
+export interface TableNode extends BaseNode {
+    type: TableNodeType
+    tableData?: TableData         // 表格数据
+}
+
+/**
+ * 表格数据
+ */
+export interface TableData {
+    rows: number                  // 行数
+    cols: number                  // 列数
+    headers?: string[]            // 表头
+    data?: string[][]             // 表格数据
+    sortable?: boolean            // 是否可排序
+    filterable?: boolean          // 是否可过滤
+    [key: string]: any
+}
+
+/**
+ * 时间线节点类型
+ */
+export type TimelineNodeType = 
+    | 'timeline'      // 时间线
+    | 'timelineItem'  // 时间线项
+    | 'milestone'     // 里程碑
+
+/**
+ * 时间线节点
+ */
+export interface TimelineNode extends BaseNode {
+    type: TimelineNodeType
+    timelineData?: TimelineData   // 时间线数据
+}
+
+/**
+ * 时间线数据
+ */
+export interface TimelineData {
+    date?: string                 // 日期
+    time?: string                 // 时间
+    duration?: number             // 持续时间
+    status?: string               // 状态
+    priority?: number             // 优先级
+    assignee?: string             // 负责人
+    [key: string]: any
+}
+
+/**
+ * AI节点类型
+ */
+export type AINodeType = 
+    | 'aiBlock'       // AI生成块
+    | 'aiSuggestion'  // AI建议
+    | 'aiCompletion'  // AI补全
+
+/**
+ * AI节点
+ */
+export interface AINode extends BaseNode {
+    type: AINodeType
+    aiData?: AIData               // AI数据
+}
+
+/**
+ * AI数据
+ */
+export interface AIData {
+    prompt?: string               // 提示词
+    model?: string                // 模型名称
+    confidence?: number           // 置信度
+    alternatives?: string[]       // 备选方案
+    metadata?: Record<string, any> // AI元数据
+}
+
+/**
+ * 媒体节点类型
+ */
+export type MediaNodeType = 
+    | 'video'         // 视频
+    | 'audio'         // 音频
+    | 'embed'         // 嵌入内容
+
+/**
+ * 媒体节点
+ */
+export interface MediaNode extends BaseNode {
+    type: MediaNodeType
+    mediaData?: MediaData         // 媒体数据
+}
+
+/**
+ * 媒体数据
+ */
+export interface MediaData {
+    url: string                   // 媒体URL
+    type: string                  // 媒体类型
+    duration?: number             // 时长
+    thumbnail?: string            // 缩略图
+    autoplay?: boolean            // 自动播放
+    controls?: boolean            // 显示控制
+    [key: string]: any
+}
+
+/**
+ * 统一节点类型
+ */
+export type NodeType = 
+    | RichTextNodeType 
+    | GraphNodeType 
+    | CanvasNodeType 
+    | TableNodeType 
+    | TimelineNodeType 
+    | AINodeType 
+    | MediaNodeType
+
+/**
+ * 统一节点接口
+ */
+export type ASTNode = 
+    | RichTextNode 
+    | GraphNode 
+    | CanvasNode 
+    | TableNode 
+    | TimelineNode 
+    | AINode 
+    | MediaNode
 
 /**
  * 文档AST
  */
 export interface DocumentAST {
-    version: string
-    type: 'doc'
-    content: ASTNode[]
-    metadata?: DocumentMetadata
+    version: string               // 版本
+    type: 'document'              // 文档类型
+    id: string                    // 文档ID
+    title?: string                // 文档标题
+    root: ASTNode                 // 根节点
+    metadata?: DocumentMetadata   // 文档元数据
+    settings?: DocumentSettings   // 文档设置
 }
 
 /**
  * 文档元数据
  */
 export interface DocumentMetadata {
-    title?: string
-    author?: string
-    createdAt?: string
-    updatedAt?: string
-    tags?: string[]
-    sceneTemplate?: string
-    editorType?: string
+    createdAt: string             // 创建时间
+    updatedAt: string             // 更新时间
+    author?: string               // 作者
+    tags?: string[]               // 标签
+    description?: string          // 描述
+    sceneTemplate?: string        // 场景模板
+    editorType?: string           // 编辑器类型
+    [key: string]: any
+}
+
+/**
+ * 文档设置
+ */
+export interface DocumentSettings {
+    theme?: 'light' | 'dark' | 'auto' // 主题
+    fontSize?: number             // 字体大小
+    fontFamily?: string           // 字体
+    lineHeight?: number           // 行高
+    autoSave?: boolean            // 自动保存
+    collaboration?: boolean       // 协作模式
+    [key: string]: any
 }
 
 /**
  * AST操作类型
  */
 export type ASTOperation = 
-    | { type: 'insert'; pos: number; node: ASTNode }
-    | { type: 'delete'; pos: number; length: number }
-    | { type: 'replace'; pos: number; length: number; node: ASTNode }
-    | { type: 'addMark'; pos: number; length: number; mark: ASTMark }
-    | { type: 'removeMark'; pos: number; length: number; markType: string }
+    | { type: 'insert'; node: ASTNode; parentId?: string; index?: number }
+    | { type: 'delete'; nodeId: string }
+    | { type: 'update'; nodeId: string; updates: Partial<ASTNode> }
+    | { type: 'move'; nodeId: string; newParentId: string; newIndex: number }
+    | { type: 'duplicate'; nodeId: string; newParentId?: string }
 
 /**
  * AST历史记录
  */
 export interface ASTHistory {
-    operations: ASTOperation[]
-    timestamp: number
-    description?: string
+    operations: ASTOperation[]    // 操作列表
+    timestamp: number             // 时间戳
+    description?: string          // 描述
+    author?: string               // 作者
+}
+
+/**
+ * 选择状态
+ */
+export interface Selection {
+    nodeIds: string[]             // 选中的节点ID
+    range?: {                     // 文本选择范围
+        start: number
+        end: number
+        nodeId: string
+    }
+    type: 'node' | 'text' | 'mixed' // 选择类型
 }
 
 /**
@@ -105,184 +395,32 @@ export class ASTUtils {
     /**
      * 创建文档AST
      */
-    static createDocument(content: ASTNode[] = [], metadata?: DocumentMetadata): DocumentAST {
+    static createDocument(
+        id: string, 
+        title?: string, 
+        metadata?: Partial<DocumentMetadata>
+    ): DocumentAST {
         return {
             version: '1.0',
-            type: 'doc',
-            content,
+            type: 'document',
+            id,
+            title,
+            root: {
+                id: 'root',
+                type: 'group',
+                position: { x: 0, y: 0 },
+                children: [],
+                metadata: {
+                    createdAt: new Date().toISOString(),
+                    updatedAt: new Date().toISOString()
+                }
+            },
             metadata: {
                 createdAt: new Date().toISOString(),
                 updatedAt: new Date().toISOString(),
                 ...metadata
             }
         }
-    }
-
-    /**
-     * 创建文本节点
-     */
-    static createTextNode(text: string, marks: ASTMark[] = []): ASTNode {
-        return {
-            type: 'text',
-            text,
-            marks
-        }
-    }
-
-    /**
-     * 创建段落节点
-     */
-    static createParagraphNode(content: ASTNode[] = []): ASTNode {
-        return {
-            type: 'paragraph',
-            content
-        }
-    }
-
-    /**
-     * 创建标题节点
-     */
-    static createHeadingNode(level: number, content: ASTNode[] = []): ASTNode {
-        return {
-            type: 'heading',
-            attrs: { level },
-            content
-        }
-    }
-
-    /**
-     * 创建代码块节点
-     */
-    static createCodeBlockNode(code: string, language: string = ''): ASTNode {
-        return {
-            type: 'codeBlock',
-            attrs: { language },
-            content: [this.createTextNode(code)]
-        }
-    }
-
-    /**
-     * 创建链接节点
-     */
-    static createLinkNode(href: string, content: ASTNode[] = []): ASTNode {
-        return {
-            type: 'link',
-            attrs: { href },
-            content
-        }
-    }
-
-    /**
-     * 创建图片节点
-     */
-    static createImageNode(src: string, alt: string = ''): ASTNode {
-        return {
-            type: 'image',
-            attrs: { src, alt }
-        }
-    }
-
-    /**
-     * 创建列表节点
-     */
-    static createListNode(ordered: boolean = false, content: ASTNode[] = []): ASTNode {
-        return {
-            type: 'list',
-            attrs: { ordered },
-            content
-        }
-    }
-
-    /**
-     * 创建列表项节点
-     */
-    static createListItemNode(content: ASTNode[] = []): ASTNode {
-        return {
-            type: 'listItem',
-            content
-        }
-    }
-
-    /**
-     * 创建引用节点
-     */
-    static createBlockquoteNode(content: ASTNode[] = []): ASTNode {
-        return {
-            type: 'blockquote',
-            content
-        }
-    }
-
-    /**
-     * 创建表格节点
-     */
-    static createTableNode(rows: number, cols: number): ASTNode {
-        const tableRows: ASTNode[] = []
-        
-        for (let i = 0; i < rows; i++) {
-            const cells: ASTNode[] = []
-            for (let j = 0; j < cols; j++) {
-                cells.push({
-                    type: 'tableCell',
-                    content: [this.createParagraphNode()]
-                })
-            }
-            tableRows.push({
-                type: 'tableRow',
-                content: cells
-            })
-        }
-
-        return {
-            type: 'table',
-            content: tableRows
-        }
-    }
-
-    /**
-     * 创建图谱节点
-     */
-    static createGraphNode(id: string, label: string, x: number, y: number): ASTNode {
-        return {
-            type: 'graphNode',
-            attrs: { id, label, x, y }
-        }
-    }
-
-    /**
-     * 创建图谱边
-     */
-    static createGraphEdge(from: string, to: string, label?: string): ASTNode {
-        return {
-            type: 'graphEdge',
-            attrs: { from, to, label }
-        }
-    }
-
-    /**
-     * 创建AI块节点
-     */
-    static createAIBlockNode(content: string, type: string = 'text'): ASTNode {
-        return {
-            type: 'aiBlock',
-            attrs: { aiType: type },
-            content: [this.createTextNode(content)]
-        }
-    }
-
-    /**
-     * 获取节点文本内容
-     */
-    static getNodeText(node: ASTNode): string {
-        if (node.text) {
-            return node.text
-        }
-        
-        if (node.content) {
-            return node.content.map(child => this.getNodeText(child)).join('')
-        }
-        
-        return ''
     }
 
     /**
@@ -294,15 +432,22 @@ export class ASTUtils {
                 if (predicate(node)) {
                     return node
                 }
-                if (node.content) {
-                    const found = search(node.content)
+                if (node.children) {
+                    const found = search(node.children)
                     if (found) return found
                 }
             }
             return null
         }
         
-        return search(ast.content)
+        return search([ast.root])
+    }
+
+    /**
+     * 查找节点ById
+     */
+    static findNodeById(ast: DocumentAST, nodeId: string): ASTNode | null {
+        return this.findNode(ast, node => node.id === nodeId)
     }
 
     /**
@@ -312,13 +457,28 @@ export class ASTUtils {
         const traverse = (nodes: ASTNode[], path: number[] = []) => {
             nodes.forEach((node, index) => {
                 visitor(node, [...path, index])
-                if (node.content) {
-                    traverse(node.content, [...path, index])
+                if (node.children) {
+                    traverse(node.children, [...path, index])
                 }
             })
         }
         
-        traverse(ast.content)
+        traverse([ast.root])
+    }
+
+    /**
+     * 获取节点路径
+     */
+    static getNodePath(ast: DocumentAST, nodeId: string): number[] | null {
+        let path: number[] | null = null
+        
+        this.traverse(ast, (node, currentPath) => {
+            if (node.id === nodeId) {
+                path = currentPath
+            }
+        })
+        
+        return path
     }
 
     /**
@@ -332,14 +492,41 @@ export class ASTUtils {
      * 验证AST结构
      */
     static validateAST(ast: DocumentAST): boolean {
-        if (!ast || ast.type !== 'doc') {
+        if (!ast || ast.type !== 'document') {
             return false
         }
         
-        if (!Array.isArray(ast.content)) {
+        if (!ast.root) {
             return false
         }
         
         return true
+    }
+
+    /**
+     * 获取节点类型统计
+     */
+    static getNodeTypeStats(ast: DocumentAST): Record<string, number> {
+        const stats: Record<string, number> = {}
+        
+        this.traverse(ast, (node) => {
+            stats[node.type] = (stats[node.type] || 0) + 1
+        })
+        
+        return stats
+    }
+
+    /**
+     * 序列化AST
+     */
+    static serialize(ast: DocumentAST): string {
+        return JSON.stringify(ast, null, 2)
+    }
+
+    /**
+     * 反序列化AST
+     */
+    static deserialize(data: string): DocumentAST {
+        return JSON.parse(data)
     }
 } 
