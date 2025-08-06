@@ -1,16 +1,18 @@
 import React from 'react'
 import { cn } from '@/utils/cn'
-import { Panel, PanelHeader, PanelTitle } from '@/components/ui/panel'
+import { Panel, PanelHeader } from '@/components/ui/panel'
+import { IconButton } from '@/components/ui/icon-button'
+import { Button } from '@/components/ui/button'
 import { 
+  ChevronRight, 
+  ChevronDown, 
   Folder, 
   FolderOpen, 
   FileText, 
-  ChevronRight, 
-  ChevronDown,
-  Plus,
-  MoreHorizontal
+  MoreHorizontal,
+  Plus
 } from 'lucide-react'
-import { IconButton } from '@/components/ui/icon-button'
+import './FileTree.scss'
 
 interface FileNode {
   id: string
@@ -51,63 +53,60 @@ const FileTreeNode: React.FC<{
   onFileRename
 }) => {
   const isCurrentFile = currentFile === node.path
-  const hasChildren = node.children && node.children.length > 0
-  const isExpanded = node.isExpanded
+  const isExpanded = node.isExpanded ?? false
 
   const handleToggle = () => {
-    if (node.type === 'folder') {
-      onToggleExpand?.(node)
-    } else {
+    if (node.type === 'file') {
       onFileSelect?.(node)
+    } else {
+      onToggleExpand?.(node)
     }
   }
 
   return (
-    <div>
+    <div className="file-tree-node">
       <div
         className={cn(
-          'flex items-center px-2 py-1 rounded cursor-pointer group',
-          'hover:bg-accent hover:text-accent-foreground',
-          isCurrentFile && 'bg-primary text-primary-foreground',
-          !isCurrentFile && 'text-foreground'
+          'file-tree-item',
+          isCurrentFile && 'file-tree-item--current',
+          !isCurrentFile && 'file-tree-item--default'
         )}
         style={{ paddingLeft: `${level * 16 + 8}px` }}
       >
         {node.type === 'folder' && (
           <button
             onClick={() => onToggleExpand?.(node)}
-            className="p-1 hover:bg-accent/50 rounded"
+            className="file-tree-toggle"
           >
             {isExpanded ? (
-              <ChevronDown className="h-3 w-3" />
+              <ChevronDown className="file-tree-toggle__icon" />
             ) : (
-              <ChevronRight className="h-3 w-3" />
+              <ChevronRight className="file-tree-toggle__icon" />
             )}
           </button>
         )}
         
         <button
           onClick={handleToggle}
-          className="flex items-center gap-2 flex-1 text-left"
+          className="file-tree-content"
         >
           {node.type === 'folder' ? (
             isExpanded ? (
-              <FolderOpen className="h-4 w-4 text-blue-500" />
+              <FolderOpen className="file-tree-content__icon file-tree-content__icon--folder" />
             ) : (
-              <Folder className="h-4 w-4 text-blue-500" />
+              <Folder className="file-tree-content__icon file-tree-content__icon--folder" />
             )
           ) : (
-            <FileText className="h-4 w-4 text-gray-500" />
+            <FileText className="file-tree-content__icon file-tree-content__icon--file" />
           )}
-          <span className="truncate">{node.name}</span>
+          <span className="file-tree-content__name">{node.name}</span>
         </button>
 
-        <div className="opacity-0 group-hover:opacity-100 transition-opacity">
+        <div className="file-tree-actions">
           <IconButton
             icon={MoreHorizontal}
-            variant="ghost"
             size="sm"
-            className="h-6 w-6"
+            className="file-tree-actions__button"
             title="更多操作"
           />
         </div>
@@ -165,20 +164,34 @@ export const FileTree: React.FC<FileTreeProps> = ({
   }, [files, expandedNodes])
 
   return (
-    <Panel className={cn('h-full overflow-auto', className)}>
+    <Panel className={cn('file-tree', className)}>
       <PanelHeader>
-        <PanelTitle className="flex items-center justify-between">
-          <span>文件</span>
-          <IconButton
-            icon={Plus}
-            variant="ghost"
-            size="sm"
-            title="新建文件"
-            onClick={() => onFileCreate?.('', 'file')}
-          />
-        </PanelTitle>
+        <div className="file-tree-header">
+          <h3 className="file-tree-header__title">文件树</h3>
+          <div className="file-tree-header__actions">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => onFileCreate?.('', 'file')}
+              className="file-tree-header__button"
+            >
+              <Plus className="file-tree-header__button-icon" />
+              新建文件
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => onFileCreate?.('', 'folder')}
+              className="file-tree-header__button"
+            >
+              <Plus className="file-tree-header__button-icon" />
+              新建文件夹
+            </Button>
+          </div>
+        </div>
       </PanelHeader>
-      <div className="space-y-1">
+      
+      <div className="file-tree-content">
         {processedFiles.map((file) => (
           <FileTreeNode
             key={file.id}

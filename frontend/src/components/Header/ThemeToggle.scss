@@ -1,0 +1,12 @@
+/* ThemeToggle组件样式 */
+
+.theme-toggle {
+  &:hover {
+    background-color: var(--accent);
+  }
+  
+  &__icon {
+    height: 1rem;
+    width: 1rem;
+  }
+} 

@@ -1,6 +1,7 @@
 import React from "react"
 import { Button } from "../ui/button"
 import { ChevronLeft, ChevronRight } from "lucide-react"
+import "./CollapsedButton.scss"
 
 interface CollapsedButtonProps {
     isSidebarCollapsed: boolean
@@ -11,17 +12,17 @@ const CollapsedButton: React.FC<CollapsedButtonProps> = (props) => {
     const { isSidebarCollapsed, toggleSidebar } = props
 
     return (
-        <div className="p-2 border-b border-border">
+        <div className="collapsed-button-container">
             <Button 
                 variant="ghost" 
                 size="sm"
                 onClick={toggleSidebar} 
-                className="w-full h-8 hover:bg-accent"
+                className="collapsed-button"
             >
                 {isSidebarCollapsed ? (
-                    <ChevronRight className="h-4 w-4" />
+                    <ChevronRight className="collapsed-button__icon" />
                 ) : ( 
-                    <ChevronLeft className="h-4 w-4" />
+                    <ChevronLeft className="collapsed-button__icon" />
                 )}
             </Button>
         </div>

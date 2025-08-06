@@ -1,5 +1,6 @@
 import React from "react"
 import { Button } from "@/components/ui/button"
+import "./NavListView.scss"
 
 interface NavListViewProps {
     isSidebarCollapsed: boolean
@@ -19,10 +20,10 @@ const NavListView: React.FC<NavListViewProps> = (props) => {
     const toastShow = React.useCallback((item: MenuItem) => {
         if (isSidebarCollapsed) {
             return (
-                <div className="absolute left-full ml-2 px-2 py-1 bg-popover text-popover-foreground text-sm rounded-md shadow-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-50">
+                <div className="nav-tooltip">
                     {item.label}
                     {item.badge && (
-                        <span className="ml-1 text-xs text-muted-foreground">
+                        <span className="nav-tooltip__badge">
                             ({item.badge})
                         </span>
                     )}
@@ -33,29 +34,25 @@ const NavListView: React.FC<NavListViewProps> = (props) => {
     }, [isSidebarCollapsed])
 
     return (
-        <nav className="p-2 space-y-1">
+        <nav className="nav-list">
             {menuList.length > 0 && menuList.map((item) => {
                 return (
                     <Button
                         key={item.path}
                         variant="ghost"
                         className={`
-                            w-full justify-start gap-3 h-10 relative group
-                            hover:bg-accent hover:text-accent-foreground
-                            ${isSidebarCollapsed ? 'px-2' : 'px-3'}
+                            nav-item
+                            ${isSidebarCollapsed ? 'nav-item--collapsed' : ''}
                         `}
                     >
-                        <item.icon className="h-4 w-4 flex-shrink-0" />
+                        <item.icon className="nav-item__icon" />
                         {!isSidebarCollapsed && (
                             <>
-                                <span className="truncate flex-1 text-left">{item.label}</span>
+                                <span className="nav-item__label">{item.label}</span>
                                 {item.badge && (
                                     <span className={`
-                                        text-xs px-2 py-0.5 rounded-full flex-shrink-0
-                                        ${item.badge === 'Pro' 
-                                            ? 'bg-primary/10 text-primary' 
-                                            : 'bg-muted text-muted-foreground'
-                                        }
+                                        nav-item__badge
+                                        ${item.badge === 'Pro' ? 'nav-item__badge--pro' : 'nav-item__badge--default'}
                                     `}>
                                         {item.badge}
                                     </span>

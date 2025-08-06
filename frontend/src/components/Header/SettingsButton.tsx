@@ -1,14 +1,15 @@
 import { Button } from '@/components/ui/button'
 import { Settings } from 'lucide-react'
 import React from 'react'
+import './SettingsButton.scss'
 
 const SettingsButton: React.FC = () => {
     const handleClick = () => {
         console.log('SettingsButton clicked')
     }
     return (
-        <Button variant='outline' size='sm' className='hover:bg-accent' onClick={handleClick}>
-            <Settings className='h-4 w-4' />
+        <Button variant='outline' size='sm' className='settings-button' onClick={handleClick}>
+            <Settings className='settings-button__icon' />
         </Button>
     )
 }

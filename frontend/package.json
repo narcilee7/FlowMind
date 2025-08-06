@@ -24,7 +24,6 @@
   "license": "MIT",
   "packageManager": "pnpm@10.12.4",
   "dependencies": {
-    "@tailwindcss/typography": "^0.5.16",
     "@tiptap/extension-bubble-menu": "^3.0.9",
     "@tiptap/extension-code-block": "^3.0.9",
     "@tiptap/extension-collaboration": "^3.0.9",
@@ -66,7 +65,6 @@
     "react": "^19.1.1",
     "react-dom": "^19.1.1",
     "react-router-dom": "^7.7.1",
-    "tailwind-merge": "^3.3.1",
     "zustand": "^5.0.7"
   },
   "devDependencies": {
@@ -74,11 +72,9 @@
     "@types/react": "^19.1.9",
     "@types/react-dom": "^19.1.7",
     "@vitejs/plugin-react": "^4.7.0",
-    "autoprefixer": "^10.4.21",
     "concurrently": "^9.2.0",
     "electron-devtools-installer": "^4.0.0",
-    "postcss": "^8.5.6",
-    "tailwindcss": "^3.4.17",
+    "sass": "^1.90.0",
     "typescript": "^5.9.2",
     "vite": "^7.0.6",
     "wait-on": "^8.0.4"
