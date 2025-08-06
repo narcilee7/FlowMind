@@ -3,7 +3,7 @@
  * 基于TipTap的富文本编辑器适配器
  */
 
-import { EditorAdapter, EditorOptions } from '../types/EditorAdapter'
+import { EditorAdapter, EditorOptions } from '../types/ViewAdapter'
 import { EditorType, SceneTemplate } from '../types/EditorType'
 import { TOCItem } from '../types/EditorState'
 import { useEditor, EditorContent } from '@tiptap/react'

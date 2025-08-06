@@ -1,0 +1,1 @@
+export type EditorTheme = 'light' | 'dark' | 'auto'

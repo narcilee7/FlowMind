@@ -6,7 +6,7 @@ import React, { useReducer, useCallback, useEffect, useRef } from 'react'
 import { EditorContext, EditorContextValue, EditorActionType, createEditorAction } from '../types/EditorContext'
 import { EditorState, EditorConfig, TOCItem } from '../types/EditorState'
 import { EditorType, SceneTemplate, AICapability } from '../types/EditorType'
-import { EditorAdapter } from '../types/EditorAdapter'
+import { EditorAdapter } from '../types/ViewAdapter'
 import EditorManager from './EditorManager'
 
 /**

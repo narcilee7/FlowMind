@@ -1,4 +1,4 @@
-export * from './EditorAdapter'
+export * from './ViewAdapter'
 export * from './EditorContext'
 export * from './EditorFactory'
 export * from './EditorMode'

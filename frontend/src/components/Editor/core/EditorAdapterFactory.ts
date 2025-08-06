@@ -3,7 +3,7 @@
  * 基于清爽架构的适配器创建和管理
  */
 
-import { EditorAdapter } from '../types/EditorAdapter'
+import { EditorAdapter } from '../types/ViewAdapter'
 import { EditorType, SceneTemplate } from '../types/EditorType'
 import { TipTapAdapter } from '../adapters/TipTapAdapter'
 

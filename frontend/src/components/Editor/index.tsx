@@ -11,7 +11,7 @@ export { default as EditorAdapterFactory } from './core/EditorAdapterFactory'
 // 类型定义
 export * from './types/EditorType'
 export * from './types/EditorState'
-export * from './types/EditorAdapter'
+export * from './types/ViewAdapter'
 export * from './types/EditorContext'
 
 // 适配器
