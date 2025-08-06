@@ -5,6 +5,7 @@
   align-items: center;
   justify-content: center;
   white-space: nowrap;
+  border-width: 0;
   border-radius: calc(var(--radius) - 2px);
   font-size: 0.875rem;
   font-weight: 500;
@@ -26,10 +27,10 @@
     color: var(--primary-foreground);
     
     &:hover {
-      background-color: color-mix(in srgb, var(--primary) 90%, transparent);
+      background-color: color-mix(in srgb, var(--primary) 80%, transparent);
     }
   }
-  
+  // 危险按钮
   &--destructive {
     background-color: var(--destructive);
     color: var(--destructive-foreground);
@@ -38,7 +39,7 @@
       background-color: color-mix(in srgb, var(--destructive) 90%, transparent);
     }
   }
-  
+  // 轮廓按钮
   &--outline {
     border: 1px solid var(--input);
     background-color: var(--background);
@@ -48,7 +49,7 @@
       color: var(--accent-foreground);
     }
   }
-  
+  // 次要按钮
   &--secondary {
     background-color: var(--secondary);
     color: var(--secondary-foreground);
@@ -57,14 +58,14 @@
       background-color: color-mix(in srgb, var(--secondary) 80%, transparent);
     }
   }
-  
+  // 幽灵按钮
   &--ghost {
     &:hover {
       background-color: var(--accent);
       color: var(--accent-foreground);
     }
   }
-  
+  // 链接按钮
   &--link {
     color: var(--primary);
     text-decoration: underline;
@@ -92,9 +93,9 @@
     border-radius: calc(var(--radius) - 2px);
     padding: 0 2rem;
   }
-  
+  // 图标按钮
   &--icon {
     height: 2.5rem;
     width: 2.5rem;
   }
-} 
+}

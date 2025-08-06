@@ -14,8 +14,8 @@ const CollapsedButton: React.FC<CollapsedButtonProps> = (props) => {
     return (
         <div className="collapsed-button-container">
             <Button 
-                variant="ghost" 
-                size="sm"
+                variant="ghost"
+                size="icon"
                 onClick={toggleSidebar} 
                 className="collapsed-button"
             >
