@@ -1,0 +1,16 @@
+export { EditorLayout } from './templates/EditorLayout'
+export { EditorWorkspace } from './organisms/EditorWorkspace'
+export { MonacoEditor } from './organisms/MonacoEditor'
+export { EditorToolbar } from './molecules/EditorToolbar'
+export { TableOfContents } from './molecules/TableOfContents'
+export { FileTree } from './molecules/FileTree'
+
+// 新的多编辑器架构
+export { EditorProvider, useEditor } from './core/EditorProvider'
+export { EditorCoreV2 } from './organisms/EditorCoreV2'
+export { MultiEditorDemo } from './examples/MultiEditorDemo'
+export { EditorManager, EditorAdapterFactory } from './core/EditorAdapterFactory'
+export { MarkdownAdapter } from './adapters/MarkdownAdapter'
+export { RichTextAdapter } from './adapters/RichTextAdapter'
+export { CanvasAdapter } from './adapters/CanvasAdapter'
+export * from './types'
