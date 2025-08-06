@@ -2,4 +2,4 @@
 
 ## Description
 
-> AI Editor Agent
+> AI Message Manager, about editor, graph, canvas, all of that.
