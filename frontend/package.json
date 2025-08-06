@@ -65,6 +65,8 @@
     "react": "^19.1.1",
     "react-dom": "^19.1.1",
     "react-router-dom": "^7.7.1",
+    "vis-data": "^8.0.1",
+    "vis-network": "^10.0.1",
     "zustand": "^5.0.7"
   },
   "devDependencies": {
