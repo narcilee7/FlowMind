@@ -34,8 +34,8 @@ function App() {
           <Sidebar />
           <main className="flex-1 overflow-hidden">
             <Routes>
-              <Route path="/" element={<EditorLayout />} />
-              <Route path="/editor" element={<EditorLayout />} />
+              {/* <Route path="/" element={<EditorLayout />} /> */}
+              {/* <Route path="/editor" element={<EditorLayout />} /> */}
               <Route path="/theme" element={<ThemePreview />} />
             </Routes>
           </main>
