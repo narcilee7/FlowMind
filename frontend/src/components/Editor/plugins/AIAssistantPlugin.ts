@@ -1,433 +1,320 @@
-import { EditorPlugin, EditorContextValue, EditorType } from '../types'
+/**
+ * AI助手插件
+ */
 
-// AI助手插件
-export class AIAssistantPlugin implements EditorPlugin {
-  id = 'ai-assistant'
-  name = 'AI Assistant'
-  version = '1.0.0'
-  supportedEditorTypes = [EditorType.MARKDOWN, EditorType.RICH_TEXT, EditorType.CANVAS]
-  private context: EditorContextValue | null = null
-  private unsubscribe: (() => void)[] = []
-  private isProcessing = false
+import { BasePlugin, PluginConfig } from '../types/EditorPlugin'
 
-  activate(context: EditorContextValue): void {
-    this.context = context
-    
-    // 注册命令
-    this.registerCommands()
-    
-    // 注册事件监听
-    this.registerEventListeners()
-    
-    // 注册快捷键
-    this.registerKeybindings()
-  }
-
-  deactivate(): void {
-    // 清理事件监听
-    this.unsubscribe.forEach(unsub => unsub())
-    this.unsubscribe = []
-    
-    this.context = null
-  }
-
-  commands = {
-    'ai.complete': () => this.completeText(),
-    'ai.improve': () => this.improveText(),
-    'ai.summarize': () => this.summarizeText(),
-    'ai.translate': (targetLanguage: string = 'en') => this.translateText(targetLanguage),
-    'ai.format': () => this.formatText(),
-    'ai.fixGrammar': () => this.fixGrammar(),
-    'ai.expand': () => this.expandText(),
-    'ai.rewrite': (style: string = 'professional') => this.rewriteText(style),
-    'ai.generateOutline': () => this.generateOutline(),
-    'ai.addExamples': () => this.addExamples(),
-  }
-
-  keybindings = [
-    { key: 'ctrl+shift+space', command: 'ai.complete' },
-    { key: 'ctrl+shift+i', command: 'ai.improve' },
-    { key: 'ctrl+shift+s', command: 'ai.summarize' },
-    { key: 'ctrl+shift+t', command: 'ai.translate' },
-    { key: 'ctrl+shift+f', command: 'ai.format' },
-    { key: 'ctrl+shift+g', command: 'ai.fixGrammar' },
-    { key: 'ctrl+shift+e', command: 'ai.expand' },
-    { key: 'ctrl+shift+r', command: 'ai.rewrite' },
-    { key: 'ctrl+shift+o', command: 'ai.generateOutline' },
-    { key: 'ctrl+shift+x', command: 'ai.addExamples' },
-  ]
-
-  private registerCommands(): void {
-    if (!this.context) return
-
-    Object.entries(this.commands).forEach(([id, handler]) => {
-      this.context!.emit('registerCommand', { id, handler })
-    })
-  }
-
-  private registerEventListeners(): void {
-    if (!this.context) return
-
-    // 监听内容变化，提供智能建议
-    const unsub1 = this.context.subscribe('contentChanged', (content: string) => {
-      this.provideSuggestions(content)
-    })
-
-    // 监听光标位置变化，提供上下文相关的AI建议
-    const unsub2 = this.context.subscribe('cursorPositionChanged', (position: any) => {
-      this.provideContextualSuggestions(position)
-    })
-
-    // 监听选择变化，提供针对选中内容的AI操作
-    const unsub3 = this.context.subscribe('selectionChanged', (selection: any) => {
-      this.provideSelectionBasedSuggestions(selection)
-    })
-
-    this.unsubscribe.push(unsub1, unsub2, unsub3)
-  }
-
-  private registerKeybindings(): void {
-    if (!this.context) return
-
-    this.keybindings.forEach(binding => {
-      this.context!.emit('registerKeybinding', binding)
-    })
-  }
-
-  // 文本补全
-  private async completeText(): Promise<void> {
-    if (!this.context || this.isProcessing) return
-
-    this.isProcessing = true
-    try {
-      const content = this.context.getContent()
-      const cursorPosition = this.context.state.cursorPosition
-      
-      // 获取光标前的上下文
-      const context = this.getContextBeforeCursor(content, cursorPosition)
-      
-      // 调用AI服务进行补全
-      const completion = await this.callAIService('complete', {
-        context,
-        maxTokens: 100
-      })
-      
-      if (completion) {
-        this.context.insertText(completion)
-      }
-    } catch (error) {
-      console.error('AI completion failed:', error)
-      this.showError('文本补全失败，请重试')
-    } finally {
-      this.isProcessing = false
+/**
+ * AI助手插件配置
+ */
+interface AIAssistantPluginConfig extends PluginConfig {
+    options?: {
+        apiEndpoint?: string
+        apiKey?: string
+        enableAutoComplete?: boolean
+        enableSmartSuggestions?: boolean
     }
-  }
+}
 
-  // 改进文本
-  private async improveText(): Promise<void> {
-    if (!this.context || this.isProcessing) return
+/**
+ * AI助手插件
+ */
+export class AIAssistantPlugin extends BasePlugin {
+    private apiEndpoint: string
+    private apiKey: string
+    private enableAutoComplete: boolean
+    private enableSmartSuggestions: boolean
 
-    this.isProcessing = true
-    try {
-      const selection = this.context.getSelection()
-      if (!selection) {
-        this.showError('请先选择要改进的文本')
-        return
-      }
-      
-      const improved = await this.callAIService('improve', {
-        text: selection,
-        style: 'professional'
-      })
-      
-      if (improved) {
-        this.context.replaceSelection(improved)
-      }
-    } catch (error) {
-      console.error('AI improvement failed:', error)
-      this.showError('文本改进失败，请重试')
-    } finally {
-      this.isProcessing = false
+    constructor(config: Partial<AIAssistantPluginConfig> = {}) {
+        super({
+            name: 'ai-assistant',
+            version: '1.0.0',
+            description: 'AI助手插件，提供智能写作和内容生成功能',
+            enabled: config.enabled ?? true
+        })
+
+        this.apiEndpoint = config.options?.apiEndpoint || '/api/ai'
+        this.apiKey = config.options?.apiKey || ''
+        this.enableAutoComplete = config.options?.enableAutoComplete ?? true
+        this.enableSmartSuggestions = config.options?.enableSmartSuggestions ?? true
     }
-  }
 
-  // 总结文本
-  private async summarizeText(): Promise<void> {
-    if (!this.context || this.isProcessing) return
-
-    this.isProcessing = true
-    try {
-      const selection = this.context.getSelection()
-      const text = selection || this.context.getContent()
-      
-      const summary = await this.callAIService('summarize', {
-        text,
-        maxLength: 200
-      })
-      
-      if (summary) {
-        // 在文档末尾添加总结
-        const currentContent = this.context.getContent()
-        const newContent = currentContent + '\n\n## 总结\n\n' + summary
-        this.context.setContent(newContent)
-      }
-    } catch (error) {
-      console.error('AI summarization failed:', error)
-      this.showError('文本总结失败，请重试')
-    } finally {
-      this.isProcessing = false
+    protected async onInit(): Promise<void> {
+        console.log('AI Assistant Plugin initialized')
     }
-  }
 
-  // 翻译文本
-  private async translateText(targetLanguage: string): Promise<void> {
-    if (!this.context || this.isProcessing) return
-
-    this.isProcessing = true
-    try {
-      const selection = this.context.getSelection()
-      if (!selection) {
-        this.showError('请先选择要翻译的文本')
-        return
-      }
-      
-      const translated = await this.callAIService('translate', {
-        text: selection,
-        targetLanguage
-      })
-      
-      if (translated) {
-        this.context.replaceSelection(translated)
-      }
-    } catch (error) {
-      console.error('AI translation failed:', error)
-      this.showError('文本翻译失败，请重试')
-    } finally {
-      this.isProcessing = false
+    protected onDestroy(): void {
+        console.log('AI Assistant Plugin destroyed')
     }
-  }
 
-  // 格式化文本
-  private async formatText(): Promise<void> {
-    if (!this.context || this.isProcessing) return
-
-    this.isProcessing = true
-    try {
-      const content = this.context.getContent()
-      
-      const formatted = await this.callAIService('format', {
-        text: content,
-        format: 'markdown'
-      })
-      
-      if (formatted) {
-        this.context.setContent(formatted)
-      }
-    } catch (error) {
-      console.error('AI formatting failed:', error)
-      this.showError('文本格式化失败，请重试')
-    } finally {
-      this.isProcessing = false
+    protected setupEventListeners(): void {
+        // 监听内容变化，提供智能建议
+        this.addEventListener('content:change', this.handleContentChange.bind(this))
+        
+        // 监听选择变化，提供上下文相关的AI建议
+        this.addEventListener('selection:change', this.handleSelectionChange.bind(this))
+        
+        // 监听键盘事件，处理AI快捷键
+        this.addEventListener('keydown', this.handleKeyDown.bind(this))
     }
-  }
 
-  // 语法检查
-  private async fixGrammar(): Promise<void> {
-    if (!this.context || this.isProcessing) return
+    protected onEnable(): void {
+        console.log('AI Assistant Plugin enabled')
+    }
 
-    this.isProcessing = true
-    try {
-      const selection = this.context.getSelection()
-      const text = selection || this.context.getContent()
-      
-      const corrected = await this.callAIService('fixGrammar', {
-        text
-      })
-      
-      if (corrected) {
-        if (selection) {
-          this.context.replaceSelection(corrected)
-        } else {
-          this.context.setContent(corrected)
+    protected onDisable(): void {
+        console.log('AI Assistant Plugin disabled')
+    }
+
+    /**
+     * 处理内容变化
+     */
+    private async handleContentChange(content: string): Promise<void> {
+        if (!this.enableAutoComplete || !this.enabled) return
+
+        // 分析内容变化，提供智能补全
+        const lastChar = content.slice(-1)
+        if (lastChar === ' ' || lastChar === '\n') {
+            await this.provideAutoComplete(content)
         }
-      }
-    } catch (error) {
-      console.error('AI grammar fix failed:', error)
-      this.showError('语法检查失败，请重试')
-    } finally {
-      this.isProcessing = false
     }
-  }
 
-  // 扩展文本
-  private async expandText(): Promise<void> {
-    if (!this.context || this.isProcessing) return
+    /**
+     * 处理选择变化
+     */
+    private async handleSelectionChange(selection: string): Promise<void> {
+        if (!this.enableSmartSuggestions || !this.enabled) return
 
-    this.isProcessing = true
-    try {
-      const selection = this.context.getSelection()
-      if (!selection) {
-        this.showError('请先选择要扩展的文本')
-        return
-      }
-      
-      const expanded = await this.callAIService('expand', {
-        text: selection,
-        expansionType: 'detailed'
-      })
-      
-      if (expanded) {
-        this.context.replaceSelection(expanded)
-      }
-    } catch (error) {
-      console.error('AI expansion failed:', error)
-      this.showError('文本扩展失败，请重试')
-    } finally {
-      this.isProcessing = false
+        if (selection.length > 0) {
+            await this.provideSmartSuggestions(selection)
+        }
     }
-  }
 
-  // 重写文本
-  private async rewriteText(style: string): Promise<void> {
-    if (!this.context || this.isProcessing) return
+    /**
+     * 处理键盘事件
+     */
+    private async handleKeyDown(event: KeyboardEvent): Promise<void> {
+        if (!this.enabled) return
 
-    this.isProcessing = true
-    try {
-      const selection = this.context.getSelection()
-      if (!selection) {
-        this.showError('请先选择要重写的文本')
-        return
-      }
-      
-      const rewritten = await this.callAIService('rewrite', {
-        text: selection,
-        style
-      })
-      
-      if (rewritten) {
-        this.context.replaceSelection(rewritten)
-      }
-    } catch (error) {
-      console.error('AI rewrite failed:', error)
-      this.showError('文本重写失败，请重试')
-    } finally {
-      this.isProcessing = false
+        // Ctrl+Shift+A: AI续写
+        if (event.ctrlKey && event.shiftKey && event.key === 'A') {
+            event.preventDefault()
+            await this.continueWriting()
+        }
+
+        // Ctrl+Shift+R: AI改写
+        if (event.ctrlKey && event.shiftKey && event.key === 'R') {
+            event.preventDefault()
+            await this.rewriteSelection()
+        }
+
+        // Ctrl+Shift+S: AI摘要
+        if (event.ctrlKey && event.shiftKey && event.key === 'S') {
+            event.preventDefault()
+            await this.generateSummary()
+        }
     }
-  }
 
-  // 生成大纲
-  private async generateOutline(): Promise<void> {
-    if (!this.context || this.isProcessing) return
+    /**
+     * 提供自动补全
+     */
+    private async provideAutoComplete(content: string): Promise<void> {
+        try {
+            const response = await this.callAIAPI({
+                type: 'auto-complete',
+                content: content.slice(-200), // 只发送最后200个字符
+                context: this.getContext()
+            })
 
-    this.isProcessing = true
-    try {
-      const content = this.context.getContent()
-      
-      const outline = await this.callAIService('generateOutline', {
-        text: content
-      })
-      
-      if (outline) {
-        // 在文档开头插入大纲
-        const currentContent = this.context.getContent()
-        const newContent = '# 大纲\n\n' + outline + '\n\n---\n\n' + currentContent
-        this.context.setContent(newContent)
-      }
-    } catch (error) {
-      console.error('AI outline generation failed:', error)
-      this.showError('大纲生成失败，请重试')
-    } finally {
-      this.isProcessing = false
+            if (response.suggestions && response.suggestions.length > 0) {
+                this.emit('ai:suggestions', {
+                    type: 'auto-complete',
+                    suggestions: response.suggestions,
+                    position: content.length
+                })
+            }
+        } catch (error) {
+            console.error('Auto-complete failed:', error)
+        }
     }
-  }
 
-  // 添加示例
-  private async addExamples(): Promise<void> {
-    if (!this.context || this.isProcessing) return
+    /**
+     * 提供智能建议
+     */
+    private async provideSmartSuggestions(selection: string): Promise<void> {
+        try {
+            const response = await this.callAIAPI({
+                type: 'smart-suggestions',
+                content: selection,
+                context: this.getContext()
+            })
 
-    this.isProcessing = true
-    try {
-      const selection = this.context.getSelection()
-      if (!selection) {
-        this.showError('请先选择要添加示例的文本')
-        return
-      }
-      
-      const examples = await this.callAIService('addExamples', {
-        text: selection,
-        count: 3
-      })
-      
-      if (examples) {
-        const newText = selection + '\n\n### 示例\n\n' + examples
-        this.context.replaceSelection(newText)
-      }
-    } catch (error) {
-      console.error('AI example generation failed:', error)
-      this.showError('示例生成失败，请重试')
-    } finally {
-      this.isProcessing = false
+            if (response.suggestions && response.suggestions.length > 0) {
+                this.emit('ai:suggestions', {
+                    type: 'smart-suggestions',
+                    suggestions: response.suggestions,
+                    selection: selection
+                })
+            }
+        } catch (error) {
+            console.error('Smart suggestions failed:', error)
+        }
     }
-  }
 
-  // 提供建议
-  private provideSuggestions(content: string): void {
-    // 分析内容并提供智能建议
-    console.log('Providing AI suggestions for content:', content.length, 'characters')
-  }
+    /**
+     * AI续写
+     */
+    private async continueWriting(): Promise<void> {
+        const content = this.getContent()
+        const lastParagraph = this.getLastParagraph(content)
 
-  // 提供上下文建议
-  private provideContextualSuggestions(position: any): void {
-    // 根据光标位置提供上下文相关的AI建议
-    console.log('Providing contextual AI suggestions at position:', position)
-  }
+        try {
+            const response = await this.callAIAPI({
+                type: 'continue-writing',
+                content: lastParagraph,
+                context: this.getContext()
+            })
 
-  // 提供基于选择的建议
-  private provideSelectionBasedSuggestions(selection: any): void {
-    // 根据选中的内容提供相应的AI操作建议
-    console.log('Providing selection-based AI suggestions:', selection)
-  }
-
-  // 获取光标前的上下文
-  private getContextBeforeCursor(content: string, position: { line: number; column: number }): string {
-    const lines = content.split('\n')
-    const contextLines = lines.slice(0, position.line)
-    if (position.line > 0) {
-      contextLines[position.line - 1] = contextLines[position.line - 1].substring(0, position.column)
+            if (response.content) {
+                this.insertAIContent(response.content, 'continue')
+            }
+        } catch (error) {
+            console.error('Continue writing failed:', error)
+        }
     }
-    return contextLines.join('\n')
-  }
 
-  // 调用AI服务
-  private async callAIService(operation: string, params: any): Promise<string | null> {
-    // 这里应该调用实际的AI服务
-    // 目前返回模拟数据
-    console.log('Calling AI service:', operation, params)
-    
-    // 模拟API调用延迟
-    await new Promise(resolve => setTimeout(resolve, 1000))
-    
-    // 返回模拟结果
-    const mockResults = {
-      complete: '这是AI补全的文本内容。',
-      improve: '这是改进后的文本内容，更加专业和清晰。',
-      summarize: '这是对原文的简要总结，突出了主要观点。',
-      translate: 'This is the translated text content.',
-      format: '# 格式化后的文档\n\n内容已经按照Markdown格式进行了优化。',
-      fixGrammar: '这是修正语法错误后的文本。',
-      expand: '这是扩展后的详细内容，包含了更多信息和解释。',
-      rewrite: '这是按照指定风格重写后的文本内容。',
-      generateOutline: '1. 引言\n2. 主要观点\n3. 结论',
-      addExamples: '**示例1：** 这是第一个示例。\n\n**示例2：** 这是第二个示例。\n\n**示例3：** 这是第三个示例。'
-    }
-    
-    return mockResults[operation as keyof typeof mockResults] || null
-  }
+    /**
+     * AI改写选中内容
+     */
+    private async rewriteSelection(): Promise<void> {
+        const selection = this.getAdapter()?.getSelection() || ''
+        
+        if (!selection) {
+            console.warn('No text selected for rewriting')
+            return
+        }
 
-  // 显示错误信息
-  private showError(message: string): void {
-    if (this.context) {
-      this.context.emit('showError', message)
+        try {
+            const response = await this.callAIAPI({
+                type: 'rewrite',
+                content: selection,
+                context: this.getContext()
+            })
+
+            if (response.content) {
+                this.replaceSelectionWithAI(response.content)
+            }
+        } catch (error) {
+            console.error('Rewrite failed:', error)
+        }
     }
-  }
+
+    /**
+     * 生成摘要
+     */
+    private async generateSummary(): Promise<void> {
+        const content = this.getContent()
+        
+        if (!content) {
+            console.warn('No content to summarize')
+            return
+        }
+
+        try {
+            const response = await this.callAIAPI({
+                type: 'summarize',
+                content: content,
+                context: this.getContext()
+            })
+
+            if (response.content) {
+                this.insertAIContent(response.content, 'summary')
+            }
+        } catch (error) {
+            console.error('Summary generation failed:', error)
+        }
+    }
+
+    /**
+     * 调用AI API
+     */
+    private async callAIAPI(request: {
+        type: string
+        content: string
+        context?: any
+    }): Promise<any> {
+        const response = await fetch(this.apiEndpoint, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${this.apiKey}`
+            },
+            body: JSON.stringify(request)
+        })
+
+        if (!response.ok) {
+            throw new Error(`AI API request failed: ${response.statusText}`)
+        }
+
+        return await response.json()
+    }
+
+    /**
+     * 获取上下文信息
+     */
+    private getContext(): any {
+        const adapter = this.getAdapter()
+        return {
+            editorType: adapter?.type,
+            sceneTemplate: adapter?.sceneTemplate,
+            contentLength: this.getContent().length,
+            selection: adapter?.getSelection() || ''
+        }
+    }
+
+    /**
+     * 获取最后一段内容
+     */
+    private getLastParagraph(content: string): string {
+        const paragraphs = content.split('\n').filter(p => p.trim())
+        return paragraphs[paragraphs.length - 1] || ''
+    }
+
+    /**
+     * 插入AI生成的内容
+     */
+    private insertAIContent(content: string, type: string): void {
+        const adapter = this.getAdapter()
+        if (!adapter) return
+
+        // 在当前位置插入AI内容
+        const currentContent = this.getContent()
+        const newContent = currentContent + '\n\n' + content
+        
+        this.setContent(newContent)
+        
+        // 触发AI内容插入事件
+        this.emit('ai:content-inserted', {
+            type,
+            content,
+            position: currentContent.length
+        })
+    }
+
+    /**
+     * 用AI内容替换选中内容
+     */
+    private replaceSelectionWithAI(content: string): void {
+        const adapter = this.getAdapter()
+        if (!adapter) return
+
+        // 这里需要根据具体适配器实现替换逻辑
+        console.log('Replace selection with AI content:', content)
+        
+        // 触发AI内容替换事件
+        this.emit('ai:content-replaced', {
+            content,
+            originalSelection: adapter.getSelection()
+        })
+    }
 } 

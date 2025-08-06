@@ -2,7 +2,7 @@
  * 编辑器工厂接口
  */
 
-import { EditorAdapter } from "./editorAdapter";
+import { EditorAdapter } from "./EditorAdapter";
 
 export interface EditorFactory {
     // 创建编辑器适配器

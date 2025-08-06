@@ -50,7 +50,7 @@ export interface EditorConfig {
   }
   
   // 语言配置
-  languages: {
+  languages?: {
     [key: string]: {
       name: string
       extensions: string[]

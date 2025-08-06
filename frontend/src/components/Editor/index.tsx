@@ -9,10 +9,10 @@ export { default as EditorManager } from './core/EditorManager'
 export { default as EditorAdapterFactory } from './core/EditorAdapterFactory'
 
 // 类型定义
-export * from './types/editorType'
-export * from './types/editorState'
-export * from './types/editorAdapter'
-export * from './types/editorContext'
+export * from './types/EditorType'
+export * from './types/EditorState'
+export * from './types/EditorAdapter'
+export * from './types/EditorContext'
 
 // 适配器
 export * from './adapters'
@@ -21,7 +21,7 @@ export * from './adapters'
 // export * from './plugins'
 
 // 工具函数
-export { useEditor } from './types/editorContext'
+export { useEditor } from './types/EditorContext'
 
 // 默认导出
 export { EditorProvider as default } from './core/EditorProvider'

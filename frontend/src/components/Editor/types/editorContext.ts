@@ -3,9 +3,9 @@
  */
 
 import { createContext, useContext } from 'react'
-import { EditorState, EditorConfig, EditorAction, TOCItem } from './editorState'
-import { EditorType, SceneTemplate, AICapability } from './editorType'
-import { EditorAdapter } from './editorAdapter'
+import { EditorState, EditorConfig, EditorAction, TOCItem } from './EditorState'
+import { EditorType, SceneTemplate, AICapability } from './EditorType'
+import { EditorAdapter } from './EditorAdapter'
 
 /**
  * 编辑器上下文值

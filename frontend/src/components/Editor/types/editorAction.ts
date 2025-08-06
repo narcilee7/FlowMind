@@ -2,10 +2,8 @@
  * 编辑器动作
  */
 
-import { EditorType } from "./editorType"
-import { EditorMode } from "./editorMode"
-import { PositionSection, ScrollPosition, SelectionRange, Viewport } from "./editorAdapter";
-import { CanvasEditorState, MarkdownEditorState, RichTextEditorState } from "./editorState";
+import { EditorType } from "./EditorType"
+import { EditorMode } from "./EditorMode"
 
 export enum EditorActionType {
     // 设置内容
@@ -53,15 +51,15 @@ export type EditorAction =
     | { type: EditorActionType.SET_EDITOR_TYPE; payload: EditorType }
     | { type: EditorActionType.SET_EDITOR_MODE; payload: EditorMode }
     | { type: EditorActionType.SET_READ_ONLY; payload: boolean }
-    | { type: EditorActionType.INSERT_TEXT; payload: { text: string; position?: PositionSection } }
-    | { type: EditorActionType.REPLACE_SELECTION; payload: string }
-    | { type: EditorActionType.SET_DIRTY; payload: boolean }
-    | { type: EditorActionType.SET_SELECTION; payload: string }
-    | { type: EditorActionType.SET_CURSOR_POSITION; payload: PositionSection }
-    | { type: EditorActionType.SET_SELECTION_RANGE; payload: SelectionRange }
-    | { type: EditorActionType.SET_SCROLL_POSITION; payload: ScrollPosition }
-    | { type: EditorActionType.SET_VIEWPORT; payload: Viewport }
-    | { type: EditorActionType.SET_MARKDOWN_STATE; payload: Partial<MarkdownEditorState> }
-    | { type: EditorActionType.SET_RICH_TEXT_STATE; payload: Partial<RichTextEditorState> }
-    | { type: EditorActionType.SET_CANVAS_STATE; payload: Partial<CanvasEditorState> }
+    // | { type: EditorActionType.INSERT_TEXT; payload: { text: string; position?: PositionSectio } }
+    // | { type: EditorActionType.REPLACE_SELECTION; payload: string }
+    // | { type: EditorActionType.SET_DIRTY; payload: boolean }
+    // | { type: EditorActionType.SET_SELECTION; payload: string }
+    // | { type: EditorActionType.SET_CURSOR_POSITION; payload: PositionSection }
+    // | { type: EditorActionType.SET_SELECTION_RANGE; payload: SelectionRange }
+    // | { type: EditorActionType.SET_SCROLL_POSITION; payload: ScrollPosition }
+    // | { type: EditorActionType.SET_VIEWPORT; payload: Viewport }
+    // | { type: EditorActionType.SET_MARKDOWN_STATE; payload: Partial<MarkdownEditorState> }
+    // | { type: EditorActionType.SET_RICH_TEXT_STATE; payload: Partial<RichTextEditorState> }
+    // | { type: EditorActionType.SET_CANVAS_STATE; payload: Partial<CanvasEditorState> }
     | { type: EditorActionType.RESET_STATE }

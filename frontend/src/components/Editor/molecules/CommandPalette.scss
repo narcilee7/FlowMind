@@ -1,0 +1,280 @@
+/**
+ * 命令面板样式
+ */
+
+.command-palette-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(8px);
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding-top: 10vh;
+  z-index: 1000;
+  animation: fadeIn 0.2s ease-out;
+}
+
+.command-palette {
+  width: 90%;
+  max-width: 600px;
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+  overflow: hidden;
+  animation: slideDown 0.2s ease-out;
+  
+  // 深色主题
+  .dark & {
+    background: #1a1a1a;
+    color: #ffffff;
+  }
+}
+
+// 头部搜索区域
+.command-palette-header {
+  display: flex;
+  align-items: center;
+  padding: 16px 20px;
+  border-bottom: 1px solid #e5e7eb;
+  
+  .dark & {
+    border-bottom-color: #374151;
+  }
+  
+  .search-icon {
+    font-size: 18px;
+    margin-right: 12px;
+    color: #6b7280;
+  }
+  
+  .command-palette-input {
+    flex: 1;
+    border: none;
+    outline: none;
+    font-size: 16px;
+    background: transparent;
+    color: inherit;
+    
+    &::placeholder {
+      color: #9ca3af;
+    }
+  }
+  
+  .shortcut-hint {
+    padding: 4px 8px;
+    background: #f3f4f6;
+    border-radius: 6px;
+    font-size: 12px;
+    color: #6b7280;
+    font-family: 'SF Mono', 'Monaco', 'Inconsolata', monospace;
+    
+    .dark & {
+      background: #374151;
+      color: #9ca3af;
+    }
+  }
+}
+
+// 命令列表
+.command-palette-list {
+  max-height: 400px;
+  overflow-y: auto;
+  
+  .command-item {
+    display: flex;
+    align-items: center;
+    padding: 12px 20px;
+    cursor: pointer;
+    transition: background-color 0.15s ease;
+    
+    &:hover {
+      background: #f9fafb;
+      
+      .dark & {
+        background: #374151;
+      }
+    }
+    
+    &.selected {
+      background: #6366f1;
+      color: white;
+      
+      .command-description {
+        color: rgba(255, 255, 255, 0.8);
+      }
+      
+      .command-shortcut {
+        background: rgba(255, 255, 255, 0.2);
+        color: white;
+      }
+    }
+    
+    .command-icon {
+      font-size: 20px;
+      margin-right: 16px;
+      width: 24px;
+      text-align: center;
+    }
+    
+    .command-content {
+      flex: 1;
+      
+      .command-title {
+        font-size: 14px;
+        font-weight: 500;
+        margin-bottom: 2px;
+      }
+      
+      .command-description {
+        font-size: 12px;
+        color: #6b7280;
+        line-height: 1.4;
+        
+        .dark & {
+          color: #9ca3af;
+        }
+      }
+    }
+    
+    .command-shortcut {
+      padding: 2px 6px;
+      background: #f3f4f6;
+      border-radius: 4px;
+      font-size: 11px;
+      color: #6b7280;
+      font-family: 'SF Mono', 'Monaco', 'Inconsolata', monospace;
+      
+      .dark & {
+        background: #374151;
+        color: #9ca3af;
+      }
+    }
+  }
+}
+
+// 无结果状态
+.no-results {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 20px;
+  color: #6b7280;
+  
+  .dark & {
+    color: #9ca3af;
+  }
+  
+  .no-results-icon {
+    font-size: 32px;
+    margin-bottom: 12px;
+  }
+  
+  .no-results-text {
+    font-size: 14px;
+  }
+}
+
+// 底部提示
+.command-palette-footer {
+  padding: 12px 20px;
+  border-top: 1px solid #e5e7eb;
+  background: #f9fafb;
+  
+  .dark & {
+    border-top-color: #374151;
+    background: #111827;
+  }
+  
+  .footer-hint {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    font-size: 12px;
+    color: #6b7280;
+    
+    .dark & {
+      color: #9ca3af;
+    }
+    
+    span {
+      padding: 2px 6px;
+      background: #e5e7eb;
+      border-radius: 4px;
+      font-family: 'SF Mono', 'Monaco', 'Inconsolata', monospace;
+      font-weight: 500;
+      
+      .dark & {
+        background: #374151;
+      }
+    }
+  }
+}
+
+// 动画
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+// 响应式设计
+@media (max-width: 768px) {
+  .command-palette-overlay {
+    padding-top: 5vh;
+  }
+  
+  .command-palette {
+    width: 95%;
+    max-height: 80vh;
+  }
+  
+  .command-palette-list {
+    max-height: 300px;
+  }
+  
+  .command-palette-header {
+    padding: 12px 16px;
+    
+    .command-palette-input {
+      font-size: 16px; // 防止iOS缩放
+    }
+  }
+  
+  .command-item {
+    padding: 10px 16px;
+    
+    .command-icon {
+      font-size: 18px;
+      margin-right: 12px;
+    }
+    
+    .command-content {
+      .command-title {
+        font-size: 13px;
+      }
+      
+      .command-description {
+        font-size: 11px;
+      }
+    }
+  }
+} 

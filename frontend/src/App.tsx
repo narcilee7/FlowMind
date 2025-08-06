@@ -3,7 +3,7 @@ import { BrowserRouter as Router, Routes, Route } from 'react-router-dom'
 import { useAppStore } from '@/stores/app-store'
 import { Sidebar } from '@/components/Sidebar'
 import { Header } from '@/components/Header'
-import { EditorDemo } from '@/components/Editor/examples/EditorDemo'
+import { EditorDemoV2 } from '@/components/Editor/examples/EditorDemoV2'
 
 function App() {
   const { isOnline, setIsOnline, initializeTheme } = useAppStore()
@@ -33,7 +33,7 @@ function App() {
           <Sidebar />
           <main className="flex-1 overflow-hidden">
             <Routes>
-              <Route path="/" element={<EditorDemo />} />
+              <Route path="/v2" element={<EditorDemoV2 />} />
             </Routes>
           </main>
         </div>
