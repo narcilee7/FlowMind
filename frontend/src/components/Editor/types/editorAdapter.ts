@@ -10,7 +10,9 @@ import { TOCItem } from './EditorState'
  */
 export interface EditorAdapter {
     // 基础属性
+    // 编辑器类型
     type: EditorType
+    // 编辑器场景模板
     sceneTemplate: SceneTemplate
     
     // 生命周期方法
