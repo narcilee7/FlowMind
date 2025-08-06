@@ -18,7 +18,7 @@ export * from './types/editorContext'
 export * from './adapters'
 
 // 插件
-export * from './plugins'
+// export * from './plugins'
 
 // 工具函数
 export { useEditor } from './types/editorContext'
