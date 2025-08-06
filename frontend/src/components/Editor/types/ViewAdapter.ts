@@ -53,6 +53,23 @@ export interface ViewAdapter {
     // 视图状态
     getViewport(): Viewport
     setViewport(viewport: Viewport): void
+    
+    // AI集成方法
+    requestAICompletion(context: string, position: number): Promise<string>
+    requestAIRewrite(content: string, style: string): Promise<string>
+    requestAIResearch(query: string): Promise<ResearchResult>
+    extractKnowledge(content: string): Promise<KnowledgeEntities>
+    
+    // 场景模板方法
+    applySceneTemplate(template: SceneTemplate): void
+    getSceneFeatures(): SceneFeatures
+    customizeSceneSettings(settings: SceneSettings): void
+    
+    // 协作方法
+    enableCollaboration(enabled: boolean): void
+    getCollaborators(): Collaborator[]
+    resolveConflict(conflict: Conflict): void
+    getVersionHistory(): VersionHistory[]
 }
 
 /**
@@ -257,3 +274,133 @@ export type TimelineGroupBy =
     | 'year'         // 按年分组
     | 'status'       // 按状态分组
     | 'assignee'     // 按负责人分组
+
+/**
+ * AI研究结果
+ */
+export interface ResearchResult {
+    summary: string
+    sources: ResearchSource[]
+    insights: string[]
+    relatedTopics: string[]
+    confidence: number
+}
+
+/**
+ * 研究来源
+ */
+export interface ResearchSource {
+    title: string
+    url: string
+    type: 'academic' | 'news' | 'web'
+    relevance: number
+    summary: string
+}
+
+/**
+ * 知识实体
+ */
+export interface KnowledgeEntities {
+    entities: Entity[]
+    relationships: Relationship[]
+    concepts: Concept[]
+}
+
+/**
+ * 实体
+ */
+export interface Entity {
+    id: string
+    name: string
+    type: 'person' | 'place' | 'organization' | 'event' | 'concept'
+    confidence: number
+    properties: Record<string, any>
+}
+
+/**
+ * 关系
+ */
+export interface Relationship {
+    id: string
+    source: string
+    target: string
+    type: string
+    confidence: number
+    properties: Record<string, any>
+}
+
+/**
+ * 概念
+ */
+export interface Concept {
+    id: string
+    name: string
+    description: string
+    relatedEntities: string[]
+    confidence: number
+}
+
+/**
+ * 场景特性
+ */
+export interface SceneFeatures {
+    aiFeatures: string[]
+    templates: string[]
+    tools: string[]
+    shortcuts: string[]
+}
+
+/**
+ * 场景设置
+ */
+export interface SceneSettings {
+    aiModel?: string
+    autoSave?: boolean
+    collaboration?: boolean
+    theme?: string
+    [key: string]: any
+}
+
+/**
+ * 协作者
+ */
+export interface Collaborator {
+    id: string
+    name: string
+    avatar?: string
+    status: 'online' | 'offline' | 'away'
+    lastSeen: Date
+    permissions: string[]
+}
+
+/**
+ * 冲突
+ */
+export interface Conflict {
+    id: string
+    type: 'content' | 'structure' | 'metadata'
+    description: string
+    options: ConflictResolution[]
+    createdAt: Date
+}
+
+/**
+ * 冲突解决方案
+ */
+export interface ConflictResolution {
+    id: string
+    description: string
+    action: () => void
+}
+
+/**
+ * 版本历史
+ */
+export interface VersionHistory {
+    id: string
+    version: string
+    description: string
+    author: string
+    createdAt: Date
+    changes: string[]
+}

@@ -1,99 +1,149 @@
-import * as React from "react"
-import { cn } from "@/utils/cn"
-import "./Resizable.scss"
+/**
+ * Resizable组件 - 使用styled-components实现
+ */
 
-export interface ResizableProps extends React.HTMLAttributes<HTMLDivElement> {
+import React, { useState, useRef, useEffect } from 'react'
+import styled from 'styled-components'
+
+export interface ResizableProps {
   children: React.ReactNode
-  direction?: 'horizontal' | 'vertical'
-  onResize?: (size: number) => void
+  className?: string
+  direction?: 'horizontal' | 'vertical' | 'both'
+  minWidth?: number
+  maxWidth?: number
+  minHeight?: number
+  maxHeight?: number
+  defaultWidth?: number
+  defaultHeight?: number
+  onResize?: (width: number, height: number) => void
 }
 
-const Resizable = React.forwardRef<HTMLDivElement, ResizableProps>(
-  ({ className, children, direction = 'vertical', onResize, ...props }, ref) => {
-    const resizableClasses = cn('resizable', className)
+const ResizableContainer = styled.div<{ width?: number; height?: number }>`
+  position: relative;
+  width: ${props => props.width ? `${props.width}px` : 'auto'};
+  height: ${props => props.height ? `${props.height}px` : 'auto'};
+  overflow: hidden;
+`
 
-    return (
-      <div
-        className={resizableClasses}
-        ref={ref}
-        {...props}
-      >
-        {children}
-        <div className={`resizable__handle resizable__handle--${direction}`} />
-      </div>
-    )
+const ResizeHandle = styled.div<{ direction: string }>`
+  position: absolute;
+  background: var(--border);
+  transition: background 0.2s ease;
+  
+  ${props => props.direction === 'horizontal' && `
+    right: 0;
+    top: 0;
+    bottom: 0;
+    width: 4px;
+    cursor: col-resize;
+    
+    &:hover {
+      background: var(--primary);
+    }
+  `}
+  
+  ${props => props.direction === 'vertical' && `
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 4px;
+    cursor: row-resize;
+    
+    &:hover {
+      background: var(--primary);
+    }
+  `}
+  
+  ${props => props.direction === 'both' && `
+    right: 0;
+    bottom: 0;
+    width: 8px;
+    height: 8px;
+    cursor: nw-resize;
+    
+    &:hover {
+      background: var(--primary);
+    }
+  `}
+`
+
+export const Resizable: React.FC<ResizableProps> = ({
+  children,
+  className,
+  direction = 'horizontal',
+  minWidth = 100,
+  maxWidth = 800,
+  minHeight = 100,
+  maxHeight = 600,
+  defaultWidth,
+  defaultHeight,
+  onResize,
+  ...props
+}) => {
+  const [width, setWidth] = useState(defaultWidth)
+  const [height, setHeight] = useState(defaultHeight)
+  const [isResizing, setIsResizing] = useState(false)
+  const containerRef = useRef<HTMLDivElement>(null)
+  const startPos = useRef({ x: 0, y: 0 })
+  const startSize = useRef({ width: 0, height: 0 })
+
+  const handleMouseDown = (e: React.MouseEvent) => {
+    e.preventDefault()
+    setIsResizing(true)
+    startPos.current = { x: e.clientX, y: e.clientY }
+    startSize.current = { width: width || 0, height: height || 0 }
+    
+    document.addEventListener('mousemove', handleMouseMove)
+    document.addEventListener('mouseup', handleMouseUp)
   }
-)
-Resizable.displayName = "Resizable"
 
-export interface ResizablePanelGroupProps extends React.HTMLAttributes<HTMLDivElement> {
-  children: React.ReactNode
-  direction?: 'horizontal' | 'vertical'
-}
+  const handleMouseMove = (e: MouseEvent) => {
+    if (!isResizing) return
 
-const ResizablePanelGroup = React.forwardRef<HTMLDivElement, ResizablePanelGroupProps>(
-  ({ className, children, direction = 'horizontal', ...props }, ref) => {
-    const resizablePanelGroupClasses = cn('resizable-panel-group', `resizable-panel-group--${direction}`, className)
+    const deltaX = e.clientX - startPos.current.x
+    const deltaY = e.clientY - startPos.current.y
 
-    return (
-      <div
-        className={resizablePanelGroupClasses}
-        ref={ref}
-        {...props}
-      >
-        {children}
-      </div>
-    )
+    if (direction === 'horizontal' || direction === 'both') {
+      const newWidth = Math.max(minWidth, Math.min(maxWidth, startSize.current.width + deltaX))
+      setWidth(newWidth)
+    }
+
+    if (direction === 'vertical' || direction === 'both') {
+      const newHeight = Math.max(minHeight, Math.min(maxHeight, startSize.current.height + deltaY))
+      setHeight(newHeight)
+    }
+
+    onResize?.(width || 0, height || 0)
   }
-)
-ResizablePanelGroup.displayName = "ResizablePanelGroup"
 
-export interface ResizablePanelProps extends React.HTMLAttributes<HTMLDivElement> {
-  children: React.ReactNode
-  defaultSize?: number
-  minSize?: number
-  maxSize?: number
-}
-
-const ResizablePanel = React.forwardRef<HTMLDivElement, ResizablePanelProps>(
-  ({ className, children, defaultSize = 50, minSize = 10, maxSize = 90, ...props }, ref) => {
-    const resizablePanelClasses = cn('resizable-panel', className)
-
-    return (
-      <div
-        className={resizablePanelClasses}
-        ref={ref}
-        style={{ 
-          flex: `0 0 ${defaultSize}%`,
-          minWidth: `${minSize}%`,
-          maxWidth: `${maxSize}%`
-        }}
-        {...props}
-      >
-        {children}
-      </div>
-    )
+  const handleMouseUp = () => {
+    setIsResizing(false)
+    document.removeEventListener('mousemove', handleMouseMove)
+    document.removeEventListener('mouseup', handleMouseUp)
   }
-)
-ResizablePanel.displayName = "ResizablePanel"
 
-export interface ResizableHandleProps extends React.HTMLAttributes<HTMLDivElement> {
-  direction?: 'horizontal' | 'vertical'
-}
+  useEffect(() => {
+    return () => {
+      document.removeEventListener('mousemove', handleMouseMove)
+      document.removeEventListener('mouseup', handleMouseUp)
+    }
+  }, [])
 
-const ResizableHandle = React.forwardRef<HTMLDivElement, ResizableHandleProps>(
-  ({ className, direction = 'horizontal', ...props }, ref) => {
-    const resizableHandleClasses = cn('resizable-handle', `resizable-handle--${direction}`, className)
-
-    return (
-      <div
-        className={resizableHandleClasses}
-        ref={ref}
-        {...props}
+  return (
+    <ResizableContainer
+      ref={containerRef}
+      className={className}
+      width={width}
+      height={height}
+      {...props}
+    >
+      {children}
+      <ResizeHandle
+        direction={direction}
+        onMouseDown={handleMouseDown}
       />
-    )
-  }
-)
-ResizableHandle.displayName = "ResizableHandle"
+    </ResizableContainer>
+  )
+}
 
-export { Resizable, ResizablePanelGroup, ResizablePanel, ResizableHandle }
+export default Resizable

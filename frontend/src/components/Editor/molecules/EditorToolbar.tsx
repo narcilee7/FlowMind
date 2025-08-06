@@ -1,80 +1,189 @@
-import React from 'react'
-import { 
-  Eye, 
-  EyeOff, 
-  Save, 
-  Download, 
-  Upload,
-  FileText,
-  Settings
-} from 'lucide-react'
-import { Toolbar, ToolbarGroup } from '@/components/ui/toolbar'
-import { IconButton } from '@/components/ui/icon-button'
-import { Button } from '@/components/ui/button'
-import './EditorToolbar.scss'
+/**
+ * EditorToolbar组件 - 使用styled-components实现
+ */
 
-interface EditorToolbarProps {
-  showPreview: boolean
-  onTogglePreview: () => void
-  onSave: () => void
-  onImport: () => void
-  onExport: () => void
-  onAIAssist: () => void
-  onSettings: () => void
-  isLoading?: boolean
+import React from 'react'
+import styled from 'styled-components'
+import { 
+  Bold, Italic, Underline, Strikethrough, 
+  AlignLeft, AlignCenter, AlignRight, AlignJustify,
+  List, ListOrdered, Quote, Code, Link, Image
+} from 'lucide-react'
+import { IconButton } from '@/components/ui/icon-button'
+import { Toolbar } from '@/components/ui/toolbar'
+
+export interface EditorToolbarProps {
+  className?: string
+  onAction?: (action: string) => void
 }
 
-export const EditorToolbar: React.FC<EditorToolbarProps> = ({
-  showPreview,
-  onTogglePreview,
-  onSave,
-  onImport,
-  onExport,
-  onAIAssist,
-  onSettings,
-  isLoading = false
-}) => {
+const ToolbarContainer = styled(Toolbar)`
+  border-bottom: 1px solid var(--border);
+  background: var(--background);
+  padding: 0.5rem;
+`
+
+const ToolbarGroup = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0 0.5rem;
+  border-right: 1px solid var(--border);
+  
+  &:last-child {
+    border-right: none;
+  }
+`
+
+const ToolbarSeparator = styled.div`
+  width: 1px;
+  height: 1.5rem;
+  background: var(--border);
+  margin: 0 0.5rem;
+`
+
+const EditorToolbar: React.FC<EditorToolbarProps> = ({ className, onAction }) => {
+  const handleAction = (action: string) => {
+    onAction?.(action)
+  }
+
   return (
-    <Toolbar variant="border" className="editor-toolbar">
+    <ToolbarContainer className={className}>
+      {/* 文本格式 */}
       <ToolbarGroup>
         <IconButton
-          icon={showPreview ? EyeOff : Eye}
-          onClick={onTogglePreview}
-          title={showPreview ? '隐藏预览' : '显示预览'}
-        />
+          variant="ghost"
+          size="sm"
+          onClick={() => handleAction('bold')}
+          title="粗体"
+        >
+          <Bold size={16} />
+        </IconButton>
         <IconButton
-          icon={FileText}
-          onClick={onAIAssist}
-          title="AI助手"
-        />
+          variant="ghost"
+          size="sm"
+          onClick={() => handleAction('italic')}
+          title="斜体"
+        >
+          <Italic size={16} />
+        </IconButton>
+        <IconButton
+          variant="ghost"
+          size="sm"
+          onClick={() => handleAction('underline')}
+          title="下划线"
+        >
+          <Underline size={16} />
+        </IconButton>
+        <IconButton
+          variant="ghost"
+          size="sm"
+          onClick={() => handleAction('strikethrough')}
+          title="删除线"
+        >
+          <Strikethrough size={16} />
+        </IconButton>
       </ToolbarGroup>
 
+      <ToolbarSeparator />
+
+      {/* 对齐方式 */}
       <ToolbarGroup>
         <IconButton
-          icon={Upload}
-          onClick={onImport}
-          title="导入文件"
-        />
-        <IconButton
-          icon={Download}
-          onClick={onExport}
-          title="导出文件"
-        />
-        <IconButton
-          icon={Settings}
-          onClick={onSettings}
-          title="编辑器设置"
-        />
-        <Button
-          onClick={onSave}
-          disabled={isLoading}
+          variant="ghost"
           size="sm"
-          className="save-button"
+          onClick={() => handleAction('align-left')}
+          title="左对齐"
         >
-          <Save className="save-button__icon" />
-          {isLoading ? '保存中...' : '保存'}
-        </Button>
+          <AlignLeft size={16} />
+        </IconButton>
+        <IconButton
+          variant="ghost"
+          size="sm"
+          onClick={() => handleAction('align-center')}
+          title="居中对齐"
+        >
+          <AlignCenter size={16} />
+        </IconButton>
+        <IconButton
+          variant="ghost"
+          size="sm"
+          onClick={() => handleAction('align-right')}
+          title="右对齐"
+        >
+          <AlignRight size={16} />
+        </IconButton>
+        <IconButton
+          variant="ghost"
+          size="sm"
+          onClick={() => handleAction('align-justify')}
+          title="两端对齐"
+        >
+          <AlignJustify size={16} />
+        </IconButton>
       </ToolbarGroup>
-    </Toolbar>
+
+      <ToolbarSeparator />
+
+      {/* 列表 */}
+      <ToolbarGroup>
+        <IconButton
+          variant="ghost"
+          size="sm"
+          onClick={() => handleAction('bullet-list')}
+          title="无序列表"
+        >
+          <List size={16} />
+        </IconButton>
+        <IconButton
+          variant="ghost"
+          size="sm"
+          onClick={() => handleAction('numbered-list')}
+          title="有序列表"
+        >
+          <ListOrdered size={16} />
+        </IconButton>
+      </ToolbarGroup>
+
+      <ToolbarSeparator />
+
+      {/* 其他格式 */}
+      <ToolbarGroup>
+        <IconButton
+          variant="ghost"
+          size="sm"
+          onClick={() => handleAction('quote')}
+          title="引用"
+        >
+          <Quote size={16} />
+        </IconButton>
+        <IconButton
+          variant="ghost"
+          size="sm"
+          onClick={() => handleAction('code')}
+          title="代码"
+        >
+          <Code size={16} />
+        </IconButton>
+        <IconButton
+          variant="ghost"
+          size="sm"
+          onClick={() => handleAction('link')}
+          title="链接"
+        >
+          <Link size={16} />
+        </IconButton>
+        <IconButton
+          variant="ghost"
+          size="sm"
+          onClick={() => handleAction('image')}
+          title="图片"
+        >
+          <Image size={16} />
+        </IconButton>
+      </ToolbarGroup>
+    </ToolbarContainer>
   )
-} 
+}
+
+export default EditorToolbar 

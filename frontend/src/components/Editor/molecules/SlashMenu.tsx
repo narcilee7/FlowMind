@@ -1,326 +1,231 @@
 /**
- * 斜杠菜单组件 - 插入内容菜单
- * 输入 / 时呼出，支持键盘导航
+ * SlashMenu组件 - 使用styled-components实现
  */
 
 import React, { useState, useEffect, useRef } from 'react'
-import './SlashMenu.scss'
+import styled from 'styled-components'
+import { FileText, Image, Table, Calendar, Link } from 'lucide-react'
 
-/**
- * 菜单项接口
- */
 export interface SlashMenuItem {
-    id: string
-    title: string
-    description: string
-    icon: string
-    category: 'content' | 'ai' | 'media' | 'knowledge'
-    action: () => void
+  id: string
+  title: string
+  description: string
+  icon: React.ReactNode
+  action: () => void
 }
 
-/**
- * 斜杠菜单属性
- */
 export interface SlashMenuProps {
-    position: { x: number; y: number }
-    onClose: () => void
-    onSelect: (item: SlashMenuItem) => void
+  isOpen: boolean
+  onClose: () => void
+  onSelect: (item: SlashMenuItem) => void
+  className?: string
 }
 
-/**
- * 斜杠菜单组件
- */
-export const SlashMenu: React.FC<SlashMenuProps> = ({
-    position,
-    onClose,
-    onSelect,
-}) => {
-    const [selectedIndex, setSelectedIndex] = useState(0)
-    const [searchQuery, setSearchQuery] = useState('')
-    const menuRef = useRef<HTMLDivElement>(null)
+const SlashMenuOverlay = styled.div<{ isOpen: boolean }>`
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  z-index: 1000;
+  display: ${props => props.isOpen ? 'flex' : 'none'};
+  align-items: center;
+  justify-content: center;
+`
 
-    // 预定义菜单项
-    const menuItems: SlashMenuItem[] = [
-        // 内容类型
-        {
-            id: 'heading-1',
-            title: '一级标题',
-            description: '大标题',
-            icon: 'H1',
-            category: 'content',
-            action: () => console.log('插入一级标题')
-        },
-        {
-            id: 'heading-2',
-            title: '二级标题',
-            description: '中标题',
-            icon: 'H2',
-            category: 'content',
-            action: () => console.log('插入二级标题')
-        },
-        {
-            id: 'paragraph',
-            title: '段落',
-            description: '普通文本段落',
-            icon: '¶',
-            category: 'content',
-            action: () => console.log('插入段落')
-        },
-        {
-            id: 'bullet-list',
-            title: '无序列表',
-            description: '项目符号列表',
-            icon: '•',
-            category: 'content',
-            action: () => console.log('插入无序列表')
-        },
-        {
-            id: 'numbered-list',
-            title: '有序列表',
-            description: '数字编号列表',
-            icon: '1.',
-            category: 'content',
-            action: () => console.log('插入有序列表')
-        },
-        {
-            id: 'code-block',
-            title: '代码块',
-            description: '代码片段',
-            icon: '</>',
-            category: 'content',
-            action: () => console.log('插入代码块')
-        },
-        {
-            id: 'quote',
-            title: '引用',
-            description: '引用文本',
-            icon: '"',
-            category: 'content',
-            action: () => console.log('插入引用')
-        },
-        
-        // AI功能
-        {
-            id: 'ai-continue',
-            title: 'AI续写',
-            description: '使用AI继续当前内容',
-            icon: '🤖',
-            category: 'ai',
-            action: () => console.log('AI续写')
-        },
-        {
-            id: 'ai-rewrite',
-            title: 'AI改写',
-            description: '使用AI改写选中内容',
-            icon: '✏️',
-            category: 'ai',
-            action: () => console.log('AI改写')
-        },
-        {
-            id: 'ai-summarize',
-            title: 'AI摘要',
-            description: '生成内容摘要',
-            icon: '📝',
-            category: 'ai',
-            action: () => console.log('AI摘要')
-        },
-        {
-            id: 'ai-research',
-            title: 'DeepResearch',
-            description: '深度研究助手',
-            icon: '🔍',
-            category: 'ai',
-            action: () => console.log('DeepResearch')
-        },
-        
-        // 媒体与图表
-        {
-            id: 'image',
-            title: '图片',
-            description: '插入图片',
-            icon: '🖼️',
-            category: 'media',
-            action: () => console.log('插入图片')
-        },
-        {
-            id: 'table',
-            title: '表格',
-            description: '插入表格',
-            icon: '📊',
-            category: 'media',
-            action: () => console.log('插入表格')
-        },
-        {
-            id: 'chart',
-            title: '图表',
-            description: '插入图表',
-            icon: '📈',
-            category: 'media',
-            action: () => console.log('插入图表')
-        },
-        {
-            id: 'mermaid',
-            title: '流程图',
-            description: 'Mermaid流程图',
-            icon: '🔄',
-            category: 'media',
-            action: () => console.log('插入流程图')
-        },
-        
-        // 知识管理
-        {
-            id: 'link',
-            title: '链接',
-            description: '插入链接',
-            icon: '🔗',
-            category: 'knowledge',
-            action: () => console.log('插入链接')
-        },
-        {
-            id: 'tag',
-            title: '标签',
-            description: '添加标签',
-            icon: '🏷️',
-            category: 'knowledge',
-            action: () => console.log('添加标签')
-        },
-        {
-            id: 'graph-node',
-            title: '图谱节点',
-            description: '插入知识图谱节点',
-            icon: '🧠',
-            category: 'knowledge',
-            action: () => console.log('插入图谱节点')
-        }
-    ]
+const SlashMenuContainer = styled.div`
+  background: var(--background);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-lg);
+  min-width: 300px;
+  max-width: 500px;
+  max-height: 400px;
+  overflow: hidden;
+`
 
-    // 过滤菜单项
-    const filteredItems = menuItems.filter(item =>
-        item.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        item.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        item.category.toLowerCase().includes(searchQuery.toLowerCase())
-    )
+const SlashMenuHeader = styled.div`
+  padding: 0.75rem 1rem;
+  border-bottom: 1px solid var(--border);
+  background: var(--muted);
+`
 
-    // 处理键盘导航
-    const handleKeyDown = (event: KeyboardEvent) => {
-        switch (event.key) {
-            case 'ArrowDown':
-                event.preventDefault()
-                setSelectedIndex(prev => 
-                    prev < filteredItems.length - 1 ? prev + 1 : 0
-                )
-                break
-            case 'ArrowUp':
-                event.preventDefault()
-                setSelectedIndex(prev => 
-                    prev > 0 ? prev - 1 : filteredItems.length - 1
-                )
-                break
-            case 'Enter':
-                event.preventDefault()
-                if (filteredItems[selectedIndex]) {
-                    onSelect(filteredItems[selectedIndex])
-                }
-                break
-            case 'Escape':
-                event.preventDefault()
-                onClose()
-                break
-        }
+const SlashMenuInput = styled.input`
+  width: 100%;
+  padding: 0.5rem;
+  border: none;
+  background: transparent;
+  color: var(--foreground);
+  font-size: 0.875rem;
+  
+  &:focus {
+    outline: none;
+  }
+  
+  &::placeholder {
+    color: var(--muted-foreground);
+  }
+`
+
+const SlashMenuList = styled.div`
+  max-height: 300px;
+  overflow-y: auto;
+`
+
+const SlashMenuItem = styled.div<{ isSelected: boolean }>`
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.75rem 1rem;
+  cursor: pointer;
+  background: ${props => props.isSelected ? 'var(--accent)' : 'transparent'};
+  color: ${props => props.isSelected ? 'var(--accent-foreground)' : 'var(--foreground)'};
+  
+  &:hover {
+    background: var(--accent);
+    color: var(--accent-foreground);
+  }
+`
+
+const ItemIcon = styled.div`
+  width: 1.5rem;
+  height: 1.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--muted-foreground);
+`
+
+const ItemContent = styled.div`
+  flex: 1;
+`
+
+const ItemTitle = styled.div`
+  font-size: 0.875rem;
+  font-weight: 500;
+`
+
+const ItemDescription = styled.div`
+  font-size: 0.75rem;
+  color: var(--muted-foreground);
+  margin-top: 0.125rem;
+`
+
+const SlashMenu: React.FC<SlashMenuProps> = ({ isOpen, onClose, onSelect, className }) => {
+  const [searchTerm, setSearchTerm] = useState('')
+  const [selectedIndex, setSelectedIndex] = useState(0)
+  const inputRef = useRef<HTMLInputElement>(null)
+
+  const menuItems: SlashMenuItem[] = [
+    {
+      id: 'text',
+      title: '文本',
+      description: '插入文本内容',
+      icon: <FileText size={16} />,
+      action: () => console.log('插入文本')
+    },
+    {
+      id: 'image',
+      title: '图片',
+      description: '插入图片',
+      icon: <Image size={16} />,
+      action: () => console.log('插入图片')
+    },
+    {
+      id: 'table',
+      title: '表格',
+      description: '插入表格',
+      icon: <Table size={16} />,
+      action: () => console.log('插入表格')
+    },
+    {
+      id: 'calendar',
+      title: '日历',
+      description: '插入日历组件',
+      icon: <Calendar size={16} />,
+      action: () => console.log('插入日历')
+    },
+    {
+      id: 'link',
+      title: '链接',
+      description: '插入链接',
+      icon: <Link size={16} />,
+      action: () => console.log('插入链接')
     }
+  ]
 
-    // 处理菜单项选择
-    const handleItemSelect = (item: SlashMenuItem) => {
-        onSelect(item)
+  const filteredItems = menuItems.filter(item =>
+    item.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    item.description.toLowerCase().includes(searchTerm.toLowerCase())
+  )
+
+  useEffect(() => {
+    if (isOpen && inputRef.current) {
+      inputRef.current.focus()
     }
+  }, [isOpen])
 
-    // 添加键盘事件监听
-    useEffect(() => {
-        document.addEventListener('keydown', handleKeyDown)
-        return () => {
-            document.removeEventListener('keydown', handleKeyDown)
+  useEffect(() => {
+    setSelectedIndex(0)
+  }, [searchTerm])
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    switch (e.key) {
+      case 'ArrowDown':
+        e.preventDefault()
+        setSelectedIndex(prev => (prev + 1) % filteredItems.length)
+        break
+      case 'ArrowUp':
+        e.preventDefault()
+        setSelectedIndex(prev => (prev - 1 + filteredItems.length) % filteredItems.length)
+        break
+      case 'Enter':
+        e.preventDefault()
+        if (filteredItems[selectedIndex]) {
+          onSelect(filteredItems[selectedIndex])
         }
-    }, [filteredItems, selectedIndex])
-
-    // 重置选中索引当搜索结果变化时
-    useEffect(() => {
-        setSelectedIndex(0)
-    }, [searchQuery])
-
-    // 点击外部关闭菜单
-    useEffect(() => {
-        const handleClickOutside = (event: MouseEvent) => {
-            if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
-                onClose()
-            }
-        }
-
-        document.addEventListener('mousedown', handleClickOutside)
-        return () => {
-            document.removeEventListener('mousedown', handleClickOutside)
-        }
-    }, [onClose])
-
-    // 计算菜单位置
-    const menuStyle = {
-        left: Math.min(position.x, window.innerWidth - 300),
-        top: Math.min(position.y, window.innerHeight - 400),
+        break
+      case 'Escape':
+        e.preventDefault()
+        onClose()
+        break
     }
+  }
 
-    return (
-        <div className="slash-menu-overlay">
-            <div 
-                ref={menuRef}
-                className="slash-menu"
-                style={menuStyle}
+  if (!isOpen) return null
+
+  return (
+    <SlashMenuOverlay isOpen={isOpen} onClick={onClose}>
+      <SlashMenuContainer onClick={e => e.stopPropagation()} className={className}>
+        <SlashMenuHeader>
+          <SlashMenuInput
+            ref={inputRef}
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            onKeyDown={handleKeyDown}
+            placeholder="搜索命令..."
+          />
+        </SlashMenuHeader>
+        
+        <SlashMenuList>
+          {filteredItems.map((item, index) => (
+            <SlashMenuItem
+              key={item.id}
+              isSelected={index === selectedIndex}
+              onClick={() => onSelect(item)}
             >
-                {/* 搜索输入框 */}
-                <div className="slash-menu-header">
-                    <div className="search-icon">🔍</div>
-                    <input
-                        type="text"
-                        placeholder="搜索插入内容..."
-                        value={searchQuery}
-                        onChange={e => setSearchQuery(e.target.value)}
-                        className="slash-menu-input"
-                        autoFocus
-                    />
-                </div>
+              <ItemIcon>{item.icon}</ItemIcon>
+              <ItemContent>
+                <ItemTitle>{item.title}</ItemTitle>
+                <ItemDescription>{item.description}</ItemDescription>
+              </ItemContent>
+            </SlashMenuItem>
+          ))}
+        </SlashMenuList>
+      </SlashMenuContainer>
+    </SlashMenuOverlay>
+  )
+}
 
-                {/* 菜单列表 */}
-                <div className="slash-menu-list">
-                    {filteredItems.length > 0 ? (
-                        filteredItems.map((item, index) => (
-                            <div
-                                key={item.id}
-                                className={`slash-menu-item ${index === selectedIndex ? 'selected' : ''}`}
-                                onClick={() => handleItemSelect(item)}
-                            >
-                                <div className="item-icon">{item.icon}</div>
-                                <div className="item-content">
-                                    <div className="item-title">{item.title}</div>
-                                    <div className="item-description">{item.description}</div>
-                                </div>
-                                <div className="item-category">{item.category}</div>
-                            </div>
-                        ))
-                    ) : (
-                        <div className="no-results">
-                            <div className="no-results-icon">🔍</div>
-                            <div className="no-results-text">未找到相关内容</div>
-                        </div>
-                    )}
-                </div>
-
-                {/* 底部提示 */}
-                <div className="slash-menu-footer">
-                    <div className="footer-hint">
-                        <span>↑↓</span> 导航
-                        <span>↵</span> 选择
-                        <span>Esc</span> 关闭
-                    </div>
-                </div>
-            </div>
-        </div>
-    )
-} 
+export default SlashMenu 
