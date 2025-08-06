@@ -4,7 +4,7 @@
  */
 
 import { ViewAdapterOptions, RichTextViewAdapter as IRichTextViewAdapter, TextFormat } from '@/components/Editor/types/ViewAdapter'
-import { EditorType } from '@/components/Editor/types/EditorType'
+import { EditorType, SceneTemplate } from '@/components/Editor/types/EditorType'
 import { DocumentAST, ASTNode, Selection, RichTextNode } from '@/components/Editor/types/EditorAST'
 import { BaseViewAdapter, EventCallback } from './BaseViewAdapter'
 import { ASTUtils } from '../utils/ASTUtils'
@@ -12,7 +12,7 @@ import { ASTUtils } from '../utils/ASTUtils'
 /**
  * TipTap编辑器类型定义
  */
-interface TipTapEditor {
+export interface TipTapEditor {
     commands: {
         setContent: (content: any, options?: any) => boolean
         focus: () => void
@@ -45,9 +45,11 @@ interface TipTapEditor {
  */
 export class RichTextViewAdapter extends BaseViewAdapter implements IRichTextViewAdapter {
     public readonly type: EditorType.RICH_TEXT = EditorType.RICH_TEXT
-    
+    // public sceneTemplate: SceneTemplate | null = null   // 场景模板
     private editor: TipTapEditor | null = null
+    // 内容更新队列
     private contentUpdateQueue: (() => void)[] = []
+    // 是否正在更新
     private isUpdating = false
 
     /**

@@ -5,7 +5,7 @@
 
 import { ViewAdapter, ViewAdapterOptions } from '../types/ViewAdapter'
 import { EditorType, SceneTemplate } from '../types/EditorType'
-import { DocumentAST, ASTNode, Selection, ASTOperation } from '../types/EditorAST'
+import { DocumentAST, Selection, ASTOperation } from '../types/EditorAST'
 import { ASTUtils } from '../utils/ASTUtils'
 import ViewAdapterFactory from './ViewAdapterFactory'
 

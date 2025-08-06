@@ -172,8 +172,8 @@ export interface GraphViewAdapter extends ViewAdapter {
     centerOnNode(nodeId: string): void
     
     // 图谱事件
-    onNodeDrag(callback: (nodeId: string, position: { x: number; y: number }) => void): void
-    onEdgeClick(callback: (edgeId: string, event: MouseEvent) => void): void
+    onNodeDrag(callback: (data: { nodeId: string; position: { x: number; y: number } }) => void): void
+    onEdgeClick(callback: (data: { edgeId: string; event: MouseEvent }) => void): void
 }
 
 /**
