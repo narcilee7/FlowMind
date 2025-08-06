@@ -2,7 +2,7 @@
  * 编辑器状态接口
  */
 
-import { PositionSection, SelectionRange } from "./editorAdapter"
+import { PositionSection, ScrollPosition, SelectionRange, Viewport } from "./editorAdapter"
 import { EditorMode } from "./editorMode"
 import { EditorType } from "./editorType"
 
@@ -14,10 +14,14 @@ export interface EditorState {
     editorMode: EditorMode
     isReadOnly: boolean
     isDirty: boolean
+    selection: string
+    // 光标和选择
     cursorPosition: PositionSection
     selectionRange: SelectionRange | null
-    scrollPosition: { scrollTop: number; scrollLeft: number }
-    viewport: { width: number; height: number }
+    // 滚动
+    scrollPosition: ScrollPosition
+    // 视口
+    viewport: Viewport
     // 编辑器特定状态
     markdownState?: MarkdownEditorState
     richTextState?: RichTextEditorState

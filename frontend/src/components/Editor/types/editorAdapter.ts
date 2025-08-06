@@ -71,3 +71,8 @@ export interface ScrollPosition {
     scrollLeft: number
 }
 
+// 视口接口
+export interface Viewport {
+    width: number
+    height: number
+}

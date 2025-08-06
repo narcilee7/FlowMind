@@ -1,11 +1,11 @@
-import { EditorPlugin, EditorContextValue } from '../core/EditorProvider'
+import { EditorPlugin, EditorContextValue, EditorType } from '../types'
 
 // AI助手插件
 export class AIAssistantPlugin implements EditorPlugin {
   id = 'ai-assistant'
   name = 'AI Assistant'
   version = '1.0.0'
-  
+  supportedEditorTypes = [EditorType.MARKDOWN, EditorType.RICH_TEXT, EditorType.CANVAS]
   private context: EditorContextValue | null = null
   private unsubscribe: (() => void)[] = []
   private isProcessing = false
