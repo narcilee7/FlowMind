@@ -1,4 +1,4 @@
-import { ASTNode, DocumentAST, DocumentMetadata } from "@/components/Editor/types/EditorAST";
+import { ASTNode, DocumentAST, DocumentMetadata, GraphEdge } from "@/components/Editor/types/EditorAST";
 
 /**
  * AST工具类
@@ -8,11 +8,11 @@ export class ASTUtils {
      * 创建文档AST
      */
     static createDocument(
-        id: string,
         title?: string,
         metadata?: DocumentMetadata,
         version: string = '1.0.0'
     ): DocumentAST {
+        const id = `doc_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
         return {
             version,
             type: 'document',
@@ -134,6 +134,256 @@ export class ASTUtils {
         })
 
         return stats
+    }
+
+    /**
+     * 添加节点
+     */
+    static addNode(
+        ast: DocumentAST,
+        node: ASTNode,
+        parentId?: string,
+        index?: number
+    ): DocumentAST {
+        const newAST = { ...ast }
+        
+        if (parentId) {
+            const parent = this.findNodeById(newAST, parentId)
+            if (parent) {
+                if (!parent.children) parent.children = []
+                if (index !== undefined) {
+                    parent.children.splice(index, 0, node)
+                } else {
+                    parent.children.push(node)
+                }
+            }
+        } else {
+            // 添加到根节点
+            if (!newAST.root.children) newAST.root.children = []
+            if (index !== undefined) {
+                newAST.root.children.splice(index, 0, node)
+            } else {
+                newAST.root.children.push(node)
+            }
+        }
+
+        // 更新元数据
+        if (newAST.metadata) {
+            newAST.metadata.updatedAt = new Date().toISOString()
+        }
+        
+        return newAST
+    }
+
+    /**
+     * 删除节点
+     */
+    static removeNode(ast: DocumentAST, nodeId: string): DocumentAST {
+        const newAST = { ...ast }
+        
+        const removeFromParent = (parent: ASTNode): boolean => {
+            if (parent.children) {
+                const index = parent.children.findIndex(child => child.id === nodeId)
+                if (index !== -1) {
+                    parent.children.splice(index, 1)
+                    return true
+                }
+                
+                // 递归查找子节点
+                for (const child of parent.children) {
+                    if (removeFromParent(child)) {
+                        return true
+                    }
+                }
+            }
+            return false
+        }
+
+        removeFromParent(newAST.root)
+        
+        // 更新元数据
+        if (newAST.metadata) {
+            newAST.metadata.updatedAt = new Date().toISOString()
+        }
+        
+        return newAST
+    }
+
+    /**
+     * 更新节点
+     */
+    static updateNode(
+        ast: DocumentAST,
+        nodeId: string,
+        updates: Partial<ASTNode>
+    ): DocumentAST {
+        const newAST = { ...ast }
+        
+        const updateNodeRecursive = (node: ASTNode): boolean => {
+            if (node.id === nodeId) {
+                Object.assign(node, updates)
+                return true
+            }
+            
+            if (node.children) {
+                for (const child of node.children) {
+                    if (updateNodeRecursive(child)) {
+                        return true
+                    }
+                }
+            }
+            return false
+        }
+
+        updateNodeRecursive(newAST.root)
+        
+        // 更新元数据
+        if (newAST.metadata) {
+            newAST.metadata.updatedAt = new Date().toISOString()
+        }
+        
+        return newAST
+    }
+
+    /**
+     * 移动节点
+     */
+    static moveNode(
+        ast: DocumentAST,
+        nodeId: string,
+        newParentId: string,
+        newIndex: number
+    ): DocumentAST {
+        // 先删除节点
+        let nodeToMove: ASTNode | null = null
+        const tempAST = this.removeNode(ast, nodeId)
+        
+        // 找到要移动的节点
+        this.traverse(ast, (node) => {
+            if (node.id === nodeId) {
+                nodeToMove = node
+            }
+        })
+        
+        if (nodeToMove) {
+            // 添加到新位置
+            return this.addNode(tempAST, nodeToMove, newParentId, newIndex)
+        }
+        
+        return tempAST
+    }
+
+    /**
+     * 复制节点
+     */
+    static duplicateNode(
+        ast: DocumentAST,
+        nodeId: string,
+        newParentId?: string
+    ): DocumentAST {
+        const originalNode = this.findNodeById(ast, nodeId)
+        if (!originalNode) return ast
+
+        // 创建新节点
+        const newNode = this.cloneNode(originalNode)
+        newNode.id = `${originalNode.id}_copy_${Date.now()}`
+        newNode.metadata = {
+            ...newNode.metadata,
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString()
+        }
+
+        // 递归更新子节点ID
+        this.updateChildrenIds(newNode)
+
+        return this.addNode(ast, newNode, newParentId)
+    }
+
+    /**
+     * 更新子节点ID
+     */
+    private static updateChildrenIds(node: ASTNode): void {
+        if (node.children) {
+            node.children.forEach((child, index) => {
+                const oldId = child.id
+                child.id = `${node.id}_child_${index}_${Date.now()}`
+                child.parent = node.id
+                
+                // 递归更新子节点
+                this.updateChildrenIds(child)
+            })
+        }
+    }
+
+    /**
+     * 创建富文本节点
+     */
+    static createRichTextNode(
+        type: any,
+        content?: string,
+        attributes?: any,
+        position?: any
+    ): ASTNode {
+        return {
+            id: `node_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+            type,
+            content,
+            attributes,
+            position: position || { x: 0, y: 0 },
+            metadata: {
+                createdAt: new Date().toISOString(),
+                updatedAt: new Date().toISOString()
+            }
+        }
+    }
+
+    /**
+     * 创建图谱节点
+     */
+    static createGraphNode(
+        label: string,
+        nodeType?: string,
+        properties?: any,
+        position?: any
+    ): ASTNode {
+        return {
+            id: `graph_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+            type: 'graphNode',
+            label,
+            graphData: {
+                nodeType,
+                properties
+            },
+            position: position || { x: 0, y: 0 },
+            metadata: {
+                createdAt: new Date().toISOString(),
+                updatedAt: new Date().toISOString()
+            }
+        }
+    }
+
+    /**
+     * 创建图谱边
+     */
+    static createGraphEdge(
+        source: string,
+        target: string,
+        label?: string,
+        edgeType?: string
+    ): GraphEdge {
+        return {
+            id: `edge_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+            type: 'graphEdge',
+            source,
+            target,
+            label: label || '',
+            edgeType,
+            position: { x: 0, y: 0 },
+            metadata: {
+                createdAt: new Date().toISOString(),
+                updatedAt: new Date().toISOString()
+            }
+        }
     }
 
     /**
