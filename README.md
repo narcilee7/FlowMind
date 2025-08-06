@@ -2,4 +2,4 @@
 
 ## Description
 
-> AI Markdown with knowledge Graph
+> AI Editor Agent
