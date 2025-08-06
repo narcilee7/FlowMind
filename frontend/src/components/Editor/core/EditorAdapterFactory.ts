@@ -1,7 +1,4 @@
 import { EditorAdapter, EditorType } from '../types'
-// import { MarkdownAdapter } from '../adapters/MarkdownAdapter'
-// import { RichTextAdapter } from '../adapters/RichTextAdapter'
-// import { CanvasAdapter } from '../adapters/CanvasAdapter'
 
 export default class EditorAdapterFactory {
   private static adapters = new Map<EditorType, new () => EditorAdapter>()
