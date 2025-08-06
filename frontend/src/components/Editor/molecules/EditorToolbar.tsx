@@ -11,6 +11,7 @@ import {
 import { Toolbar, ToolbarGroup } from '@/components/ui/toolbar'
 import { IconButton } from '@/components/ui/icon-button'
 import { Button } from '@/components/ui/button'
+import './EditorToolbar.scss'
 
 interface EditorToolbarProps {
   showPreview: boolean
@@ -34,7 +35,7 @@ export const EditorToolbar: React.FC<EditorToolbarProps> = ({
   isLoading = false
 }) => {
   return (
-    <Toolbar variant="border" className="h-12">
+    <Toolbar variant="border" className="editor-toolbar">
       <ToolbarGroup>
         <IconButton
           icon={showPreview ? EyeOff : Eye}
@@ -68,9 +69,9 @@ export const EditorToolbar: React.FC<EditorToolbarProps> = ({
           onClick={onSave}
           disabled={isLoading}
           size="sm"
-          className="bg-primary hover:bg-primary/90 text-primary-foreground"
+          className="save-button"
         >
-          <Save className="h-4 w-4 mr-2" />
+          <Save className="save-button__icon" />
           {isLoading ? '保存中...' : '保存'}
         </Button>
       </ToolbarGroup>

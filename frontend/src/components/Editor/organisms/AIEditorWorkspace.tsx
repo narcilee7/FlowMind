@@ -19,6 +19,7 @@ import {
   Maximize2,
   Minimize2
 } from 'lucide-react'
+import './AIEditorWorkspace.scss'
 
 interface AIEditorWorkspaceProps {
   initialContent?: string

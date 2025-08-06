@@ -1,0 +1,157 @@
+/* AIEditorWorkspace 组件样式 */
+
+.ai-editor-workspace {
+  &.fixed {
+    position: fixed;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    z-index: 50;
+  }
+  
+  &.bg-white {
+    background-color: #ffffff;
+  }
+  
+  &.dark .bg-gray-900 {
+    background-color: #111827;
+  }
+  
+  &.h-full {
+    height: 100%;
+  }
+}
+
+/* 顶部工具栏 */
+.border-b {
+  border-bottom-width: 1px;
+}
+
+.border-gray-200 {
+  border-color: #e5e7eb;
+}
+
+.dark .border-gray-700 {
+  border-color: #374151;
+}
+
+.bg-white {
+  background-color: #ffffff;
+}
+
+.dark .bg-gray-800 {
+  background-color: #1f2937;
+}
+
+/* 侧边栏样式 */
+.w-64 {
+  width: 16rem;
+}
+
+.border-r {
+  border-right-width: 1px;
+}
+
+.bg-gray-50 {
+  background-color: #f9fafb;
+}
+
+.dark .bg-gray-800 {
+  background-color: #1f2937;
+}
+
+/* 标签样式 */
+.border-b-2 {
+  border-bottom-width: 2px;
+}
+
+.border-purple-600 {
+  border-color: #9333ea;
+}
+
+.text-purple-600 {
+  color: #9333ea;
+}
+
+.dark .text-purple-600 {
+  color: #c084fc;
+}
+
+.text-gray-600 {
+  color: #4b5563;
+}
+
+.dark .text-gray-400 {
+  color: #9ca3af;
+}
+
+.hover-text-gray-900:hover {
+  color: #111827;
+}
+
+.dark .hover-text-gray-200:hover {
+  color: #e5e7eb;
+}
+
+.dark .bg-gray-700 {
+  background-color: #374151;
+}
+
+/* 内容区域 */
+.flex-1 {
+  flex: 1 1 0%;
+}
+
+.flex-col {
+  flex-direction: column;
+}
+
+/* 按钮样式 */
+.w-full {
+  width: 100%;
+}
+
+.justify-start {
+  justify-content: flex-start;
+}
+
+/* 文本样式 */
+.text-xs {
+  font-size: 0.75rem;
+  line-height: 1rem;
+}
+
+.mt-1 {
+  margin-top: 0.25rem;
+}
+
+/* 选择框样式 */
+.select {
+  width: 100%;
+  margin-top: 0.25rem;
+  font-size: 0.875rem;
+  border: 1px solid #d1d5db;
+  border-radius: 0.25rem;
+  padding: 0.125rem 0.5rem;
+  background-color: #ffffff;
+}
+
+.dark .select {
+  border-color: #4b5563;
+  background-color: #374151;
+}
+
+/* 复选框样式 */
+.flex {
+  display: flex;
+}
+
+.items-center {
+  align-items: center;
+}
+
+/* 隐藏元素 */
+.hidden {
+  display: none;
+} 

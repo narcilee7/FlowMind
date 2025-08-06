@@ -1,0 +1,10 @@
+.settings-button {
+  &:hover {
+    background-color: var(--accent);
+  }
+  
+  &__icon {
+    height: 1rem;
+    width: 1rem;
+  }
+} 

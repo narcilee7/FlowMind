@@ -1,4 +1,5 @@
 import React from 'react'
+import "./RightButtonGroup.scss"
 
 interface RightButtonGroupProps {
     children: React.ReactNode
@@ -6,7 +7,7 @@ interface RightButtonGroupProps {
 
 const RightButtonGroup: React.FC<RightButtonGroupProps> = ({ children }) => {
     return (
-        <div className='flex items-center gap-2'>
+        <div className='right-button-group'>
             {children}
         </div>
     )

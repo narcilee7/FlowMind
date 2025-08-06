@@ -42,6 +42,7 @@ import {
   Wand2,
   Highlighter
 } from 'lucide-react'
+import './AIEditor.scss'
 
 interface AIEditorProps {
   initialContent?: string
