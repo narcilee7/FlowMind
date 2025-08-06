@@ -4,13 +4,58 @@
  */
 
 import React, { useEffect, useRef, useState, useCallback } from 'react'
+import styled from 'styled-components'
 import { ViewAdapter, ViewAdapterOptions } from '@/components/Editor/types/ViewAdapter'
 import { EditorType, SceneTemplate } from '@/components/Editor/types/EditorType'
-import { DocumentAST, ASTNode, Selection } from '@/components/Editor/types/EditorAST'
+import { DocumentAST, Selection } from '@/components/Editor/types/EditorAST'
 import { EditorTheme } from '@/components/Editor/types/EditorTheme'
 import ViewAdapterFactory from '@/components/Editor/core/ViewAdapterFactory'
 import { ASTUtils } from '@/components/Editor/utils/ASTUtils'
-import './EditorCore.scss'
+import { useTheme } from '@/hooks/useAppState'
+
+const EditorContainer = styled.div`
+  width: 100%;
+  height: 100%;
+  background: var(--background);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+`
+
+const EditorContent = styled.div`
+  flex: 1;
+  position: relative;
+  overflow: hidden;
+`
+
+const LoadingOverlay = styled.div`
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: var(--background);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10;
+`
+
+const LoadingSpinner = styled.div`
+  width: 2rem;
+  height: 2rem;
+  border: 2px solid var(--border);
+  border-top: 2px solid var(--primary);
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  
+  @keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+  }
+`
 
 /**
  * 编辑器核心属性
@@ -46,6 +91,10 @@ export const EditorCore: React.FC<EditorCoreProps> = ({
     const [ast, setAST] = useState<DocumentAST>(initialAST || ASTUtils.createDocument('无标题文档'))
     const [selection, setSelection] = useState<Selection>({ nodeIds: [], type: 'node' })
     const [isLoading, setIsLoading] = useState(false)
+    
+    // 使用主题系统
+    const { currentTheme, setEditorTheme } = useTheme()
+    const effectiveTheme: EditorTheme = theme === 'auto' ? (currentTheme.type as EditorTheme) : theme
 
     // 初始化适配器
     const initializeAdapter = useCallback(async () => {
@@ -61,7 +110,7 @@ export const EditorCore: React.FC<EditorCoreProps> = ({
             const options: ViewAdapterOptions = {
                 type: editorType,
                 sceneTemplate,
-                theme,
+                theme: effectiveTheme,
                 enableSelection: true,
                 enableDrag: true,
                 enableResize: true,
@@ -97,85 +146,24 @@ export const EditorCore: React.FC<EditorCoreProps> = ({
         } finally {
             setIsLoading(false)
         }
-    }, [editorType, sceneTemplate, theme, ast, onSelectionChange, onViewChange])
-
-    // 切换适配器
-    const switchAdapter = useCallback(async (newType: EditorType, newTemplate: SceneTemplate) => {
-        if (!containerRef.current) return
-
-        setIsLoading(true)
-        try {
-            // 销毁当前适配器
-            if (adapterRef.current) {
-                adapterRef.current.destroy()
-                adapterRef.current = null
-            }
-
-            // 创建新适配器
-            const adapter = ViewAdapterFactory.createAdapter(newType, newTemplate)
-            adapterRef.current = adapter
-
-            // 配置新适配器
-            const options: ViewAdapterOptions = {
-                type: newType,
-                sceneTemplate: newTemplate,
-                theme,
-                enableSelection: true,
-                enableDrag: true,
-                enableResize: true,
-                enableContextMenu: true,
-            }
-
-            // 初始化新适配器
-            await adapter.create(containerRef.current, options)
-
-            // 渲染AST
-            adapter.render(ast)
-
-            // 重新设置事件监听
-            adapter.onSelectionChange((newSelection: Selection) => {
-                setSelection(newSelection)
-                onSelectionChange?.(newSelection)
-            })
-
-            adapter.onViewChange((viewData: any) => {
-                onViewChange?.(viewData)
-            })
-
-        } catch (error) {
-            console.error('Failed to switch adapter:', error)
-        } finally {
-            setIsLoading(false)
-        }
-    }, [theme, ast, onSelectionChange, onViewChange])
+    }, [editorType, sceneTemplate, effectiveTheme, ast, onSelectionChange, onViewChange])
 
     // 更新AST
     const updateAST = useCallback((newAST: DocumentAST) => {
         setAST(newAST)
-        adapterRef.current?.render(newAST)
+        if (adapterRef.current) {
+            adapterRef.current.update(newAST)
+        }
         onASTChange?.(newAST)
     }, [onASTChange])
 
-    // 添加节点
-    const addNode = useCallback((node: ASTNode, parentId?: string, index?: number) => {
-        const newAST = { ...ast }
-        // TODO: 实现节点添加逻辑
-        updateAST(newAST)
-    }, [ast, updateAST])
-
-    // 删除节点
-    const removeNode = useCallback((nodeId: string) => {
-        const newAST = { ...ast }
-        // TODO: 实现节点删除逻辑
-        updateAST(newAST)
-    }, [ast, updateAST])
-
-    // 更新节点
-    const updateNode = useCallback((nodeId: string, updates: Partial<ASTNode>) => {
-        const newAST = { ...ast }
-        // TODO: 实现节点更新逻辑
-        updateAST(newAST)
-    }, [ast, updateAST])
+    // 设置选择
+    const setSelectionState = useCallback((newSelection: Selection) => {
+        setSelection(newSelection)
+        if (adapterRef.current) {
+            adapterRef.current.setSelection(newSelection)
+        }
+    }, [])
 
     // 初始化
     useEffect(() => {
@@ -187,27 +175,29 @@ export const EditorCore: React.FC<EditorCoreProps> = ({
         return () => {
             if (adapterRef.current) {
                 adapterRef.current.destroy()
-                adapterRef.current = null
             }
         }
     }, [])
 
+    // 主题变化时重新初始化
+    useEffect(() => {
+        if (adapterRef.current) {
+            initializeAdapter()
+        }
+    }, [effectiveTheme, initializeAdapter])
+
     return (
-        <div className={`editor-core ${className}`} style={style}>
-            {/* 加载状态 */}
-            {isLoading && (
-                <div className="editor-loading">
-                    <div className="loading-spinner" />
-                    <span>加载中...</span>
-                </div>
-            )}
-            
-            {/* 编辑器容器 */}
-            <div 
-                ref={containerRef}
-                className="editor-container"
-                style={{ display: isLoading ? 'none' : 'block' }}
-            />
-        </div>
+        <EditorContainer className={className} style={style}>
+            <EditorContent>
+                <div ref={containerRef} style={{ width: '100%', height: '100%' }} />
+                {isLoading && (
+                    <LoadingOverlay>
+                        <LoadingSpinner />
+                    </LoadingOverlay>
+                )}
+            </EditorContent>
+        </EditorContainer>
     )
-} 
+}
+
+export default EditorCore 

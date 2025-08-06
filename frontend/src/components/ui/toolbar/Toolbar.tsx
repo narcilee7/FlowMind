@@ -1,48 +1,57 @@
-import * as React from "react"
-import { cn } from "@/utils/cn"
-import "./Toolbar.scss"
+/**
+ * Toolbar组件 - 使用styled-components实现
+ */
 
-export interface ToolbarProps extends React.HTMLAttributes<HTMLDivElement> {
+import React from 'react'
+import styled from 'styled-components'
+
+export interface ToolbarProps {
   children: React.ReactNode
-  variant?: 'default' | 'border'
+  className?: string
+  orientation?: 'horizontal' | 'vertical'
+  variant?: 'default' | 'bordered' | 'elevated'
 }
 
-const Toolbar = React.forwardRef<HTMLDivElement, ToolbarProps>(
-  ({ className, children, variant = 'default', ...props }, ref) => {
-    const toolbarClasses = cn('toolbar', `toolbar--${variant}`, className)
+const StyledToolbar = styled.div<{ orientation: 'horizontal' | 'vertical'; variant: string }>`
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem;
+  background: var(--background);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  
+  ${props => props.orientation === 'vertical' && `
+    flex-direction: column;
+    align-items: stretch;
+  `}
+  
+  ${props => props.variant === 'bordered' && `
+    border: 2px solid var(--border);
+  `}
+  
+  ${props => props.variant === 'elevated' && `
+    box-shadow: var(--shadow-md);
+  `}
+`
 
-    return (
-      <div
-        className={toolbarClasses}
-        ref={ref}
-        {...props}
-      >
-        {children}
-      </div>
-    )
-  }
-)
-Toolbar.displayName = "Toolbar"
-
-export interface ToolbarGroupProps extends React.HTMLAttributes<HTMLDivElement> {
-  children: React.ReactNode
+export const Toolbar: React.FC<ToolbarProps> = ({
+  children,
+  className,
+  orientation = 'horizontal',
+  variant = 'default',
+  ...props
+}) => {
+  return (
+    <StyledToolbar
+      className={className}
+      orientation={orientation}
+      variant={variant}
+      {...props}
+    >
+      {children}
+    </StyledToolbar>
+  )
 }
 
-const ToolbarGroup = React.forwardRef<HTMLDivElement, ToolbarGroupProps>(
-  ({ className, children, ...props }, ref) => {
-    const toolbarGroupClasses = cn('toolbar-group', className)
-
-    return (
-      <div
-        className={toolbarGroupClasses}
-        ref={ref}
-        {...props}
-      >
-        {children}
-      </div>
-    )
-  }
-)
-ToolbarGroup.displayName = "ToolbarGroup"
-
-export { Toolbar, ToolbarGroup } 
+export default Toolbar 

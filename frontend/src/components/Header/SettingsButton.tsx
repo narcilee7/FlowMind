@@ -1,17 +1,36 @@
-import { Button } from '@/components/ui/button'
-import { Settings } from 'lucide-react'
-import React from 'react'
-import './SettingsButton.scss'
+/**
+ * SettingsButton组件 - 使用styled-components实现
+ */
 
-const SettingsButton: React.FC = () => {
-    const handleClick = () => {
-        console.log('SettingsButton clicked')
-    }
-    return (
-        <Button variant='outline' size='sm' className='settings-button' onClick={handleClick}>
-            <Settings className='settings-button__icon' />
-        </Button>
-    )
+import React from 'react'
+import styled from 'styled-components'
+import { Settings } from 'lucide-react'
+import { IconButton } from '@/components/ui/icon-button'
+
+export interface SettingsButtonProps {
+  onClick?: () => void
+  className?: string
 }
 
-export default React.memo(SettingsButton) as typeof SettingsButton
+const StyledSettingsButton = styled(IconButton)`
+  &:hover {
+    background: var(--accent);
+    color: var(--accent-foreground);
+  }
+`
+
+const SettingsButton: React.FC<SettingsButtonProps> = ({ onClick, className }) => {
+  return (
+    <StyledSettingsButton
+      variant="ghost"
+      size="md"
+      onClick={onClick}
+      className={className}
+      title="设置"
+    >
+      <Settings size={16} />
+    </StyledSettingsButton>
+  )
+}
+
+export default SettingsButton

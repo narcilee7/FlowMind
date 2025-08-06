@@ -1,5 +1,6 @@
 import { useAppStore } from '@/stores/app-store'
 import { useEffect } from 'react'
+import { ThemeConfig, EditorTheme } from '@/components/Editor/types/EditorTheme'
 
 export type Theme = 'light' | 'dark' | 'system'
 
@@ -21,6 +22,10 @@ export const useAppState = () => {
     // 主题相关
     theme: store.theme || 'system',
     setTheme: store.setTheme || (() => {}),
+    setEditorTheme: store.setEditorTheme || (() => {}),
+    currentTheme: store.currentTheme,
+    availableThemes: store.availableThemes || [],
+    themeManager: store.themeManager,
     initializeTheme: store.initializeTheme || (() => {}),
     
     // 侧边栏相关
@@ -54,7 +59,15 @@ export const useAppState = () => {
  * 主题专用hook
  */
 export const useTheme = () => {
-  const { theme, setTheme, initializeTheme } = useAppState()
+  const { 
+    theme, 
+    setTheme, 
+    setEditorTheme,
+    currentTheme,
+    availableThemes,
+    themeManager,
+    initializeTheme 
+  } = useAppState()
 
   // 获取当前实际主题（考虑system模式）
   const getCurrentTheme = (): 'light' | 'dark' => {
@@ -65,10 +78,18 @@ export const useTheme = () => {
   }
 
   return {
+    // 基础主题
     theme,
     setTheme,
     getCurrentTheme,
     initializeTheme,
+    
+    // 编辑器主题
+    setEditorTheme,
+    currentTheme,
+    availableThemes,
+    themeManager,
+    
     // 兼容旧的API
     isDark: getCurrentTheme() === 'dark',
     isLight: getCurrentTheme() === 'light',
