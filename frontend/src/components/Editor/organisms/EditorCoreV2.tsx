@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react'
-import { useEditor } from '../core/EditorProvider'
-import { EditorManager } from '../core/EditorAdapterFactory'
-import { EditorType, EditorMode, EditorOptions } from '../types'
+import { useEditor } from '@/components/Editor/core/EditorProvider'
+import EditorManager from '@/components/Editor/core/EditorAdapterFactory'
+import { EditorType, EditorMode, EditorOptions } from '@/components/Editor/types'
 
 interface EditorCoreV2Props {
   className?: string
