@@ -1,21 +1,25 @@
-import { EditorAdapter, EditorType } from '../types'
+import { EditorAdapter, EditorType, SceneTemplate } from '@/components/Editor/types'
 
 export default class EditorAdapterFactory {
-  private static adapters = new Map<EditorType, new () => EditorAdapter>()
+  private static adapters = new Map<EditorType, new (sceneTemplate: SceneTemplate) => EditorAdapter>()
 
-  static createAdapter(type: EditorType): EditorAdapter {
-    const AdapterClass = this.adapters.get(type)
-    if (!AdapterClass) {
+  static createAdapter(type: EditorType, sceneTemplate: SceneTemplate): EditorAdapter {
+    const AdapterInstance = this.adapters.get(type)
+    if (!AdapterInstance) {
       throw new Error(`Unsupported editor type: ${type}`)
     }
-    return new AdapterClass()
+    return new AdapterInstance(sceneTemplate)
   }
+  
   /**
    * 注册编辑器适配器
    * @param type 编辑器类型
    * @param adapterClass 编辑器适配器类实例
    */
-  static registerAdapter(type: EditorType, adapterClass: new () => EditorAdapter): void {
+  static registerAdapter(
+    type: EditorType, 
+    adapterClass: new (sceneTemplate: SceneTemplate) => EditorAdapter
+  ): void {
     this.adapters.set(type, adapterClass)
   }
 
@@ -41,11 +45,11 @@ export default class EditorAdapterFactory {
    * @param type 编辑器类型
    * @returns 编辑器适配器
    */
-  static getAdapter(type: EditorType): EditorAdapter | null {
-    const AdapterClass = this.adapters.get(type)
-    if (!AdapterClass) {
+  static getAdapter(type: EditorType, sceneTemplate: SceneTemplate): EditorAdapter | null {
+    const AdapterInstance = this.adapters.get(type)
+    if (!AdapterInstance) {
       return null
     }
-    return new AdapterClass()
+    return new AdapterInstance(sceneTemplate)
   }
 }
