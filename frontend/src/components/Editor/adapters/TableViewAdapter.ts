@@ -5,10 +5,9 @@
  */
 
 import { ViewAdapterOptions, TableViewAdapter as ITableViewAdapter } from '@/components/Editor/types/ViewAdapter'
-import { EditorType, SceneTemplate } from '@/components/Editor/types/EditorType'
+import { EditorType } from '@/components/Editor/types/EditorType'
 import { DocumentAST, ASTNode, Selection, TableNode } from '@/components/Editor/types/EditorAST'
 import { BaseViewAdapter } from './BaseViewAdapter'
-import { ASTUtils } from '../utils/ASTUtils'
 
 /**
  * 表格数据行
@@ -49,10 +48,15 @@ export class TableViewAdapter extends BaseViewAdapter implements ITableViewAdapt
      * 创建适配器
      */
     async create(element: HTMLElement, options: ViewAdapterOptions): Promise<void> {
-        try {
-            this.element = element
-            this.options = options
+        if (this.isInitialized) {
+            this.handleError(new Error('Adapter already initialized'), 'create')
+            return
+        }
 
+        this.element = element
+        this.options = options
+
+        try {
             // 动态导入Handsontable
             const { default: Handsontable } = await import('handsontable')
             // 动态加载CSS
@@ -84,21 +88,25 @@ export class TableViewAdapter extends BaseViewAdapter implements ITableViewAdapt
                 filters: true,
                 dropdownMenu: true,
                 afterChange: (changes: any, source: string) => {
-                this.handleDataChange(changes, source)
-            },
-            afterSelection: (r: number, c: number, r2: number, c2: number) => {
-                this.handleSelectionChange(r, c, r2, c2)
-            },
-            afterOnCellMouseDown: (event: MouseEvent, coords: any) => {
-                this.handleCellClick(coords)
-            }
+                    this.handleDataChange(changes, source)
+                },
+                afterSelection: (r: number, c: number, r2: number, c2: number) => {
+                    this.handleSelectionChange(r, c, r2, c2)
+                },
+                afterOnCellMouseDown: (event: MouseEvent, coords: any) => {
+                    this.handleCellClick(coords)
+                }
             })
 
             // 设置主题样式
             this.applyTheme(options.theme || 'auto')
+            
+            this.isInitialized = true
+            this.triggerEvent('viewChange', { type: 'initialized' })
+
         } catch (error) {
-            console.error('Failed to create TableViewAdapter:', error)
-            throw new Error(`Failed to create TableViewAdapter: ${error}`)
+            this.handleError(error as Error, 'create')
+            throw error
         }
     }
 
@@ -444,12 +452,24 @@ export class TableViewAdapter extends BaseViewAdapter implements ITableViewAdapt
     }
 
     // 表格特有事件
-    onCellEdit(callback: (data: { row: number; col: number; value: string }) => void): void {
-        this.addEventListener('cellEdit', callback)
+    onCellEdit(callback: (row: number, col: number, value: string) => void): void {
+        // 使用自定义事件处理，不继承BaseViewAdapter的事件系统
+        const customEventCallbacks = (this as any).customEventCallbacks || new Map()
+        if (!customEventCallbacks.has('cellEdit')) {
+            customEventCallbacks.set('cellEdit', [])
+        }
+        customEventCallbacks.get('cellEdit').push(callback)
+        ;(this as any).customEventCallbacks = customEventCallbacks
     }
-
-    onRowSelect(callback: (data: { rowIndex: number }) => void): void {
-        this.addEventListener('rowSelect', callback)
+    
+    onRowSelect(callback: (rowIndex: number) => void): void {
+        // 使用自定义事件处理，不继承BaseViewAdapter的事件系统
+        const customEventCallbacks = (this as any).customEventCallbacks || new Map()
+        if (!customEventCallbacks.has('rowSelect')) {
+            customEventCallbacks.set('rowSelect', [])
+        }
+        customEventCallbacks.get('rowSelect').push(callback)
+        ;(this as any).customEventCallbacks = customEventCallbacks
     }
 
     private initializeTableData(): void {
@@ -497,7 +517,12 @@ export class TableViewAdapter extends BaseViewAdapter implements ITableViewAdapt
                     updatedAt: new Date().toISOString()
                 }
                 
-                this.triggerEvent('cellEdit', { row, col: colIndex, value: newValue })
+                const customEventCallbacks = (this as any).customEventCallbacks
+                if (customEventCallbacks && customEventCallbacks.has('cellEdit')) {
+                    customEventCallbacks.get('cellEdit').forEach((callback: Function) => {
+                        callback(row, colIndex, newValue)
+                    })
+                }
             }
         })
 
@@ -514,14 +539,20 @@ export class TableViewAdapter extends BaseViewAdapter implements ITableViewAdapt
 
         this.currentSelection = { nodeIds, type: 'node' }
         this.triggerEvent('selectionChange', this.currentSelection)
-        this.triggerEvent('rowSelect', startRow)
+        // 触发自定义事件
+        const customEventCallbacks = (this as any).customEventCallbacks
+        if (customEventCallbacks && customEventCallbacks.has('rowSelect')) {
+            customEventCallbacks.get('rowSelect').forEach((callback: Function) => {
+                callback(startRow)
+            })
+        }
     }
 
     private handleCellClick(coords: any): void {
         const { row } = coords
         if (row >= 0 && row < this.data.length) {
             const nodeId = this.data[row].id
-            this.triggerEvent('nodeClick', nodeId)
+            this.triggerEvent('nodeClick', { nodeId, event: new MouseEvent('click') })
         }
     }
 
@@ -529,11 +560,11 @@ export class TableViewAdapter extends BaseViewAdapter implements ITableViewAdapt
         const { row } = coords
         if (row >= 0 && row < this.data.length) {
             const nodeId = this.data[row].id
-            this.triggerEvent('nodeDoubleClick', nodeId)
+            this.triggerEvent('nodeDoubleClick', { nodeId, event: new MouseEvent('dblclick') })
         }
     }
 
-    private applyTheme(theme: EditorTheme): void {
+    protected applyTheme(theme: 'light' | 'dark' | 'auto'): void {
         if (!this.element) return
 
         const themeClass = theme === 'auto' ? 'theme-auto' : `theme-${theme}`

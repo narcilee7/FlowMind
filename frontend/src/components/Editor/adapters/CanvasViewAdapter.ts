@@ -19,7 +19,7 @@ import { ASTUtils } from '../utils/ASTUtils'
 /**
  * Fabric.js类型定义
  */
-interface FabricCanvas {
+export interface FabricCanvas {
     add: (object: any) => void
     remove: (object: any) => void
     getObjects: () => any[]
@@ -46,9 +46,13 @@ interface FabricCanvas {
     backgroundColor: string
     selection: boolean
     preserveObjectStacking: boolean
+    defaultCursor: string
+    toDataURL: (options?: any) => string
+    toSVG: (options?: any) => string
+    getPointer: (e: any) => { x: number; y: number }
 }
 
-interface FabricObject {
+export interface FabricObject {
     id?: string
     left: number
     top: number
@@ -130,7 +134,7 @@ export class CanvasViewAdapter extends BaseViewAdapter implements ICanvasViewAda
         try {
             // 动态导入Fabric.js
             const fabricModule = await import('fabric')
-            this.fabric = fabricModule as FabricLibrary
+            this.fabric = fabricModule as unknown as FabricLibrary
             
             // 创建Canvas元素
             const canvasElement = document.createElement('canvas')
@@ -279,7 +283,6 @@ export class CanvasViewAdapter extends BaseViewAdapter implements ICanvasViewAda
             return { nodeIds: [], type: 'node' }
         }
 
-        const activeObject = this.canvas.getActiveObject()
         const activeObjects = this.canvas.getActiveObjects()
 
         if (activeObjects.length > 0) {
@@ -541,14 +544,26 @@ export class CanvasViewAdapter extends BaseViewAdapter implements ICanvasViewAda
      * 绘制事件
      */
     onDraw(callback: (path: { x: number; y: number }[]) => void): void {
-        this.addEventListener('draw', callback)
+        // 使用自定义事件处理，不继承BaseViewAdapter的事件系统
+        const customEventCallbacks = (this as any).customEventCallbacks || new Map()
+        if (!customEventCallbacks.has('draw')) {
+            customEventCallbacks.set('draw', [])
+        }
+        customEventCallbacks.get('draw').push(callback)
+        ;(this as any).customEventCallbacks = customEventCallbacks
     }
 
     /**
      * 形状调整事件
      */
     onShapeResize(callback: (nodeId: string, size: { width: number; height: number }) => void): void {
-        this.addEventListener('shapeResize', callback)
+        // 使用自定义事件处理，不继承BaseViewAdapter的事件系统
+        const customEventCallbacks = (this as any).customEventCallbacks || new Map()
+        if (!customEventCallbacks.has('shapeResize')) {
+            customEventCallbacks.set('shapeResize', [])
+        }
+        customEventCallbacks.get('shapeResize').push(callback)
+        ;(this as any).customEventCallbacks = customEventCallbacks
     }
 
     // 私有方法
@@ -701,7 +716,7 @@ export class CanvasViewAdapter extends BaseViewAdapter implements ICanvasViewAda
     /**
      * 创建文本对象
      */
-    private createTextObject(node: ASTNode, canvasData: CanvasData): FabricObject | null {
+    private createTextObject(_node: ASTNode, canvasData: CanvasData): FabricObject | null {
         if (!this.fabric) return null
 
         const text = canvasData.text || 'Text'
@@ -737,7 +752,7 @@ export class CanvasViewAdapter extends BaseViewAdapter implements ICanvasViewAda
     /**
      * 创建路径对象
      */
-    private createPathObject(node: ASTNode, canvasData: CanvasData): FabricObject | null {
+    private createPathObject(_node: ASTNode, canvasData: CanvasData): FabricObject | null {
         if (!this.fabric) return null
 
         const path = canvasData.points ? this.pointsToPath(canvasData.points) : 'M 0 0 L 100 100'
@@ -751,7 +766,7 @@ export class CanvasViewAdapter extends BaseViewAdapter implements ICanvasViewAda
     /**
      * 创建连接线对象
      */
-    private createConnectorObject(node: ASTNode, canvasData: CanvasData): FabricObject | null {
+    private createConnectorObject(_node: ASTNode, canvasData: CanvasData): FabricObject | null {
         if (!this.fabric) return null
 
         const points = canvasData.points || [{ x: 0, y: 0 }, { x: 100, y: 100 }]
@@ -1005,7 +1020,13 @@ export class CanvasViewAdapter extends BaseViewAdapter implements ICanvasViewAda
             this.canvas.add(fabricPath)
             this.canvas.renderAll()
 
-            this.triggerEvent('draw', this.drawingPath)
+            // 触发自定义事件
+            const customEventCallbacks = (this as any).customEventCallbacks
+            if (customEventCallbacks && customEventCallbacks.has('draw')) {
+                customEventCallbacks.get('draw').forEach((callback: Function) => {
+                    callback(this.drawingPath)
+                })
+            }
         }
 
         this.isDrawing = false
@@ -1036,10 +1057,16 @@ export class CanvasViewAdapter extends BaseViewAdapter implements ICanvasViewAda
         const nodeId = this.getNodeIdFromFabricObject(fabricObject)
         
         if (nodeId) {
-            this.triggerEvent('shapeResize', nodeId, {
-                width: fabricObject.width * fabricObject.scaleX,
-                height: fabricObject.height * fabricObject.scaleY
-            })
+            // 触发自定义事件
+            const customEventCallbacks = (this as any).customEventCallbacks
+            if (customEventCallbacks && customEventCallbacks.has('shapeResize')) {
+                customEventCallbacks.get('shapeResize').forEach((callback: Function) => {
+                    callback(nodeId, {
+                        width: fabricObject.width * fabricObject.scaleX,
+                        height: fabricObject.height * fabricObject.scaleY
+                    })
+                })
+            }
         }
     }
 
@@ -1067,10 +1094,16 @@ export class CanvasViewAdapter extends BaseViewAdapter implements ICanvasViewAda
         const nodeId = this.getNodeIdFromFabricObject(fabricObject)
         
         if (nodeId) {
-            this.triggerEvent('shapeResize', nodeId, {
-                width: fabricObject.width * fabricObject.scaleX,
-                height: fabricObject.height * fabricObject.scaleY
-            })
+            // 触发自定义事件
+            const customEventCallbacks = (this as any).customEventCallbacks
+            if (customEventCallbacks && customEventCallbacks.has('shapeResize')) {
+                customEventCallbacks.get('shapeResize').forEach((callback: Function) => {
+                    callback(nodeId, {
+                        width: fabricObject.width * fabricObject.scaleX,
+                        height: fabricObject.height * fabricObject.scaleY
+                    })
+                })
+            }
         }
     }
 
@@ -1112,9 +1145,9 @@ export class CanvasViewAdapter extends BaseViewAdapter implements ICanvasViewAda
         if (!this.canvas) return
 
         // 清除特定的事件监听器
-        this.canvas.off('mouse:down')
-        this.canvas.off('mouse:move')
-        this.canvas.off('mouse:up')
+        this.canvas.off('mouse:down', () => {})
+        this.canvas.off('mouse:move', () => {})
+        this.canvas.off('mouse:up', () => {})
     }
 
     /**
