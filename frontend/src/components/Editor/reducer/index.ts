@@ -10,7 +10,7 @@ export const initialState: EditorState = {
   isReadOnly: false,
   isDirty: false,
   cursorPosition: { line: 1, column: 1 },
-  selection: null,
+  selectionRange: null,
   scrollPosition: { scrollTop: 0, scrollLeft: 0 },
   viewport: { width: 0, height: 0 },
   markdownState: {
@@ -36,7 +36,8 @@ export const initialState: EditorState = {
     selectedEdges: [],
     gridEnabled: true,
     snapToGrid: true
-  }
+  },
+  selection: ''
 }
 
 // 状态reducer
@@ -54,10 +55,18 @@ const editorReducer = (state: EditorState, action: EditorAction): EditorState =>
       return { ...state, editorMode: action.payload }
     case EditorActionType.SET_READ_ONLY:
       return { ...state, isReadOnly: action.payload }
+    case EditorActionType.INSERT_TEXT:
+      return { ...state, content: action.payload.text }
+    case EditorActionType.REPLACE_SELECTION:
+      return { ...state, content: action.payload }
+    case EditorActionType.SET_SELECTION:
+      return { ...state, selection: action.payload }
     case EditorActionType.SET_DIRTY:
       return { ...state, isDirty: action.payload }
     case EditorActionType.SET_CURSOR_POSITION:
       return { ...state, cursorPosition: action.payload }
+    case EditorActionType.SET_SELECTION_RANGE:
+      return { ...state, selectionRange: action.payload }
     case EditorActionType.SET_SELECTION:
       return { ...state, selection: action.payload }
     case EditorActionType.SET_SCROLL_POSITION:

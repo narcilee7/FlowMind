@@ -1,18 +1,23 @@
-import React, { createContext, useContext, useReducer, useCallback } from 'react'
+import React from 'react'
 import { 
   EditorActionType,
   EditorContextValue, 
   EditorPlugin, 
   EditorProviderProps, 
   PositionSection,
-  SelectionSection,
+  SelectionRange,
   EditorType,
-  EditorMode
+  EditorMode,
+  ScrollPosition,
+  Viewport,
+  MarkdownEditorState,
+  RichTextEditorState,
+  CanvasEditorState
 } from '../types'
 import editorReducer, { initialState } from '../reducer'
 
 // 创建上下文
-const EditorContext = createContext<EditorContextValue | null>(null)
+const EditorContext = React.createContext<EditorContextValue | null>(null)
 
 export const EditorProvider: React.FC<EditorProviderProps> = ({
   children,
@@ -22,64 +27,116 @@ export const EditorProvider: React.FC<EditorProviderProps> = ({
   initialEditorType = EditorType.MARKDOWN,
   initialEditorMode = EditorMode.EDIT
 }) => {
-  const [state, dispatch] = useReducer(editorReducer, {
+  const [state, dispatch] = React.useReducer(editorReducer, {
     ...initialState,
     content: initialContent,
     language: initialLanguage,
     theme: initialTheme,
     editorType: initialEditorType,
     editorMode: initialEditorMode
-  })
+  }) 
 
   // 插件管理
   const plugins = React.useRef<Map<string, EditorPlugin>>(new Map())
-  
+
   // 事件系统
   const eventListeners = React.useRef<Map<string, Set<Function>>>(new Map())
 
-  // 编辑器操作方法
-  const setContent = useCallback((content: string) => {
+  // 编辑器操作
+  const setContent = React.useCallback((content: string) => {
     dispatch({ type: EditorActionType.SET_CONTENT, payload: content })
   }, [])
 
-  const getContent = useCallback(() => {
+  const getContent = React.useCallback(() => {
     return state.content
   }, [state.content])
 
-  const insertText = useCallback((text: string, position?: PositionSection) => {
-    // 这里需要与具体的编辑器实例交互
-    // 暂时通过事件系统通知
-    emit('insertText', { text, position })
+  const insertText = React.useCallback((text: string, position?: PositionSection) => {
+    dispatch({ type: EditorActionType.INSERT_TEXT, payload: { text, position } })
   }, [])
 
-  const replaceSelection = useCallback((text: string) => {
-    emit('replaceSelection', { text })
+  const replaceSelection = React.useCallback((text: string) => {
+    dispatch({ type: EditorActionType.REPLACE_SELECTION, payload: text })
   }, [])
 
-  const getSelection = useCallback(() => {
-    // 通过事件系统获取选择内容
-    return ''
+  const getSelection = React.useCallback(() => {
+    return state.selection
+  }, [])
+  const setSelection = React.useCallback((selection: string) => {
+    dispatch({ type: EditorActionType.SET_SELECTION, payload: selection })
   }, [])
 
-  const setSelection = useCallback((start: PositionSection, end: PositionSection) => {
-    dispatch({ type: EditorActionType.SET_SELECTION, payload: { start, end } as SelectionSection })
+  const getSelectionRange = React.useCallback(() => {
+    return state.selectionRange
   }, [])
 
-  // 编辑器类型切换
-  const switchEditorType = useCallback((type: EditorType) => {
-    dispatch({ type: EditorActionType.SET_EDITOR_TYPE, payload: type })
+  const setSelectionRange = React.useCallback((selectionRange: SelectionRange) => {
+    dispatch({ type: EditorActionType.SET_SELECTION_RANGE, payload: selectionRange })
   }, [])
 
-  const switchEditorMode = useCallback((mode: EditorMode) => {
-    dispatch({ type: EditorActionType.SET_EDITOR_MODE, payload: mode })
+  const getCursorPosition = React.useCallback(() => {
+    return state.cursorPosition
+  }, [])
+
+  const setCursorPosition = React.useCallback((cursorPosition: PositionSection) => {
+    dispatch({ type: EditorActionType.SET_CURSOR_POSITION, payload: cursorPosition })
+  }, [])
+
+  const setScrollPosition = React.useCallback((scrollPosition: ScrollPosition) => {
+    dispatch({ type: EditorActionType.SET_SCROLL_POSITION, payload: scrollPosition })
+  }, [])
+
+  const getScrollPosition = React.useCallback(() => {
+    return state.scrollPosition
+  }, [])
+
+  const getViewport = React.useCallback(() => {
+    return state.viewport
+  }, [])
+  const setViewport = React.useCallback((viewport: Viewport) => {
+    dispatch({ type: EditorActionType.SET_VIEWPORT, payload: viewport })
+  }, [])
+
+  const getMarkdownState = React.useCallback(() => {
+    return state.markdownState || null
+  }, [])
+  const setMarkdownState = React.useCallback((markdownState: MarkdownEditorState) => {
+    dispatch({ type: EditorActionType.SET_MARKDOWN_STATE, payload: markdownState })
+  }, [])
+
+  const getRichTextState = React.useCallback(() => {
+    return state.richTextState || null
+  }, [])
+  const setRichTextState = React.useCallback((richTextState: RichTextEditorState) => {
+    dispatch({ type: EditorActionType.SET_RICH_TEXT_STATE, payload: richTextState })
+  }, [])
+
+  const getCanvasState = React.useCallback(() => {
+    return state.canvasState || null
+  }, [])
+  const setCanvasState = React.useCallback((canvasState: CanvasEditorState) => {
+    dispatch({ type: EditorActionType.SET_CANVAS_STATE, payload: canvasState })
+  }, [])
+
+  const switchEditorType = React.useCallback(() => {
+    dispatch({ type: EditorActionType.SET_EDITOR_TYPE, payload: state.editorType })
+  }, [])
+
+  const switchEditorMode = React.useCallback(() => {
+    dispatch({ type: EditorActionType.SET_EDITOR_MODE, payload: state.editorMode })
+  }, [])
+
+  const scrollToLine = React.useCallback((line: number) => {
+    const scrollPosition = getScrollPosition()
+    setScrollPosition({ ...scrollPosition, scrollTop: line })
   }, [])
 
   // 插件系统
-  const registerPlugin = useCallback((plugin: EditorPlugin) => {
+  const registerPlugin = React.useCallback((plugin: EditorPlugin) => {
     plugins.current.set(plugin.id, plugin)
   }, [])
 
-  const unregisterPlugin = useCallback((pluginId: string) => {
+  const unregisterPlugin = React.useCallback((pluginId: string) => {
     const plugin = plugins.current.get(pluginId)
     if (plugin) {
       plugin.deactivate()
@@ -87,34 +144,29 @@ export const EditorProvider: React.FC<EditorProviderProps> = ({
     }
   }, [])
 
-  const getPlugin = useCallback((pluginId: string) => {
+  const getPlugin = React.useCallback((pluginId: string) => {
     return plugins.current.get(pluginId)
   }, [])
 
-  // 事件系统
-  const subscribe = useCallback((event: string, callback: Function) => {
+  // 发布订阅
+  const subscribe = React.useCallback((event: string, callback: Function) => {
     if (!eventListeners.current.has(event)) {
       eventListeners.current.set(event, new Set())
     }
     eventListeners.current.get(event)!.add(callback)
-    
-    // 返回取消订阅函数
+
     return () => {
-      const listeners = eventListeners.current.get(event)
-      if (listeners) {
-        listeners.delete(callback)
-      }
+      eventListeners.current.get(event)!.delete(callback)
     }
   }, [])
 
-  const emit = useCallback((event: string, data?: any) => {
+  const emit = React.useCallback((event: string, data?: any) => {
     const listeners = eventListeners.current.get(event)
     if (listeners) {
       listeners.forEach(callback => callback(data))
     }
   }, [])
 
-  // 上下文值
   const contextValue: EditorContextValue = {
     state,
     dispatch,
@@ -124,6 +176,21 @@ export const EditorProvider: React.FC<EditorProviderProps> = ({
     replaceSelection,
     getSelection,
     setSelection,
+    getSelectionRange,
+    setSelectionRange,
+    getCursorPosition,
+    setCursorPosition,
+    getScrollPosition,
+    setScrollPosition,
+    scrollToLine,
+    getViewport,
+    setViewport,
+    getMarkdownState,
+    setMarkdownState,
+    getRichTextState,
+    setRichTextState,
+    getCanvasState,
+    setCanvasState,
     switchEditorType,
     switchEditorMode,
     registerPlugin,
@@ -142,9 +209,10 @@ export const EditorProvider: React.FC<EditorProviderProps> = ({
 
 // Hook
 export const useEditor = () => {
-  const context = useContext(EditorContext)
+  const context = React.useContext(EditorContext)
   if (!context) {
     throw new Error('useEditor must be used within EditorProvider')
   }
   return context
 }
+

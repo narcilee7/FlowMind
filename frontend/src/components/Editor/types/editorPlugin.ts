@@ -11,7 +11,7 @@ export interface EditorPlugin {
     version: string
     supportedEditorTypes: EditorType[]
     activate: (context: EditorContextValue) => void
-    deactivate: (context: EditorContextValue) => void
+    deactivate: () => void
     commands?: Record<string, () => void>
     keybindings?: Array<{ key: string; command: string; when?: string }>
 }
