@@ -36,8 +36,8 @@ export interface ViewAdapter {
     isFocused(): boolean
     
     // 视图事件
-    onNodeClick(callback: (nodeId: string, event: MouseEvent) => void): void
-    onNodeDoubleClick(callback: (nodeId: string, event: MouseEvent) => void): void
+    onNodeClick(callback: (data: { nodeId: string; event: MouseEvent }) => void): void
+    onNodeDoubleClick(callback: (data: { nodeId: string; event: MouseEvent }) => void): void
     onSelectionChange(callback: (selection: Selection) => void): void
     onViewChange(callback: (viewData: any) => void): void
     onFocus(callback: () => void): void

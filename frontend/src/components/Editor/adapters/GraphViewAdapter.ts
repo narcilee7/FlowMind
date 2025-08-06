@@ -4,160 +4,186 @@
  */
 
 import { ViewAdapterOptions, GraphViewAdapter as IGraphViewAdapter, GraphLayout } from '@/components/Editor/types/ViewAdapter'
-import { EditorType, SceneTemplate } from '@/components/Editor/types/EditorType'
+import { EditorType } from '@/components/Editor/types/EditorType'
 import { DocumentAST, ASTNode, Selection, GraphNode, GraphEdge } from '@/components/Editor/types/EditorAST'
-import { EditorTheme } from '@/components/Editor/types/EditorTheme'
+import { BaseViewAdapter } from './BaseViewAdapter'
+import { ASTUtils } from '../utils/ASTUtils'
+
+/**
+ * vis-network类型定义
+ */
+interface VisNetwork {
+    body: {
+        data: {
+            nodes: {
+                add: (node: any) => void
+                update: (node: any) => void
+                remove: (nodeId: string) => void
+            }
+            edges: {
+                add: (edge: any) => void
+                update: (edge: any) => void
+                remove: (edgeId: string) => void
+            }
+        }
+    }
+    setData: (data: { nodes: any[]; edges: any[] }) => void
+    setOptions: (options: any) => void
+    selectNodes: (nodeIds: string[]) => void
+    getSelectedNodes: () => string[]
+    focus: (nodeId?: string, options?: any) => void
+    moveTo: (options: any) => void
+    fit: (options?: any) => void
+    getScale: () => number
+    getViewPosition: () => { x: number; y: number }
+    getPositions: (nodeIds: string[]) => Record<string, { x: number; y: number }>
+    destroy: () => void
+    on: (event: string, callback: Function) => void
+    canvas: { width: number; height: number }
+}
 
 /**
  * 图谱视图适配器实现
  */
-export class GraphViewAdapter implements IGraphViewAdapter {
-    public type: EditorType.GRAPH = EditorType.GRAPH
-    public sceneTemplate: SceneTemplate
+export class GraphViewAdapter extends BaseViewAdapter implements IGraphViewAdapter {
+    public readonly type: EditorType.GRAPH = EditorType.GRAPH
     
-    private element: HTMLElement | null = null
-    private options: ViewAdapterOptions | null = null
-    private network: any = null // vis-network实例
+    private network: VisNetwork | null = null
     private nodes: any[] = []
     private edges: any[] = []
-    private eventCallbacks: Map<string, Function[]> = new Map()
-    private isDestroyed = false
     private currentLayout: GraphLayout = 'force'
-
-    /**
-     * 构造函数
-     */
-    constructor(sceneTemplate: SceneTemplate) {
-        this.sceneTemplate = sceneTemplate
-    }
+    private nodePositions: Map<string, { x: number; y: number }> = new Map()
 
     /**
      * 创建适配器
      */
     async create(element: HTMLElement, options: ViewAdapterOptions): Promise<void> {
+        if (this.isInitialized) {
+            this.handleError(new Error('Adapter already initialized'), 'create')
+            return
+        }
+
         this.element = element
         this.options = options
 
-        // 动态导入vis-network
-        const { Network } = await import('vis-network')
-        const { DataSet } = await import('vis-data')
+        try {
+            // 动态导入vis-network
+            const { Network } = await import('vis-network')
+            const { DataSet } = await import('vis-data')
 
-        // 创建数据集
-        const nodesDataset = new DataSet([])
-        const edgesDataset = new DataSet([])
+            // 创建数据集
+            const nodesDataset = new DataSet([])
+            const edgesDataset = new DataSet([])
 
-        // 配置网络选项
-        const networkOptions = {
-            // 节点配置
-            nodes: {
-                shape: 'dot',
-                size: 16,
-                font: {
-                    size: 12,
-                    face: 'Arial'
+            // 配置网络选项
+            const networkOptions = {
+                // 节点配置
+                nodes: {
+                    shape: 'dot',
+                    size: 16,
+                    font: {
+                        size: 12,
+                        face: 'Arial'
+                    },
+                    borderWidth: 2,
+                    shadow: true
                 },
-                borderWidth: 2,
-                shadow: true
-            },
-            // 边配置
-            edges: {
-                width: 2,
-                shadow: true,
-                smooth: {
-                    type: 'continuous'
+                // 边配置
+                edges: {
+                    width: 2,
+                    shadow: true,
+                    smooth: {
+                        type: 'continuous'
+                    }
+                },
+                // 物理配置
+                physics: {
+                    stabilization: false,
+                    barnesHut: {
+                        gravitationalConstant: -80000,
+                        springConstant: 0.001,
+                        springLength: 200
+                    }
+                },
+                // 交互配置
+                interaction: {
+                    navigationButtons: true,
+                    keyboard: true,
+                    hover: true,
+                    tooltipDelay: 200
                 }
-            },
-            // 物理配置
-            physics: {
-                stabilization: false,
-                barnesHut: {
-                    gravitationalConstant: -80000,
-                    springConstant: 0.001,
-                    springLength: 200
-                }
-            },
-            // 交互配置
-            interaction: {
-                navigationButtons: true,
-                keyboard: true,
-                hover: true,
-                tooltipDelay: 200
             }
+
+            // 创建网络实例
+            this.network = new Network(element, {
+                nodes: nodesDataset,
+                edges: edgesDataset
+            }, networkOptions as any) as any
+
+            // 设置事件监听
+            this.setupEventListeners()
+
+            // 设置主题样式
+            this.applyTheme(options.theme || 'auto')
+            
+            this.isInitialized = true
+            this.triggerEvent('viewChange', { type: 'initialized' })
+
+        } catch (error) {
+            this.handleError(error as Error, 'create')
+            throw error
         }
-
-        // 创建网络实例
-        this.network = new Network(element, {
-            nodes: nodesDataset,
-            edges: edgesDataset
-        }, networkOptions as any)
-
-        // 设置事件监听
-        this.setupEventListeners()
-
-        // 设置主题样式
-        this.applyTheme(options.theme || 'auto')
     }
 
     /**
-     * 销毁适配器
+     * 执行销毁逻辑
      */
-    destroy(): void {
-        if (this.isDestroyed) return
-
+    protected performDestroy(): void {
         if (this.network) {
             this.network.destroy()
             this.network = null
         }
-
-        this.element = null
-        this.options = null
         this.nodes = []
         this.edges = []
-        this.eventCallbacks.clear()
-        this.isDestroyed = true
+        this.nodePositions.clear()
     }
 
     /**
      * 渲染AST
      */
     render(ast: DocumentAST): void {
-        if (!this.network || this.isDestroyed) return
+        if (!this.validateInitialized() || !this.network) return
 
-        // 解析AST中的图谱数据
-        const { nodes, edges } = this.parseASTToGraphData(ast)
-        this.nodes = nodes
-        this.edges = edges
+        const result = this.safeSync(() => this.parseASTToGraphData(ast), 'render')
+        if (result) {
+            this.nodes = result.nodes
+            this.edges = result.edges
 
-        // 更新网络数据
-        this.network.setData({ nodes, edges })
+            // 更新网络数据
+            this.network.setData({ nodes: result.nodes, edges: result.edges })
 
-        // 应用布局
-        this.applyLayout(this.currentLayout)
-    }
-
-    /**
-     * 更新AST
-     */
-    update(ast: DocumentAST): void {
-        this.render(ast)
+            // 应用布局
+            this.applyLayout(this.currentLayout)
+        }
     }
 
     /**
      * 更新节点
      */
     updateNode(nodeId: string, node: ASTNode): void {
-        if (!this.network || this.isDestroyed) return
+        if (!this.validateInitialized() || !this.network) return
 
-        // 更新节点数据
-        const graphNode = this.astNodeToVisNode(node)
-        this.network.body.data.nodes.update(graphNode)
+        const graphNode = this.safeSync(() => this.astNodeToVisNode(node), 'updateNode')
+        if (graphNode) {
+            this.network.body.data.nodes.update(graphNode)
+        }
     }
 
     /**
      * 删除节点
      */
     removeNode(nodeId: string): void {
-        if (!this.network || this.isDestroyed) return
+        if (!this.validateInitialized() || !this.network) return
 
         this.network.body.data.nodes.remove(nodeId)
         
@@ -166,18 +192,27 @@ export class GraphViewAdapter implements IGraphViewAdapter {
             edge.from === nodeId || edge.to === nodeId
         )
         edgesToRemove.forEach(edge => {
-            this.network.body.data.edges.remove(edge.id)
+            this.network!.body.data.edges.remove(edge.id)
         })
+
+        // 更新本地数据
+        this.nodes = this.nodes.filter(node => node.id !== nodeId)
+        this.edges = this.edges.filter(edge => 
+            edge.from !== nodeId && edge.to !== nodeId
+        )
     }
 
     /**
      * 添加节点
      */
     addNode(node: ASTNode, parentId?: string, index?: number): void {
-        if (!this.network || this.isDestroyed) return
+        if (!this.validateInitialized() || !this.network) return
 
-        const graphNode = this.astNodeToVisNode(node)
+        const graphNode = this.safeSync(() => this.astNodeToVisNode(node), 'addNode')
+        if (!graphNode) return
+
         this.network.body.data.nodes.add(graphNode)
+        this.nodes.push(graphNode)
 
         // 如果有父节点，创建连接
         if (parentId) {
@@ -189,6 +224,7 @@ export class GraphViewAdapter implements IGraphViewAdapter {
                 label: 'contains'
             }
             this.network.body.data.edges.add(edge)
+            this.edges.push(edge)
         }
     }
 
@@ -196,7 +232,7 @@ export class GraphViewAdapter implements IGraphViewAdapter {
      * 设置选择状态
      */
     setSelection(selection: Selection): void {
-        if (!this.network || this.isDestroyed) return
+        if (!this.validateInitialized() || !this.network) return
 
         if (selection.type === 'node' && selection.nodeIds.length > 0) {
             this.network.selectNodes(selection.nodeIds)
@@ -207,7 +243,7 @@ export class GraphViewAdapter implements IGraphViewAdapter {
      * 获取选择状态
      */
     getSelection(): Selection {
-        if (!this.network || this.isDestroyed) {
+        if (!this.validateInitialized() || !this.network) {
             return { nodeIds: [], type: 'node' }
         }
 
@@ -222,7 +258,7 @@ export class GraphViewAdapter implements IGraphViewAdapter {
      * 设置焦点
      */
     focus(): void {
-        if (this.network && !this.isDestroyed) {
+        if (this.validateInitialized() && this.network) {
             this.network.focus()
         }
     }
@@ -231,8 +267,10 @@ export class GraphViewAdapter implements IGraphViewAdapter {
      * 失去焦点
      */
     blur(): void {
-        // vis-network没有直接的blur方法
-        console.log('Blur graph view')
+        // vis-network没有直接的blur方法，通过选择空节点实现
+        if (this.validateInitialized() && this.network) {
+            this.network.selectNodes([])
+        }
     }
 
     /**
@@ -243,31 +281,135 @@ export class GraphViewAdapter implements IGraphViewAdapter {
         return false
     }
 
+    /**
+     * 滚动到节点
+     */
+    scrollToNode(nodeId: string): void {
+        this.centerOnNode(nodeId)
+    }
+
+    /**
+     * 放大视图
+     */
+    zoomIn(): void {
+        if (!this.validateInitialized() || !this.network) return
+
+        const scale = this.network.getScale()
+        this.network.moveTo({
+            scale: scale * 1.2,
+            animation: {
+                duration: 300,
+                easingFunction: 'easeInOutQuad'
+            }
+        })
+    }
+
+    /**
+     * 缩小视图
+     */
+    zoomOut(): void {
+        if (!this.validateInitialized() || !this.network) return
+
+        const scale = this.network.getScale()
+        this.network.moveTo({
+            scale: scale * 0.8,
+            animation: {
+                duration: 300,
+                easingFunction: 'easeInOutQuad'
+            }
+        })
+    }
+
+    /**
+     * 重置缩放
+     */
+    resetZoom(): void {
+        if (!this.validateInitialized() || !this.network) return
+
+        this.network.fit({
+            animation: {
+                duration: 500,
+                easingFunction: 'easeInOutQuad'
+            }
+        })
+    }
+
+    /**
+     * 适应视图
+     */
+    fitToView(): void {
+        this.resetZoom()
+    }
+
+    /**
+     * 获取视口
+     */
+    getViewport(): any {
+        if (!this.validateInitialized() || !this.network) {
+            return { x: 0, y: 0, width: 0, height: 0, zoom: 1 }
+        }
+
+        const view = this.network.getViewPosition()
+        const scale = this.network.getScale()
+        const canvas = this.network.canvas
+
+        return {
+            x: view.x,
+            y: view.y,
+            width: canvas.width,
+            height: canvas.height,
+            zoom: scale
+        }
+    }
+
+    /**
+     * 设置视口
+     */
+    setViewport(viewport: any): void {
+        if (!this.validateInitialized() || !this.network) return
+
+        this.network.moveTo({
+            position: { x: viewport.x, y: viewport.y },
+            scale: viewport.zoom,
+            animation: {
+                duration: 300,
+                easingFunction: 'easeInOutQuad'
+            }
+        })
+    }
+
     // 图谱特有方法
     /**
      * 添加图谱节点
      */
     addGraphNode(node: ASTNode, position?: { x: number; y: number }): void {
-        if (!this.network || this.isDestroyed) return
+        if (!this.validateInitialized() || !this.network) return
 
-        const graphNode = this.astNodeToVisNode(node)
+        const graphNode = this.safeSync(() => this.astNodeToVisNode(node), 'addGraphNode')
+        if (!graphNode) return
+
         if (position) {
             graphNode.x = position.x
             graphNode.y = position.y
             graphNode.fixed = true
+            this.nodePositions.set(node.id, position)
         }
 
         this.network.body.data.nodes.add(graphNode)
+        this.nodes.push(graphNode)
     }
 
     /**
      * 添加边
      */
     addEdge(edge: ASTNode): void {
-        if (!this.network || this.isDestroyed) return
+        if (!this.validateInitialized() || !this.network) return
 
-        const graphEdge = this.astEdgeToVisEdge(edge)
-        this.network.body.data.edges.add(graphEdge)
+        const graphEdge = this.safeSync(() => this.astEdgeToVisEdge(edge), 'addEdge')
+        if (graphEdge) {
+            this.network.body.data.edges.add(graphEdge)
+            this.edges.push(graphEdge)
+        }
     }
 
     /**
@@ -281,16 +423,17 @@ export class GraphViewAdapter implements IGraphViewAdapter {
      * 删除边
      */
     removeEdge(edgeId: string): void {
-        if (!this.network || this.isDestroyed) return
+        if (!this.validateInitialized() || !this.network) return
 
         this.network.body.data.edges.remove(edgeId)
+        this.edges = this.edges.filter(edge => edge.id !== edgeId)
     }
 
     /**
      * 更新节点位置
      */
     updateNodePosition(nodeId: string, position: { x: number; y: number }): void {
-        if (!this.network || this.isDestroyed) return
+        if (!this.validateInitialized() || !this.network) return
 
         this.network.body.data.nodes.update({
             id: nodeId,
@@ -298,13 +441,14 @@ export class GraphViewAdapter implements IGraphViewAdapter {
             y: position.y,
             fixed: true
         })
+        this.nodePositions.set(nodeId, position)
     }
 
     /**
      * 应用布局
      */
     applyLayout(layout: GraphLayout): void {
-        if (!this.network || this.isDestroyed) return
+        if (!this.validateInitialized() || !this.network) return
 
         this.currentLayout = layout
 
@@ -370,6 +514,8 @@ export class GraphViewAdapter implements IGraphViewAdapter {
                 })
                 break
         }
+
+        this.triggerEvent('viewChange', { type: 'layoutChange', layout })
     }
 
     /**
@@ -383,7 +529,7 @@ export class GraphViewAdapter implements IGraphViewAdapter {
      * 居中到节点
      */
     centerOnNode(nodeId: string): void {
-        if (!this.network || this.isDestroyed) return
+        if (!this.validateInitialized() || !this.network) return
 
         this.network.focus(nodeId, {
             scale: 1,
@@ -392,147 +538,6 @@ export class GraphViewAdapter implements IGraphViewAdapter {
                 easingFunction: 'easeInOutQuad'
             }
         })
-    }
-
-    // 视图控制方法
-    /**
-     * 滚动到节点
-     */
-    scrollToNode(nodeId: string): void {
-        this.centerOnNode(nodeId)
-    }
-
-    /**
-     * 放大视图
-     */
-    zoomIn(): void {
-        if (!this.network || this.isDestroyed) return
-
-        const scale = this.network.getScale()
-        this.network.moveTo({
-            scale: scale * 1.2,
-            animation: {
-                duration: 300,
-                easingFunction: 'easeInOutQuad'
-            }
-        })
-    }
-
-    /**
-     * 缩小视图
-     */
-    zoomOut(): void {
-        if (!this.network || this.isDestroyed) return
-
-        const scale = this.network.getScale()
-        this.network.moveTo({
-            scale: scale * 0.8,
-            animation: {
-                duration: 300,
-                easingFunction: 'easeInOutQuad'
-            }
-        })
-    }
-
-    /**
-     * 重置缩放
-     */
-    resetZoom(): void {
-        if (!this.network || this.isDestroyed) return
-
-        this.network.fit({
-            animation: {
-                duration: 500,
-                easingFunction: 'easeInOutQuad'
-            }
-        })
-    }
-
-    /**
-     * 适应视图
-     */
-    fitToView(): void {
-        this.resetZoom()
-    }
-
-    /**
-     * 获取视口
-     */
-    getViewport(): any {
-        if (!this.network || this.isDestroyed) {
-            return { x: 0, y: 0, width: 0, height: 0, zoom: 1 }
-        }
-
-        const view = this.network.getViewPosition()
-        const scale = this.network.getScale()
-        const canvas = this.network.canvas
-
-        return {
-            x: view.x,
-            y: view.y,
-            width: canvas.width,
-            height: canvas.height,
-            zoom: scale
-        }
-    }
-
-    /**
-     * 设置视口
-     */
-    setViewport(viewport: any): void {
-        if (!this.network || this.isDestroyed) return
-
-        this.network.moveTo({
-            position: { x: viewport.x, y: viewport.y },
-            scale: viewport.zoom,
-            animation: {
-                duration: 300,
-                easingFunction: 'easeInOutQuad'
-            }
-        })
-    }
-
-    // 事件监听方法
-    /**
-     * 节点点击事件
-     */
-    onNodeClick(callback: (nodeId: string, event: MouseEvent) => void): void {
-        this.addEventListener('nodeClick', callback)
-    }
-
-    /**
-     * 节点双击事件
-     */
-    onNodeDoubleClick(callback: (nodeId: string, event: MouseEvent) => void): void {
-        this.addEventListener('nodeDoubleClick', callback)
-    }
-
-    /**
-     * 选择状态变化事件
-     */
-    onSelectionChange(callback: (selection: Selection) => void): void {
-        this.addEventListener('selectionChange', callback)
-    }
-
-    /**
-     * 视图变化事件
-     */
-    onViewChange(callback: (viewData: any) => void): void {
-        this.addEventListener('viewChange', callback)
-    }
-
-    /**
-     * 获得焦点事件
-     */
-    onFocus(callback: () => void): void {
-        this.addEventListener('focus', callback)
-    }
-
-    /**
-     * 失去焦点事件
-     */
-    onBlur(callback: () => void): void {
-        this.addEventListener('blur', callback)
     }
 
     /**
@@ -551,26 +556,6 @@ export class GraphViewAdapter implements IGraphViewAdapter {
 
     // 私有方法
     /**
-     * 添加事件监听器
-     */
-    private addEventListener(event: string, callback: Function): void {
-        if (!this.eventCallbacks.has(event)) {
-            this.eventCallbacks.set(event, [])
-        }
-        this.eventCallbacks.get(event)!.push(callback)
-    }
-
-    /**
-     * 触发事件
-     */
-    private triggerEvent(event: string, data?: any): void {
-        const callbacks = this.eventCallbacks.get(event)
-        if (callbacks) {
-            callbacks.forEach(callback => callback(data))
-        }
-    }
-
-    /**
      * 设置事件监听器
      */
     private setupEventListeners(): void {
@@ -579,17 +564,17 @@ export class GraphViewAdapter implements IGraphViewAdapter {
         this.network.on('click', (params: any) => {
             if (params.nodes.length > 0) {
                 const nodeId = params.nodes[0]
-                this.triggerEvent('nodeClick', nodeId)
+                this.triggerEvent('nodeClick', { nodeId, event: params.event })
             } else if (params.edges.length > 0) {
                 const edgeId = params.edges[0]
-                this.triggerEvent('edgeClick', edgeId)
+                this.triggerEvent('edgeClick', { edgeId, event: params.event })
             }
         })
 
         this.network.on('doubleClick', (params: any) => {
             if (params.nodes.length > 0) {
                 const nodeId = params.nodes[0]
-                this.triggerEvent('nodeDoubleClick', nodeId)
+                this.triggerEvent('nodeDoubleClick', { nodeId, event: params.event })
             }
         })
 
@@ -604,8 +589,8 @@ export class GraphViewAdapter implements IGraphViewAdapter {
         this.network.on('dragEnd', (params: any) => {
             if (params.nodes.length > 0) {
                 const nodeId = params.nodes[0]
-                const position = this.network.getPositions([nodeId])[nodeId]
-                this.triggerEvent('nodeDrag', nodeId)
+                const position = this.network!.getPositions([nodeId])[nodeId]
+                this.triggerEvent('nodeDrag', nodeId, position)
             }
         })
 
@@ -616,16 +601,6 @@ export class GraphViewAdapter implements IGraphViewAdapter {
         this.network.on('stabilizationIterationsDone', () => {
             this.triggerEvent('viewChange', { type: 'stabilization', status: 'done' })
         })
-    }
-
-    /**
-     * 应用主题样式
-     */
-    private applyTheme(theme: EditorTheme): void {
-        if (!this.element) return
-
-        const themeClass = theme === 'auto' ? 'theme-auto' : `theme-${theme}`
-        this.element.classList.add(themeClass)
     }
 
     /**

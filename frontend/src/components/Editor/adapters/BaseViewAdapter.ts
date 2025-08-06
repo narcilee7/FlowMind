@@ -17,8 +17,8 @@ export type EventCallback<T = any> = (data: T) => void
  * 事件映射类型
  */
 export type EventMap = {
-    nodeClick: (nodeId: string, event: MouseEvent) => void
-    nodeDoubleClick: (nodeId: string, event: MouseEvent) => void
+    nodeClick: (data: { nodeId: string; event: MouseEvent }) => void
+    nodeDoubleClick: (data: { nodeId: string; event: MouseEvent }) => void
     selectionChange: (selection: Selection) => void
     viewChange: (viewData: any) => void
     focus: () => void
@@ -26,6 +26,8 @@ export type EventMap = {
     textChange: (text: string) => void
     formatChange: (format: any) => void
     error: (error: Error) => void
+    nodeDrag: (data: { nodeId: string; position: { x: number; y: number } }) => void
+    edgeClick: (data: { edgeId: string; event: MouseEvent }) => void
 }
 
 /**
@@ -185,14 +187,14 @@ export abstract class BaseViewAdapter implements ViewAdapter {
     /**
      * 节点点击事件
      */
-    onNodeClick(callback: (nodeId: string, event: MouseEvent) => void): void {
+    onNodeClick(callback: (data: { nodeId: string; event: MouseEvent }) => void): void {
         this.addEventListener('nodeClick', callback)
     }
 
     /**
      * 节点双击事件
      */
-    onNodeDoubleClick(callback: (nodeId: string, event: MouseEvent) => void): void {
+    onNodeDoubleClick(callback: (data: { nodeId: string; event: MouseEvent }) => void): void {
         this.addEventListener('nodeDoubleClick', callback)
     }
 
