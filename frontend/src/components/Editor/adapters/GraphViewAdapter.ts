@@ -7,12 +7,11 @@ import { ViewAdapterOptions, GraphViewAdapter as IGraphViewAdapter, GraphLayout 
 import { EditorType } from '@/components/Editor/types/EditorType'
 import { DocumentAST, ASTNode, Selection, GraphNode, GraphEdge } from '@/components/Editor/types/EditorAST'
 import { BaseViewAdapter } from './BaseViewAdapter'
-import { ASTUtils } from '../utils/ASTUtils'
 
 /**
  * vis-network类型定义
  */
-interface VisNetwork {
+export interface VisNetwork {
     body: {
         data: {
             nodes: {
@@ -543,14 +542,14 @@ export class GraphViewAdapter extends BaseViewAdapter implements IGraphViewAdapt
     /**
      * 节点拖拽事件
      */
-    onNodeDrag(callback: (nodeId: string, position: { x: number; y: number }) => void): void {
+    onNodeDrag(callback: (data: { nodeId: string; position: { x: number; y: number } }) => void): void {
         this.addEventListener('nodeDrag', callback)
     }
 
     /**
      * 边点击事件
      */
-    onEdgeClick(callback: (edgeId: string, event: MouseEvent) => void): void {
+    onEdgeClick(callback: (data: { edgeId: string; event: MouseEvent }) => void): void {
         this.addEventListener('edgeClick', callback)
     }
 
@@ -590,7 +589,7 @@ export class GraphViewAdapter extends BaseViewAdapter implements IGraphViewAdapt
             if (params.nodes.length > 0) {
                 const nodeId = params.nodes[0]
                 const position = this.network!.getPositions([nodeId])[nodeId]
-                this.triggerEvent('nodeDrag', nodeId, position)
+                this.triggerEvent('nodeDrag', { nodeId, position })
             }
         })
 

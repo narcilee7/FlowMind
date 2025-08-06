@@ -327,7 +327,7 @@ export abstract class BaseViewAdapter implements ViewAdapter {
         if (!this.eventCallbacks.has(event)) {
             this.eventCallbacks.set(event, [])
         }
-        this.eventCallbacks.get(event)!.push(callback as EventCallback)
+        this.eventCallbacks.get(event)!.push(callback)
     }
 
     /**

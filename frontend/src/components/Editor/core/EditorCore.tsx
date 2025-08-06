@@ -5,7 +5,7 @@
 
 import React, { useEffect, useRef, useState, useCallback } from 'react'
 import styled from 'styled-components'
-import { ViewAdapter, ViewAdapterOptions } from '@/components/Editor/types/ViewAdapter'
+import { ViewAdapter } from '@/components/Editor/types/ViewAdapter'
 import { EditorType, SceneTemplate } from '@/components/Editor/types/EditorType'
 import { DocumentAST, Selection } from '@/components/Editor/types/EditorAST'
 import { EditorTheme } from '@/components/Editor/types/EditorTheme'
@@ -144,11 +144,11 @@ export const EditorCore: React.FC<EditorCoreProps> = ({
                 onViewChange?.(viewData)
             })
 
-            adapter.onNodeClick((nodeId: string, event: MouseEvent) => {
+            adapter.onNodeClick(({ nodeId, event }) => {
                 console.log('Node clicked:', nodeId, event)
             })
 
-            adapter.onNodeDoubleClick((nodeId: string, event: MouseEvent) => {
+            adapter.onNodeDoubleClick(({ nodeId, event }) => {
                 console.log('Node double clicked:', nodeId, event)
             })
 
