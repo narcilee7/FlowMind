@@ -2,4 +2,4 @@
 
 ## Description
 
-> AI Message Manager, about editor, graph, canvas, all of that.
+> AI Native Editor, about rich-text, graph, canvas, timeline, maybe more extensions.
