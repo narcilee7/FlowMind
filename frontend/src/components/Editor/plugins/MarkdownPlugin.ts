@@ -1,208 +1,235 @@
-import { EditorPlugin, EditorContextValue } from '../core/EditorProvider'
+/**
+ * Markdown插件
+ */
 
-// Markdown插件
-export class MarkdownPlugin implements EditorPlugin {
-  id = 'markdown'
-  name = 'Markdown Support'
-  version = '1.0.0'
-  
-  private context: EditorContextValue | null = null
-  private unsubscribe: (() => void)[] = []
+import { BasePlugin, PluginConfig } from '../types/EditorPlugin'
 
-  activate(context: EditorContextValue): void {
-    this.context = context
-    
-    // 注册命令
-    this.registerCommands()
-    
-    // 注册事件监听
-    this.registerEventListeners()
-    
-    // 注册快捷键
-    this.registerKeybindings()
-  }
-
-  deactivate(): void {
-    // 清理事件监听
-    this.unsubscribe.forEach(unsub => unsub())
-    this.unsubscribe = []
-    
-    this.context = null
-  }
-
-  commands = {
-    'markdown.bold': () => this.wrapSelection('**', '**'),
-    'markdown.italic': () => this.wrapSelection('*', '*'),
-    'markdown.code': () => this.wrapSelection('`', '`'),
-    'markdown.codeBlock': () => this.wrapSelection('```\n', '\n```'),
-    'markdown.link': () => this.insertLink(),
-    'markdown.image': () => this.insertImage(),
-    'markdown.heading': (level: number = 1) => this.insertHeading(level),
-    'markdown.list': (ordered: boolean = false) => this.insertList(ordered),
-    'markdown.quote': () => this.insertQuote(),
-    'markdown.hr': () => this.insertHorizontalRule(),
-    'markdown.table': () => this.insertTable(),
-  }
-
-  keybindings = [
-    { key: 'ctrl+b', command: 'markdown.bold' },
-    { key: 'ctrl+i', command: 'markdown.italic' },
-    { key: 'ctrl+k', command: 'markdown.code' },
-    { key: 'ctrl+shift+k', command: 'markdown.codeBlock' },
-    { key: 'ctrl+l', command: 'markdown.link' },
-    { key: 'ctrl+shift+i', command: 'markdown.image' },
-    { key: 'ctrl+1', command: 'markdown.heading', when: '1' },
-    { key: 'ctrl+2', command: 'markdown.heading', when: '2' },
-    { key: 'ctrl+3', command: 'markdown.heading', when: '3' },
-    { key: 'ctrl+shift+l', command: 'markdown.list', when: 'false' },
-    { key: 'ctrl+shift+o', command: 'markdown.list', when: 'true' },
-    { key: 'ctrl+shift+q', command: 'markdown.quote' },
-    { key: 'ctrl+shift+h', command: 'markdown.hr' },
-    { key: 'ctrl+shift+t', command: 'markdown.table' },
-  ]
-
-  private registerCommands(): void {
-    if (!this.context) return
-
-    Object.entries(this.commands).forEach(([id, handler]) => {
-      this.context!.emit('registerCommand', { id, handler })
-    })
-  }
-
-  private registerEventListeners(): void {
-    if (!this.context) return
-
-    // 监听内容变化，提供实时预览
-    const unsub1 = this.context.subscribe('contentChanged', (content: string) => {
-      this.processContent(content)
-    })
-
-    // 监听光标位置变化，提供上下文提示
-    const unsub2 = this.context.subscribe('cursorPositionChanged', (position: any) => {
-      this.provideContextHints(position)
-    })
-
-    this.unsubscribe.push(unsub1, unsub2)
-  }
-
-  private registerKeybindings(): void {
-    if (!this.context) return
-
-    this.keybindings.forEach(binding => {
-      this.context!.emit('registerKeybinding', binding)
-    })
-  }
-
-  // 包装选中文本
-  private wrapSelection(prefix: string, suffix: string): void {
-    if (!this.context) return
-
-    const selection = this.context.getSelection()
-    if (selection) {
-      const newText = `${prefix}${selection}${suffix}`
-      this.context.replaceSelection(newText)
-    } else {
-      // 如果没有选中文本，插入占位符
-      const placeholder = 'text'
-      const newText = `${prefix}${placeholder}${suffix}`
-      this.context.insertText(newText)
-      
-      // 选中占位符文本
-      // 这里需要与编辑器实例交互来选择文本
-      this.context.emit('selectText', { start: 0, end: placeholder.length })
+/**
+ * Markdown插件配置
+ */
+interface MarkdownPluginConfig extends PluginConfig {
+    options?: {
+        enableAutoLink?: boolean
+        enableTableSupport?: boolean
+        enableMathSupport?: boolean
+        enableMermaidSupport?: boolean
     }
-  }
+}
 
-  // 插入链接
-  private insertLink(): void {
-    if (!this.context) return
+/**
+ * Markdown插件
+ */
+export class MarkdownPlugin extends BasePlugin {
+    private enableAutoLink: boolean
+    private enableTableSupport: boolean
+    private enableMathSupport: boolean
+    private enableMermaidSupport: boolean
 
-    const selection = this.context.getSelection()
-    const linkText = selection || '链接文本'
-    const linkUrl = 'https://example.com'
-    
-    const newText = `[${linkText}](${linkUrl})`
-    this.context.replaceSelection(newText)
-  }
+    constructor(config: Partial<MarkdownPluginConfig> = {}) {
+        super({
+            name: 'markdown',
+            version: '1.0.0',
+            description: 'Markdown语法支持插件',
+            enabled: config.enabled ?? true
+        })
 
-  // 插入图片
-  private insertImage(): void {
-    if (!this.context) return
+        this.enableAutoLink = config.options?.enableAutoLink ?? true
+        this.enableTableSupport = config.options?.enableTableSupport ?? true
+        this.enableMathSupport = config.options?.enableMathSupport ?? true
+        this.enableMermaidSupport = config.options?.enableMermaidSupport ?? true
+    }
 
-    const selection = this.context.getSelection()
-    const altText = selection || '图片描述'
-    const imageUrl = 'https://example.com/image.jpg'
-    
-    const newText = `![${altText}](${imageUrl})`
-    this.context.replaceSelection(newText)
-  }
+    protected async onInit(): Promise<void> {
+        console.log('Markdown Plugin initialized')
+    }
 
-  // 插入标题
-  private insertHeading(level: number): void {
-    if (!this.context) return
+    protected onDestroy(): void {
+        console.log('Markdown Plugin destroyed')
+    }
 
-    const selection = this.context.getSelection()
-    const headingText = selection || '标题'
-    const prefix = '#'.repeat(level)
-    
-    const newText = `${prefix} ${headingText}`
-    this.context.replaceSelection(newText)
-  }
+    protected setupEventListeners(): void {
+        // 监听内容变化，处理Markdown语法
+        this.addEventListener('content:change', this.handleContentChange.bind(this))
+        
+        // 监听键盘事件，处理Markdown快捷键
+        this.addEventListener('keydown', this.handleKeyDown.bind(this))
+    }
 
-  // 插入列表
-  private insertList(ordered: boolean): void {
-    if (!this.context) return
+    protected onEnable(): void {
+        console.log('Markdown Plugin enabled')
+    }
 
-    const selection = this.context.getSelection()
-    const listText = selection || '列表项'
-    const prefix = ordered ? '1. ' : '- '
-    
-    const newText = `${prefix}${listText}`
-    this.context.replaceSelection(newText)
-  }
+    protected onDisable(): void {
+        console.log('Markdown Plugin disabled')
+    }
 
-  // 插入引用
-  private insertQuote(): void {
-    if (!this.context) return
+    /**
+     * 处理内容变化
+     */
+    private handleContentChange(content: string): void {
+        if (!this.enabled) return
 
-    const selection = this.context.getSelection()
-    const quoteText = selection || '引用文本'
-    
-    const newText = `> ${quoteText}`
-    this.context.replaceSelection(newText)
-  }
+        // 处理自动链接
+        if (this.enableAutoLink) {
+            this.processAutoLinks(content)
+        }
 
-  // 插入分割线
-  private insertHorizontalRule(): void {
-    if (!this.context) return
+        // 处理表格语法
+        if (this.enableTableSupport) {
+            this.processTableSyntax(content)
+        }
 
-    const newText = '\n---\n'
-    this.context.insertText(newText)
-  }
+        // 处理数学公式
+        if (this.enableMathSupport) {
+            this.processMathSyntax(content)
+        }
 
-  // 插入表格
-  private insertTable(): void {
-    if (!this.context) return
+        // 处理Mermaid图表
+        if (this.enableMermaidSupport) {
+            this.processMermaidSyntax(content)
+        }
+    }
 
-    const tableText = `| 列1 | 列2 | 列3 |
-|-----|-----|-----|
-| 内容1 | 内容2 | 内容3 |
-| 内容4 | 内容5 | 内容6 |`
-    
-    this.context.insertText(tableText)
-  }
+    /**
+     * 处理键盘事件
+     */
+    private handleKeyDown(event: KeyboardEvent): void {
+        if (!this.enabled) return
 
-  // 处理内容变化
-  private processContent(content: string): void {
-    // 这里可以添加内容处理逻辑
-    // 比如自动格式化、语法检查等
-    console.log('Processing markdown content:', content.length, 'characters')
-  }
+        const adapter = this.getAdapter()
+        if (!adapter) return
 
-  // 提供上下文提示
-  private provideContextHints(position: any): void {
-    // 这里可以添加智能提示逻辑
-    // 比如根据光标位置提供相应的Markdown语法建议
-    console.log('Providing context hints at position:', position)
-  }
+        // 处理Markdown快捷键
+        switch (event.key) {
+            case '#':
+                if (event.ctrlKey) {
+                    event.preventDefault()
+                    adapter.insertHeading(1)
+                }
+                break
+            case 'b':
+                if (event.ctrlKey) {
+                    event.preventDefault()
+                    adapter.formatBold()
+                }
+                break
+            case 'i':
+                if (event.ctrlKey) {
+                    event.preventDefault()
+                    adapter.formatItalic()
+                }
+                break
+            case 'k':
+                if (event.ctrlKey) {
+                    event.preventDefault()
+                    const url = prompt('请输入链接地址:')
+                    if (url) {
+                        adapter.formatLink(url)
+                    }
+                }
+                break
+            case 'Enter':
+                if (event.shiftKey) {
+                    event.preventDefault()
+                    adapter.insertParagraph()
+                }
+                break
+        }
+    }
+
+    /**
+     * 处理自动链接
+     */
+    private processAutoLinks(content: string): void {
+        // 检测URL并自动转换为链接
+        const urlRegex = /(https?:\/\/[^\s]+)/g
+        const matches = content.match(urlRegex)
+        
+        if (matches) {
+            matches.forEach(url => {
+                // 这里可以实现自动链接转换逻辑
+                console.log('Auto-link detected:', url)
+            })
+        }
+    }
+
+    /**
+     * 处理表格语法
+     */
+    private processTableSyntax(content: string): void {
+        // 检测表格语法并转换为HTML表格
+        const tableRegex = /\|(.+)\|\n\|[\s\-:]+\|\n(\|.+\|\n?)+/g
+        const matches = content.match(tableRegex)
+        
+        if (matches) {
+            matches.forEach(table => {
+                console.log('Table syntax detected:', table)
+                // 这里可以实现表格转换逻辑
+            })
+        }
+    }
+
+    /**
+     * 处理数学公式语法
+     */
+    private processMathSyntax(content: string): void {
+        // 检测数学公式语法
+        const inlineMathRegex = /\$([^$]+)\$/g
+        const blockMathRegex = /\$\$([^$]+)\$\$/g
+        
+        const inlineMatches = content.match(inlineMathRegex)
+        const blockMatches = content.match(blockMathRegex)
+        
+        if (inlineMatches || blockMatches) {
+            console.log('Math syntax detected:', { inlineMatches, blockMatches })
+            // 这里可以实现数学公式渲染逻辑
+        }
+    }
+
+    /**
+     * 处理Mermaid图表语法
+     */
+    private processMermaidSyntax(content: string): void {
+        // 检测Mermaid图表语法
+        const mermaidRegex = /```mermaid\n([\s\S]*?)\n```/g
+        const matches = content.match(mermaidRegex)
+        
+        if (matches) {
+            matches.forEach(mermaid => {
+                console.log('Mermaid syntax detected:', mermaid)
+                // 这里可以实现Mermaid图表渲染逻辑
+            })
+        }
+    }
+
+    /**
+     * 转换Markdown为HTML
+     */
+    public convertMarkdownToHTML(markdown: string): string {
+        // 这里可以实现完整的Markdown到HTML转换
+        // 目前返回简单的转换结果
+        return markdown
+            .replace(/^### (.*$)/gim, '<h3>$1</h3>')
+            .replace(/^## (.*$)/gim, '<h2>$1</h2>')
+            .replace(/^# (.*$)/gim, '<h1>$1</h1>')
+            .replace(/\*\*(.*)\*\*/gim, '<strong>$1</strong>')
+            .replace(/\*(.*)\*/gim, '<em>$1</em>')
+            .replace(/`(.*)`/gim, '<code>$1</code>')
+            .replace(/\n/gim, '<br>')
+    }
+
+    /**
+     * 转换HTML为Markdown
+     */
+    public convertHTMLToMarkdown(html: string): string {
+        // 这里可以实现HTML到Markdown的转换
+        return html
+            .replace(/<h1>(.*?)<\/h1>/gim, '# $1\n')
+            .replace(/<h2>(.*?)<\/h2>/gim, '## $1\n')
+            .replace(/<h3>(.*?)<\/h3>/gim, '### $1\n')
+            .replace(/<strong>(.*?)<\/strong>/gim, '**$1**')
+            .replace(/<em>(.*?)<\/em>/gim, '*$1*')
+            .replace(/<code>(.*?)<\/code>/gim, '`$1`')
+            .replace(/<br\s*\/?>/gim, '\n')
+    }
 } 

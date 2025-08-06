@@ -2,15 +2,14 @@
  * 编辑器状态
  */
 
-import { EditorType, SceneTemplate, AICapability } from './editorType'
-
+import type { AICapability, EditorType, SceneTemplate } from "./EditorType"
 /**
  * 基础编辑器状态
  */
 export interface EditorState {
     // 核心状态
     content: string                    // 当前内容
-    editorType: EditorType            // 当前编辑器类型
+    editorType: EditorType           // 当前编辑器类型
     sceneTemplate: SceneTemplate      // 当前场景模板
     
     // AI相关状态
