@@ -1,11 +1,13 @@
 import React, { createContext, useContext, useReducer, useCallback } from 'react'
 import { 
   EditorActionType,
-   EditorContextValue, 
-   EditorPlugin, 
-   EditorProviderProps, 
-   PositionSection,
-   SelectionSection
+  EditorContextValue, 
+  EditorPlugin, 
+  EditorProviderProps, 
+  PositionSection,
+  SelectionSection,
+  EditorType,
+  EditorMode
 } from '../types'
 import editorReducer, { initialState } from '../reducer'
 
@@ -16,13 +18,17 @@ export const EditorProvider: React.FC<EditorProviderProps> = ({
   children,
   initialContent = '',
   initialLanguage = 'markdown',
-  initialTheme = 'flowmind-dark'
+  initialTheme = 'flowmind-dark',
+  initialEditorType = EditorType.MARKDOWN,
+  initialEditorMode = EditorMode.EDIT
 }) => {
   const [state, dispatch] = useReducer(editorReducer, {
     ...initialState,
     content: initialContent,
     language: initialLanguage,
-    theme: initialTheme
+    theme: initialTheme,
+    editorType: initialEditorType,
+    editorMode: initialEditorMode
   })
 
   // 插件管理
@@ -57,6 +63,15 @@ export const EditorProvider: React.FC<EditorProviderProps> = ({
 
   const setSelection = useCallback((start: PositionSection, end: PositionSection) => {
     dispatch({ type: EditorActionType.SET_SELECTION, payload: { start, end } as SelectionSection })
+  }, [])
+
+  // 编辑器类型切换
+  const switchEditorType = useCallback((type: EditorType) => {
+    dispatch({ type: EditorActionType.SET_EDITOR_TYPE, payload: type })
+  }, [])
+
+  const switchEditorMode = useCallback((mode: EditorMode) => {
+    dispatch({ type: EditorActionType.SET_EDITOR_MODE, payload: mode })
   }, [])
 
   // 插件系统
@@ -109,6 +124,8 @@ export const EditorProvider: React.FC<EditorProviderProps> = ({
     replaceSelection,
     getSelection,
     setSelection,
+    switchEditorType,
+    switchEditorMode,
     registerPlugin,
     unregisterPlugin,
     getPlugin,

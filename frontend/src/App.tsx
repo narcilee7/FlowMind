@@ -2,9 +2,9 @@ import React from 'react'
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom'
 import { useAppStore } from '@/stores/app-store'
 import { Sidebar } from '@/components/Sidebar'
-import { EditorLayout } from '@/components/Editor/templates/EditorLayout'
 import { Header } from '@/components/Header'
 import { ThemePreview } from '@/components/ThemePreview'
+import { MultiEditorDemo } from '@/components/Editor'
 
 function App() {
   const { isOnline, setIsOnline, initializeTheme } = useAppStore()
@@ -36,6 +36,7 @@ function App() {
             <Routes>
               {/* <Route path="/" element={<EditorLayout />} /> */}
               {/* <Route path="/editor" element={<EditorLayout />} /> */}
+              <Route path="/" element={<MultiEditorDemo />} />
               <Route path="/theme" element={<ThemePreview />} />
             </Routes>
           </main>

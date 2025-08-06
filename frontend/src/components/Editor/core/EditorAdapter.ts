@@ -146,4 +146,4 @@ export class EditorRegistry {
     const factory = this.get(name)
     return factory ? factory.createAdapter() : null
   }
-} 
+}
