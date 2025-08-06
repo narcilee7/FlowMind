@@ -8,6 +8,8 @@ import { EditorType, SceneTemplate } from '../types/EditorType'
 import { RichTextViewAdapter } from '../adapters/RichTextViewAdapter'
 import { GraphViewAdapter } from '../adapters/GraphViewAdapter'
 import { CanvasViewAdapter } from '../adapters/CanvasViewAdapter'
+import { TableViewAdapter } from '../adapters/TableViewAdapter'
+import { TimelineViewAdapter } from '../adapters/TimelineViewAdapter'
 
 /**
  * 视图适配器工厂
@@ -23,8 +25,8 @@ export default class ViewAdapterFactory {
         this.registerAdapter(EditorType.RICH_TEXT, RichTextViewAdapter)
         this.registerAdapter(EditorType.GRAPH, GraphViewAdapter)
         this.registerAdapter(EditorType.CANVAS, CanvasViewAdapter)
-        // this.registerAdapter(EditorType.TABLE, TableViewAdapter)
-        // this.registerAdapter(EditorType.TIMELINE, TimelineViewAdapter)
+        this.registerAdapter(EditorType.TABLE, TableViewAdapter)
+        this.registerAdapter(EditorType.TIMELINE, TimelineViewAdapter)
     }
 
     /**
