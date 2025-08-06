@@ -42,6 +42,7 @@ export interface ViewAdapter {
     onViewChange(callback: (viewData: any) => void): void
     onFocus(callback: () => void): void
     onBlur(callback: () => void): void
+    onError(callback: (error: Error) => void): void
     
     // 视图工具方法
     scrollToNode(nodeId: string): void

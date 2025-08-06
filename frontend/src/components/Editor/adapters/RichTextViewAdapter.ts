@@ -4,186 +4,254 @@
  */
 
 import { ViewAdapterOptions, RichTextViewAdapter as IRichTextViewAdapter, TextFormat } from '@/components/Editor/types/ViewAdapter'
-import { EditorType, SceneTemplate } from '@/components/Editor/types/EditorType'
+import { EditorType } from '@/components/Editor/types/EditorType'
 import { DocumentAST, ASTNode, Selection, RichTextNode } from '@/components/Editor/types/EditorAST'
-import { EditorTheme } from '@/components/Editor/types/EditorTheme'
+import { BaseViewAdapter, EventCallback } from './BaseViewAdapter'
+import { ASTUtils } from '../utils/ASTUtils'
+
+/**
+ * TipTap编辑器类型定义
+ */
+interface TipTapEditor {
+    commands: {
+        setContent: (content: any, options?: any) => boolean
+        focus: () => void
+        blur: () => void
+        setTextSelection: (position: number | { from: number; to: number }) => void
+        insertContent: (content: any) => void
+        deleteSelection: () => void
+        toggleBold: () => void
+        toggleItalic: () => void
+        toggleUnderline: () => void
+        toggleStrike: () => void
+        setColor: (color: string) => void
+        setMark: (mark: string, attributes: Record<string, any>) => void
+        setTextAlign: (align: 'left' | 'center' | 'right' | 'justify') => void
+    }
+    state: {
+        selection: {
+            from: number
+            to: number
+        }
+    }
+    isFocused: boolean
+    getHTML: () => string
+    destroy: () => void
+    on: (event: string, callback: Function) => void
+}
 
 /**
  * 富文本视图适配器实现
  */
-export class RichTextViewAdapter implements IRichTextViewAdapter {
-    public type: EditorType.RICH_TEXT = EditorType.RICH_TEXT
-    public sceneTemplate: SceneTemplate
+export class RichTextViewAdapter extends BaseViewAdapter implements IRichTextViewAdapter {
+    public readonly type: EditorType.RICH_TEXT = EditorType.RICH_TEXT
     
-    private element: HTMLElement | null = null
-    private options: ViewAdapterOptions | null = null
-    private editor: any = null // TipTap编辑器实例
-    // 事件回调表
-    private eventCallbacks: Map<string, Function[]> = new Map()
-    // 是否已销毁
-    private isDestroyed = false
-
-    /**
-     * 构造函数
-     */
-    constructor(sceneTemplate: SceneTemplate) {
-        this.sceneTemplate = sceneTemplate
-    }
+    private editor: TipTapEditor | null = null
+    private contentUpdateQueue: (() => void)[] = []
+    private isUpdating = false
 
     /**
      * 创建适配器
      */
     async create(element: HTMLElement, options: ViewAdapterOptions): Promise<void> {
+        if (this.isInitialized) {
+            this.handleError(new Error('Adapter already initialized'), 'create')
+            return
+        }
+
         this.element = element
         this.options = options
 
-        // 动态导入TipTap相关模块
-        const { Editor } = await import('@tiptap/react')
-        const { StarterKit } = await import('@tiptap/starter-kit')
-        const { Underline } = await import('@tiptap/extension-underline')
-        const { TextAlign } = await import('@tiptap/extension-text-align')
-        const { Color } = await import('@tiptap/extension-color')
-        const { TextStyle } = await import('@tiptap/extension-text-style')
-        const { Link } = await import('@tiptap/extension-link')
-        const { Image } = await import('@tiptap/extension-image')
-        const { Table } = await import('@tiptap/extension-table')
-        const { TableRow } = await import('@tiptap/extension-table-row')
-        const { TableCell } = await import('@tiptap/extension-table-cell')
-        const { TableHeader } = await import('@tiptap/extension-table-header')
+        try {
+            // 动态导入TipTap相关模块
+            const { Editor } = await import('@tiptap/react')
+            const { StarterKit } = await import('@tiptap/starter-kit')
+            const { Underline } = await import('@tiptap/extension-underline')
+            const { TextAlign } = await import('@tiptap/extension-text-align')
+            const { Color } = await import('@tiptap/extension-color')
+            const { TextStyle } = await import('@tiptap/extension-text-style')
+            const { Link } = await import('@tiptap/extension-link')
+            const { Image } = await import('@tiptap/extension-image')
+            const { Table } = await import('@tiptap/extension-table')
+            const { TableRow } = await import('@tiptap/extension-table-row')
+            const { TableCell } = await import('@tiptap/extension-table-cell')
+            const { TableHeader } = await import('@tiptap/extension-table-header')
 
-        // 创建TipTap编辑器
-        this.editor = new Editor({
-            element: this.element,
-            // 扩展配置
-            extensions: [
-                // 基础扩展
-                StarterKit,
-                Underline,
-                TextAlign.configure({
-                    types: ['heading', 'paragraph'],
-                }),
-                Color,
-                TextStyle,
-                Link.configure({
-                    openOnClick: false,
-                }),
-                // 媒体扩展
-                Image,
-                Table.configure({
-                    resizable: true,
-                }),
-                // 表格扩展
-                TableRow,
-                TableCell,
-                TableHeader,
-            ],
-            // 初始内容
-            content: '',
-            // 编辑器属性
-            editorProps: {
-                attributes: {
-                    class: 'rich-text-editor',
-                    spellcheck: 'false',
+            // 创建TipTap编辑器
+            this.editor = new Editor({
+                element: this.element,
+                // 扩展配置
+                extensions: [
+                    // 基础扩展
+                    StarterKit,
+                    Underline,
+                    TextAlign.configure({
+                        types: ['heading', 'paragraph'],
+                    }),
+                    Color,
+                    TextStyle,
+                    Link.configure({
+                        openOnClick: false,
+                    }),
+                    // 媒体扩展
+                    Image,
+                    Table.configure({
+                        resizable: true,
+                    }),
+                    // 表格扩展
+                    TableRow,
+                    TableCell,
+                    TableHeader,
+                ],
+                // 初始内容
+                content: '',
+                // 编辑器属性
+                editorProps: {
+                    attributes: {
+                        class: 'rich-text-editor',
+                        spellcheck: 'false',
+                    },
                 },
-            },
-            // 事件监听
-            onUpdate: ({ editor }: { editor: any }) => {
-                this.handleContentUpdate(editor)
-            },
-            onSelectionUpdate: ({ editor }: { editor: any }) => {
-                this.handleSelectionUpdate(editor)
-            },
-            onFocus: () => {
-                this.triggerEvent('focus')
-            },
-            onBlur: () => {
-                this.triggerEvent('blur')
-            },
-        })
+                // 事件监听
+                onUpdate: ({ editor }: any) => {
+                    this.handleContentUpdate(editor)
+                },
+                onSelectionUpdate: ({ editor }: any) => {
+                    this.handleSelectionUpdate(editor)
+                },
+                onFocus: () => {
+                    this.triggerEvent('focus')
+                },
+                onBlur: () => {
+                    this.triggerEvent('blur')
+                },
+            }) as any
 
-        // 设置主题样式
-        this.applyTheme(options.theme || 'auto')
+            // 设置主题样式
+            this.applyTheme(options.theme || 'auto')
+            
+            this.isInitialized = true
+            this.triggerEvent('viewChange', { type: 'initialized' })
+
+        } catch (error) {
+            this.handleError(error as Error, 'create')
+            throw error
+        }
     }
 
     /**
-     * 销毁适配器
+     * 执行销毁逻辑
      */
-    destroy(): void {
-        if (this.isDestroyed) return
-
+    protected performDestroy(): void {
         if (this.editor) {
             this.editor.destroy()
             this.editor = null
         }
-
-        this.element = null
-        this.options = null
-        this.eventCallbacks.clear()
-        this.isDestroyed = true
     }
 
     /**
      * 渲染AST
      */
     render(ast: DocumentAST): void {
-        if (!this.editor || this.isDestroyed) return
+        if (!this.validateInitialized() || !this.editor) return
 
-        const content = this.astToTipTapContent(ast)
-        this.editor.commands.setContent(content, false)
-    }
-
-    /**
-     * 更新AST
-     */
-    update(ast: DocumentAST): void {
-        this.render(ast)
+        const content = this.safeSync(() => this.astToTipTapContent(ast), 'render')
+        if (content) {
+            this.editor.commands.setContent(content, false)
+        }
     }
 
     /**
      * 更新节点
      */
     updateNode(nodeId: string, node: ASTNode): void {
-        if (!this.editor || this.isDestroyed) return
+        if (!this.validateInitialized() || !this.editor) return
 
-        // 查找并更新特定节点
-        const content = this.astToTipTapContent({ root: node } as DocumentAST)
-        // TODO: 实现精确的节点更新逻辑
-        this.editor.commands.setContent(content, false)
+        // 查找节点在文档中的位置
+        const nodePath = this.safeSync(() => ASTUtils.getNodePath(this.getCurrentAST(), nodeId), 'updateNode')
+        if (!nodePath) {
+            this.handleError(new Error(`Node ${nodeId} not found`), 'updateNode')
+            return
+        }
+
+        // 计算节点在编辑器中的位置
+        const position = this.calculateNodePosition(nodePath)
+        if (position !== null) {
+            // 获取节点内容
+            const content = this.safeSync(() => this.nodeToHtml(node), 'updateNode')
+            if (content) {
+                // 替换节点内容
+                this.editor.commands.setTextSelection({ from: position.start, to: position.end })
+                this.editor.commands.insertContent(content)
+            }
+        }
     }
 
     /**
      * 删除节点
      */
     removeNode(nodeId: string): void {
-        if (!this.editor || this.isDestroyed) return
+        if (!this.validateInitialized() || !this.editor) return
 
-        // TODO: 实现节点删除逻辑
-        console.log('Remove node:', nodeId)
+        const nodePath = this.safeSync(() => ASTUtils.getNodePath(this.getCurrentAST(), nodeId), 'removeNode')
+        if (!nodePath) {
+            this.handleError(new Error(`Node ${nodeId} not found`), 'removeNode')
+            return
+        }
+
+        const position = this.calculateNodePosition(nodePath)
+        if (position !== null) {
+            this.editor.commands.setTextSelection({ from: position.start, to: position.end })
+            this.editor.commands.deleteSelection()
+        }
     }
 
     /**
      * 添加节点
      */
     addNode(node: ASTNode, parentId?: string, index?: number): void {
-        if (!this.editor || this.isDestroyed) return
+        if (!this.validateInitialized() || !this.editor) return
 
-        // TODO: 实现节点添加逻辑
-        console.log('Add node:', node, 'parent:', parentId, 'index:', index)
+        const content = this.safeSync(() => this.nodeToHtml(node), 'addNode')
+        if (!content) return
+
+        if (parentId) {
+            // 添加到指定父节点
+            const parentPath = this.safeSync(() => ASTUtils.getNodePath(this.getCurrentAST(), parentId), 'addNode')
+            if (parentPath) {
+                const position = this.calculateNodePosition(parentPath)
+                if (position !== null) {
+                    this.editor.commands.setTextSelection(position.end)
+                    this.editor.commands.insertContent(content)
+                }
+            }
+        } else {
+            // 添加到文档末尾
+            const docLength = this.editor.getHTML().length
+            this.editor.commands.setTextSelection(docLength)
+            this.editor.commands.insertContent(content)
+        }
     }
 
     /**
      * 设置选择状态
      */
     setSelection(selection: Selection): void {
-        if (!this.editor || this.isDestroyed) return
+        if (!this.validateInitialized() || !this.editor) return
 
         if (selection.type === 'text' && selection.range) {
-            const { start, end, nodeId } = selection.range
-            // TODO: 实现文本选择设置
-            console.log('Set text selection:', { start, end, nodeId })
-        } else if (selection.type === 'node') {
-            // TODO: 实现节点选择设置
-            console.log('Set node selection:', selection.nodeIds)
+            const { start, end } = selection.range
+            this.editor.commands.setTextSelection({ from: start, to: end })
+        } else if (selection.type === 'node' && selection.nodeIds.length > 0) {
+            // 对于节点选择，选择第一个节点
+            const nodeId = selection.nodeIds[0]
+            const nodePath = this.safeSync(() => ASTUtils.getNodePath(this.getCurrentAST(), nodeId), 'setSelection')
+            if (nodePath) {
+                const position = this.calculateNodePosition(nodePath)
+                if (position !== null) {
+                    this.editor.commands.setTextSelection({ from: position.start, to: position.end })
+                }
+            }
         }
     }
 
@@ -191,7 +259,7 @@ export class RichTextViewAdapter implements IRichTextViewAdapter {
      * 获取选择状态
      */
     getSelection(): Selection {
-        if (!this.editor || this.isDestroyed) {
+        if (!this.validateInitialized() || !this.editor) {
             return { nodeIds: [], type: 'node' }
         }
 
@@ -201,13 +269,14 @@ export class RichTextViewAdapter implements IRichTextViewAdapter {
             return { nodeIds: [], type: 'node' }
         } else {
             // 文本选择
+            const nodeId = this.findNodeIdAtPosition(from)
             return {
-                nodeIds: [],
+                nodeIds: nodeId ? [nodeId] : [],
                 type: 'text',
                 range: {
                     start: from,
                     end: to,
-                    nodeId: 'current' // TODO: 获取实际的节点ID
+                    nodeId: nodeId || 'unknown'
                 }
             }
         }
@@ -217,7 +286,7 @@ export class RichTextViewAdapter implements IRichTextViewAdapter {
      * 设置焦点
      */
     focus(): void {
-        if (this.editor && !this.isDestroyed) {
+        if (this.validateInitialized() && this.editor) {
             this.editor.commands.focus()
         }
     }
@@ -226,7 +295,7 @@ export class RichTextViewAdapter implements IRichTextViewAdapter {
      * 失去焦点
      */
     blur(): void {
-        if (this.editor && !this.isDestroyed) {
+        if (this.validateInitialized() && this.editor) {
             this.editor.commands.blur()
         }
     }
@@ -239,10 +308,91 @@ export class RichTextViewAdapter implements IRichTextViewAdapter {
     }
 
     /**
-     * 富文本特有方法：插入文本
+     * 滚动到节点
+     */
+    scrollToNode(nodeId: string): void {
+        if (!this.validateInitialized() || !this.element) return
+
+        const nodeElement = this.element.querySelector(`[data-node-id="${nodeId}"]`)
+        if (nodeElement) {
+            nodeElement.scrollIntoView({ behavior: 'smooth', block: 'center' })
+        }
+    }
+
+    /**
+     * 放大视图
+     */
+    zoomIn(): void {
+        if (!this.validateInitialized() || !this.element) return
+
+        const currentZoom = parseFloat(this.element.style.zoom || '1')
+        this.element.style.zoom = `${Math.min(currentZoom * 1.2, 3)}`
+        this.triggerEvent('viewChange', { type: 'zoom', zoom: this.element.style.zoom })
+    }
+
+    /**
+     * 缩小视图
+     */
+    zoomOut(): void {
+        if (!this.validateInitialized() || !this.element) return
+
+        const currentZoom = parseFloat(this.element.style.zoom || '1')
+        this.element.style.zoom = `${Math.max(currentZoom * 0.8, 0.5)}`
+        this.triggerEvent('viewChange', { type: 'zoom', zoom: this.element.style.zoom })
+    }
+
+    /**
+     * 重置缩放
+     */
+    resetZoom(): void {
+        if (!this.validateInitialized() || !this.element) return
+
+        this.element.style.zoom = '1'
+        this.triggerEvent('viewChange', { type: 'zoom', zoom: '1' })
+    }
+
+    /**
+     * 适应视图
+     */
+    fitToView(): void {
+        this.resetZoom()
+    }
+
+    /**
+     * 获取视口
+     */
+    getViewport(): any {
+        if (!this.validateInitialized() || !this.element) {
+            return { x: 0, y: 0, width: 0, height: 0, zoom: 1 }
+        }
+
+        return {
+            x: 0,
+            y: 0,
+            width: this.element.clientWidth,
+            height: this.element.clientHeight,
+            zoom: parseFloat(this.element.style.zoom || '1')
+        }
+    }
+
+    /**
+     * 设置视口
+     */
+    setViewport(viewport: any): void {
+        if (!this.validateInitialized() || !this.element) return
+
+        if (viewport.zoom) {
+            this.element.style.zoom = `${viewport.zoom}`
+        }
+        this.triggerEvent('viewChange', { type: 'viewport', viewport })
+    }
+
+    // 富文本特有方法
+    /**
+     * 插入文本
      */
     insertText(text: string, position?: number): void {
-        if (!this.editor || this.isDestroyed) return
+        if (!this.validateInitialized() || !this.editor) return
 
         if (position !== undefined) {
             this.editor.commands.setTextSelection(position)
@@ -251,20 +401,20 @@ export class RichTextViewAdapter implements IRichTextViewAdapter {
     }
 
     /**
-     * 富文本特有方法：删除文本
+     * 删除文本
      */
     deleteText(start: number, end: number): void {
-        if (!this.editor || this.isDestroyed) return
+        if (!this.validateInitialized() || !this.editor) return
 
         this.editor.commands.setTextSelection({ from: start, to: end })
         this.editor.commands.deleteSelection()
     }
 
     /**
-     * 富文本特有方法：格式化文本
+     * 格式化文本
      */
     formatText(start: number, end: number, format: TextFormat): void {
-        if (!this.editor || this.isDestroyed) return
+        if (!this.validateInitialized() || !this.editor) return
 
         this.editor.commands.setTextSelection({ from: start, to: end })
 
@@ -287,187 +437,56 @@ export class RichTextViewAdapter implements IRichTextViewAdapter {
     }
 
     /**
-     * 富文本特有方法：插入节点
+     * 插入节点
      */
     insertNode(node: ASTNode, position?: number): void {
-        if (!this.editor || this.isDestroyed) return
+        if (!this.validateInitialized() || !this.editor) return
+
+        const content = this.safeSync(() => this.nodeToHtml(node), 'insertNode')
+        if (!content) return
 
         if (position !== undefined) {
             this.editor.commands.setTextSelection(position)
         }
-
-        const content = this.astToTipTapContent({ root: node } as DocumentAST)
         this.editor.commands.insertContent(content)
-    }
-
-    // 视图控制方法
-    /**
-     * 滚动到节点
-     */
-    scrollToNode(nodeId: string): void {
-        // TODO: 实现滚动到节点
-        console.log('Scroll to node:', nodeId)
-    }
-
-    /**
-     * 放大视图
-     */
-    zoomIn(): void {
-        // 富文本编辑器通常不需要缩放
-        console.log('Zoom in')
-    }
-
-    /**
-     * 缩小视图
-     */
-    zoomOut(): void {
-        // 富文本编辑器通常不需要缩放
-        console.log('Zoom out')
-    }
-
-    /**
-     * 重置缩放
-     */
-    resetZoom(): void {
-        // 富文本编辑器通常不需要缩放
-        console.log('Reset zoom')
-    }
-
-    /**
-     * 适应视图
-     */
-    fitToView(): void {
-        // 富文本编辑器通常不需要适应视图
-        console.log('Fit to view')
-    }
-
-    /**
-     * 获取视口
-     */
-    getViewport(): any {
-        // 富文本编辑器通常不需要获取视口
-        return {
-            x: 0,
-            y: 0,
-            width: this.element?.clientWidth || 0,
-            height: this.element?.clientHeight || 0,
-            zoom: 1
-        }
-    }
-
-    /**
-     * 设置视口
-     */
-    setViewport(viewport: any): void {
-        // 富文本编辑器通常不需要设置视口
-        console.log('Set viewport:', viewport)
-    }
-
-    // 事件监听方法
-    /**
-     * 节点点击事件
-     */
-    onNodeClick(callback: (nodeId: string, event: MouseEvent) => void): void {
-        this.addEventListener('nodeClick', callback)
-    }
-
-    /**
-     * 节点双击事件
-     */
-    onNodeDoubleClick(callback: (nodeId: string, event: MouseEvent) => void): void {
-        this.addEventListener('nodeDoubleClick', callback)
-    }
-
-    /**
-     * 选择状态变化事件
-     */
-    onSelectionChange(callback: (selection: Selection) => void): void {
-        this.addEventListener('selectionChange', callback)
-    }
-
-    /**
-     * 视图变化事件
-     */
-    onViewChange(callback: (viewData: any) => void): void {
-        this.addEventListener('viewChange', callback)
-    }
-
-    /**
-     * 获得焦点事件
-     */
-    onFocus(callback: () => void): void {
-        this.addEventListener('focus', callback)
-    }
-
-    /**
-     * 失去焦点事件
-     */
-    onBlur(callback: () => void): void {
-        this.addEventListener('blur', callback)
     }
 
     /**
      * 文本变化事件
      */
-    onTextChange(callback: (text: string) => void): void {
+    onTextChange(callback: EventCallback<string>): void {
         this.addEventListener('textChange', callback)
     }
 
     /**
      * 格式变化事件
      */
-    onFormatChange(callback: (format: TextFormat) => void): void {
+    onFormatChange(callback: EventCallback<TextFormat>): void {
         this.addEventListener('formatChange', callback)
     }
 
     // 私有方法
-    private addEventListener(event: string, callback: Function): void {
-        if (!this.eventCallbacks.has(event)) {
-            this.eventCallbacks.set(event, [])
-        }
-        this.eventCallbacks.get(event)!.push(callback)
-    }
-
-    /**
-     * 触发事件
-     */
-    private triggerEvent(event: string, data?: any): void {
-        const callbacks = this.eventCallbacks.get(event)
-        if (callbacks) {
-            callbacks.forEach(callback => callback(data))
-        }
-    }
-
     /**
      * 处理内容更新
      */
-    private handleContentUpdate(editor: any): void {
+    private handleContentUpdate = this.debounce((editor: TipTapEditor): void => {
         const content = editor.getHTML()
         this.triggerEvent('textChange', content)
-        this.triggerEvent('viewChange', { content })
-    }
-
-    private handleSelectionUpdate(editor: any): void {
-        const selection = this.getSelection()
-        this.triggerEvent('selectionChange', selection)
-    }
+        this.triggerEvent('viewChange', { type: 'contentUpdate', content })
+    }, 100)
 
     /**
-     * 应用主题样式
+     * 处理选择更新
      */
-    private applyTheme(theme: EditorTheme): void {
-        if (!this.element) return
-
-        const themeClass = theme === 'auto' ? 'theme-auto' : `theme-${theme}`
-        this.element.classList.add(themeClass)
-    }
+    private handleSelectionUpdate = this.throttle((editor: TipTapEditor): void => {
+        const selection = this.getSelection()
+        this.triggerEvent('selectionChange', selection)
+    }, 50)
 
     /**
      * 将AST转换为TipTap可识别的HTML内容
      */
     private astToTipTapContent(ast: DocumentAST): string {
-        // 将AST转换为TipTap可识别的HTML内容
-        // TODO: 这是一个简化的实现，实际应该递归处理所有节点
         return this.nodeToHtml(ast.root)
     }
 
@@ -480,11 +499,11 @@ export class RichTextViewAdapter implements IRichTextViewAdapter {
         switch (node.type) {
             // 段落
             case 'paragraph':
-                return `<p>${this.getNodeContent(node)}</p>`
+                return `<p data-node-id="${node.id}">${this.getNodeContent(node)}</p>`
             // 标题
             case 'heading':
                 const level = (node as RichTextNode).attributes?.level || 1
-                return `<h${level}>${this.getNodeContent(node)}</h${level}>`
+                return `<h${level} data-node-id="${node.id}">${this.getNodeContent(node)}</h${level}>`
             // 文本
             case 'text':
                 return this.getNodeContent(node)
@@ -506,45 +525,45 @@ export class RichTextViewAdapter implements IRichTextViewAdapter {
             // 代码块
             case 'codeBlock':
                 const language = (node as RichTextNode).attributes?.language || ''
-                return `<pre><code class="language-${language}">${this.getNodeContent(node)}</code></pre>`
+                return `<pre data-node-id="${node.id}"><code class="language-${language}">${this.getNodeContent(node)}</code></pre>`
             // 链接
             case 'link':
                 const href = (node as RichTextNode).attributes?.href || '#'
-                return `<a href="${href}">${this.getNodeContent(node)}</a>`
+                return `<a href="${href}" data-node-id="${node.id}">${this.getNodeContent(node)}</a>`
             // 图片
             case 'image':
                 const src = (node as RichTextNode).attributes?.src || ''
                 const alt = (node as RichTextNode).attributes?.alt || ''
-                return `<img src="${src}" alt="${alt}" />`
+                return `<img src="${src}" alt="${alt}" data-node-id="${node.id}" />`
             // 列表
             case 'list':
                 const ordered = (node as RichTextNode).attributes?.ordered || false
                 const tag = ordered ? 'ol' : 'ul'
-                return `<${tag}>${this.getChildrenHtml(node)}</${tag}>`
+                return `<${tag} data-node-id="${node.id}">${this.getChildrenHtml(node)}</${tag}>`
             // 列表项
             case 'listItem':
-                return `<li>${this.getNodeContent(node)}</li>`
+                return `<li data-node-id="${node.id}">${this.getNodeContent(node)}</li>`
             // 引用
             case 'blockquote':
-                return `<blockquote>${this.getNodeContent(node)}</blockquote>`
+                return `<blockquote data-node-id="${node.id}">${this.getNodeContent(node)}</blockquote>`
             // 表格
             case 'table':
-                return `<table>${this.getChildrenHtml(node)}</table>`
+                return `<table data-node-id="${node.id}">${this.getChildrenHtml(node)}</table>`
             // 表格行
             case 'tableRow':
-                return `<tr>${this.getChildrenHtml(node)}</tr>`
+                return `<tr data-node-id="${node.id}">${this.getChildrenHtml(node)}</tr>`
             // 表格单元格
             case 'tableCell':
-                return `<td>${this.getNodeContent(node)}</td>`
+                return `<td data-node-id="${node.id}">${this.getNodeContent(node)}</td>`
             // 表格头部
             case 'tableHeader':
-                return `<th>${this.getNodeContent(node)}</th>`
+                return `<th data-node-id="${node.id}">${this.getNodeContent(node)}</th>`
             // 分割线
             case 'horizontalRule':
-                return '<hr />'
+                return `<hr data-node-id="${node.id}" />`
             // 其他节点类型
             default:
-                return this.getNodeContent(node)
+                return `<div data-node-id="${node.id}">${this.getNodeContent(node)}</div>`
         }
     }
 
@@ -568,7 +587,36 @@ export class RichTextViewAdapter implements IRichTextViewAdapter {
      */
     private getChildrenHtml(node: ASTNode): string {
         if (!node.children) return ''
-        // 递归获取子节点HTML
         return node.children.map(child => this.nodeToHtml(child)).join('')
+    }
+
+    /**
+     * 计算节点位置
+     * TODO: 需要根据节点路径计算在编辑器中的位置
+     */
+    private calculateNodePosition(nodePath: number[]): { start: number; end: number } | null {
+        // 这里需要根据节点路径计算在编辑器中的位置
+        // 这是一个简化的实现，实际应该遍历DOM树来计算
+        return { start: 0, end: 0 }
+    }
+
+    /**
+     * 根据位置查找节点ID
+     * TODO: 需要根据位置查找对应的节点ID
+     */
+    private findNodeIdAtPosition(position: number): string | null {
+        // 这里需要根据位置查找对应的节点ID
+        // 这是一个简化的实现，实际应该遍历DOM树来查找
+        return null
+    }
+
+    /**
+     * 获取当前AST
+     * TODO: 需要从编辑器内容重建AST
+     */
+    private getCurrentAST(): DocumentAST {
+        // 这里应该从当前编辑器内容重建AST
+        // 这是一个简化的实现
+        return ASTUtils.createDocument('当前文档')
     }
 }
