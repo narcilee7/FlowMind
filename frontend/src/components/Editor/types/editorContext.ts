@@ -5,7 +5,7 @@
 import { createContext, useContext } from 'react'
 import { EditorState, EditorConfig, EditorAction, TOCItem } from './EditorState'
 import { EditorType, SceneTemplate, AICapability } from './EditorType'
-import { EditorAdapter } from './EditorAdapter'
+import { EditorAdapter } from './ViewAdapter'
 
 /**
  * 编辑器上下文值

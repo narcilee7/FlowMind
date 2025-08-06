@@ -2,7 +2,7 @@
  * 编辑器核心类型定义
  */
 
-import { EditorAdapter } from './EditorAdapter'
+import { EditorAdapter } from './ViewAdapter'
 import { EditorType, SceneTemplate } from './EditorType'
 import { ASTNode } from './EditorAST'
 

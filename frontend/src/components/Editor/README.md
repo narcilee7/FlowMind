@@ -1,203 +1,286 @@
-# Editor内核架构 - 重构版
+# Editor内核架构 - 真正的多形态编辑器
 
 ## 概述
 
-Editor内核已经重构为清爽、可扩展的架构，基于**Adapter Factory + 插件模式**设计。移除了所有无用代码，统一了事件系统，实现了完整的插件架构。
+重新设计的Editor内核是一个**真正的多形态编辑器内核**，而不是富文本编辑器框架。核心设计理念是：**AST作为通信核心，适配器只负责视图渲染，命令系统处理编辑逻辑**。
 
 ## 核心架构
 
 ```
-EditorCore (React组件)
-├── EditorCore (核心类)
-│   ├── EditorAdapterFactory (适配器工厂)
-│   ├── EditorPluginManager (插件管理器)
-│   └── 统一事件系统
-├── Adapters (适配器层)
-│   └── TipTapAdapter (富文本适配器)
-├── Plugins (插件层)
-│   ├── AIAssistantPlugin (AI助手)
-│   ├── MarkdownPlugin (Markdown支持)
-│   ├── ShortcutPlugin (快捷键)
-│   ├── AutoSavePlugin (自动保存)
-│   └── TOCPlugin (目录生成)
-└── Types (类型定义)
-    ├── EditorCore.ts (核心类型)
-    ├── EditorAdapter.ts (适配器接口)
-    ├── EditorPlugin.ts (插件接口)
-    ├── EditorAST.ts (AST数据结构)
-    └── EditorType.ts (编辑器类型)
+Editor Core (真正的内核)
+├── Document State (统一的文档状态)
+│   ├── AST (多形态抽象语法树)
+│   ├── Selection (跨视图选择状态)
+│   └── History (操作历史)
+├── Command System (命令系统)
+│   ├── Insert Commands
+│   ├── Transform Commands
+│   └── View Commands
+├── View Adapters (纯视图适配器)
+│   ├── RichTextView (富文本视图)
+│   ├── GraphView (图谱视图)
+│   ├── CanvasView (Canvas视图)
+│   ├── TableView (表格视图)
+│   └── TimelineView (时间线视图)
+└── Plugin System (业务插件)
+    ├── AI Plugins
+    ├── Export Plugins
+    └── Collaboration Plugins
 ```
 
 ## 核心特性
 
-### 1. 清爽架构
-- **单一职责**: 每个模块职责明确，互不干扰
-- **无无用代码**: 移除了所有重复和不完整的实现
-- **统一接口**: 所有适配器实现相同的接口
+### 1. AST作为通信核心
+- **统一数据结构**：支持富文本、图谱、Canvas、表格、时间线等多种节点类型
+- **跨视图共享**：所有视图共享同一个AST，只是渲染方式不同
+- **类型安全**：完整的TypeScript类型定义，支持所有节点类型
 
-### 2. 可扩展性
-- **插件系统**: 完整的事件驱动的插件架构
-- **适配器工厂**: 支持动态注册和切换适配器
-- **AST数据结构**: 统一的文档状态管理
+### 2. 视图适配器分离
+- **纯视图渲染**：适配器只负责将AST渲染为特定视图
+- **不处理编辑逻辑**：编辑逻辑由命令系统统一处理
+- **视图特定功能**：每种视图有自己的特定功能（如图谱布局、Canvas工具等）
 
-### 3. 事件系统
-- **统一事件**: 所有组件通过统一的事件系统通信
-- **类型安全**: 完整的TypeScript类型定义
-- **异步支持**: 支持异步事件处理
+### 3. 命令驱动架构
+- **统一命令系统**：所有编辑操作通过命令执行
+- **可撤销/重做**：命令系统天然支持操作历史
+- **跨视图操作**：命令可以在不同视图间执行
 
-## 核心组件
+## AST数据结构
 
-### EditorCore
-编辑器核心类，负责：
-- 适配器生命周期管理
-- 事件系统管理
-- 文档状态管理
-- 插件协调
+### 基础节点结构
+```typescript
+interface BaseNode {
+    id: string                    // 唯一标识符
+    type: string                  // 节点类型
+    position: Position            // 位置信息
+    metadata?: NodeMetadata       // 元数据
+    children?: ASTNode[]          // 子节点
+    parent?: string               // 父节点ID
+}
+```
 
-### EditorAdapterFactory
-适配器工厂，负责：
-- 适配器注册和创建
-- 类型检查和验证
-- 动态适配器切换
+### 支持的节点类型
 
-### EditorPluginManager
-插件管理器，负责：
-- 插件生命周期管理
-- 插件注册和注销
-- 插件间通信协调
+#### 富文本节点
+- `paragraph` - 段落
+- `heading` - 标题
+- `text` - 文本
+- `bold`, `italic`, `underline` - 格式化
+- `codeBlock` - 代码块
+- `table` - 表格
+- 等等...
 
-## 适配器
+#### 图谱节点
+- `graphNode` - 图谱节点
+- `graphEdge` - 图谱边
+- `graphGroup` - 图谱组
 
-### TipTapAdapter
-基于TipTap的富文本编辑器适配器，提供：
-- 完整的富文本编辑功能
-- Markdown语法支持
-- 表格、代码块、图片等高级功能
-- 实时协作支持
+#### Canvas节点
+- `shape` - 形状
+- `image` - 图片
+- `text` - 文本
+- `path` - 路径
+- `connector` - 连接线
 
-## 插件系统
+#### 表格节点
+- `table` - 表格
+- `tableRow` - 表格行
+- `tableCell` - 表格单元格
+- `tableHeader` - 表格头部
 
-### AIAssistantPlugin
-AI助手插件，提供：
-- 智能文本补全
-- AI续写和改写
-- 内容摘要生成
-- 快捷键支持
+#### 时间线节点
+- `timeline` - 时间线
+- `timelineItem` - 时间线项
+- `milestone` - 里程碑
 
-### MarkdownPlugin
-Markdown支持插件，提供：
-- Markdown语法解析
-- 自动链接检测
-- 表格语法支持
-- 数学公式支持
+#### AI节点
+- `aiBlock` - AI生成块
+- `aiSuggestion` - AI建议
+- `aiCompletion` - AI补全
 
-### ShortcutPlugin
-快捷键插件，提供：
-- 全局快捷键支持
-- 自定义快捷键注册
-- 快捷键冲突检测
-- 快捷键帮助显示
+#### 媒体节点
+- `video` - 视频
+- `audio` - 音频
+- `embed` - 嵌入内容
 
-### AutoSavePlugin
-自动保存插件，提供：
-- 定时自动保存
-- 失焦时保存
-- 本地备份管理
-- 服务器同步
+## 视图适配器
 
-### TOCPlugin
-目录生成插件，提供：
-- 自动目录生成
-- 目录导航
-- 目录统计
-- 多格式导出
+### 基础视图适配器
+```typescript
+interface ViewAdapter {
+    // 基础属性
+    type: EditorType
+    sceneTemplate: SceneTemplate
+    
+    // 生命周期
+    create(element: HTMLElement, options: ViewAdapterOptions): Promise<void>
+    destroy(): void
+    
+    // 视图渲染
+    render(ast: DocumentAST): void
+    update(ast: DocumentAST): void
+    updateNode(nodeId: string, node: ASTNode): void
+    removeNode(nodeId: string): void
+    addNode(node: ASTNode, parentId?: string, index?: number): void
+    
+    // 选择状态
+    setSelection(selection: Selection): void
+    getSelection(): Selection
+    
+    // 视图控制
+    focus(): void
+    blur(): void
+    isFocused(): boolean
+    
+    // 视图事件
+    onNodeClick(callback: (nodeId: string, event: MouseEvent) => void): void
+    onSelectionChange(callback: (selection: Selection) => void): void
+    onViewChange(callback: (viewData: any) => void): void
+    
+    // 视图工具
+    scrollToNode(nodeId: string): void
+    zoomIn(): void
+    zoomOut(): void
+    resetZoom(): void
+    fitToView(): void
+}
+```
 
-## 使用方法
+### 特定视图适配器
+
+#### 富文本视图适配器
+```typescript
+interface RichTextViewAdapter extends ViewAdapter {
+    // 富文本特有方法
+    insertText(text: string, position?: number): void
+    deleteText(start: number, end: number): void
+    formatText(start: number, end: number, format: TextFormat): void
+    insertNode(node: ASTNode, position?: number): void
+    
+    // 富文本事件
+    onTextChange(callback: (text: string) => void): void
+    onFormatChange(callback: (format: TextFormat) => void): void
+}
+```
+
+#### 图谱视图适配器
+```typescript
+interface GraphViewAdapter extends ViewAdapter {
+    // 图谱特有方法
+    addGraphNode(node: ASTNode, position?: { x: number; y: number }): void
+    addEdge(edge: ASTNode): void
+    removeGraphNode(nodeId: string): void
+    removeEdge(edgeId: string): void
+    updateNodePosition(nodeId: string, position: { x: number; y: number }): void
+    
+    // 图谱布局
+    applyLayout(layout: GraphLayout): void
+    autoLayout(): void
+    centerOnNode(nodeId: string): void
+    
+    // 图谱事件
+    onNodeDrag(callback: (nodeId: string, position: { x: number; y: number }) => void): void
+    onEdgeClick(callback: (edgeId: string, event: MouseEvent) => void): void
+}
+```
+
+#### Canvas视图适配器
+```typescript
+interface CanvasViewAdapter extends ViewAdapter {
+    // Canvas特有方法
+    addShape(shape: ASTNode): void
+    addImage(image: ASTNode): void
+    addText(text: ASTNode): void
+    addPath(path: ASTNode): void
+    
+    // Canvas工具
+    selectTool(tool: CanvasTool): void
+    clearCanvas(): void
+    exportImage(format: 'png' | 'jpg' | 'svg'): string
+    
+    // Canvas事件
+    onDraw(callback: (path: { x: number; y: number }[]) => void): void
+    onShapeResize(callback: (nodeId: string, size: { width: number; height: number }) => void): void
+}
+```
+
+## 使用示例
 
 ### 基本使用
-
 ```tsx
 import { EditorCore } from './components/Editor/core/EditorCore'
 
 function App() {
   return (
     <EditorCore
-      initialContent="开始写作..."
-      onContentChange={(content) => console.log('内容变化:', content)}
+      initialAST={ASTUtils.createDocument('doc-1', '我的文档')}
+      onASTChange={(ast) => console.log('AST变化:', ast)}
     />
   )
 }
 ```
 
-### 插件配置
-
+### 切换视图
 ```tsx
-// 在EditorPluginManager中配置插件
-const pluginManager = new EditorPluginManager(core)
+// 切换到图谱视图
+await editor.switchView(EditorType.GRAPH)
 
-// 注册自定义插件
-pluginManager.register(new CustomPlugin({
-  options: {
-    enableFeature: true
-  }
-}))
+// 切换到Canvas视图
+await editor.switchView(EditorType.CANVAS)
+
+// 切换到时间线视图
+await editor.switchView(EditorType.TIMELINE)
 ```
 
-### 适配器切换
-
+### 执行命令
 ```tsx
-// 动态切换编辑器类型
-await core.switchAdapter(EditorType.GRAPH, SceneTemplate.RESEARCH)
+// 插入文本
+await editor.executeCommand('insertText', { text: 'Hello World', position: 0 })
+
+// 插入图谱节点
+await editor.executeCommand('insertGraphNode', { 
+  node: { id: 'node-1', type: 'graphNode', label: '概念节点' },
+  position: { x: 100, y: 100 }
+})
+
+// 插入Canvas形状
+await editor.executeCommand('insertCanvasShape', {
+  node: { id: 'shape-1', type: 'shape', canvasData: { shapeType: 'rectangle' } }
+})
 ```
 
 ## 开发指南
 
-### 创建新适配器
-
-1. 实现`EditorAdapter`接口
-2. 在`EditorAdapterFactory`中注册
+### 创建新视图适配器
+1. 实现`ViewAdapter`接口
+2. 在`AdapterFactory`中注册
 3. 添加相应的类型定义
 
-### 创建新插件
+### 创建新命令
+1. 实现命令接口
+2. 在命令系统中注册
+3. 添加撤销/重做支持
 
+### 创建新插件
 1. 继承`BasePlugin`类
 2. 实现必要的抽象方法
-3. 在`EditorPluginManager`中注册
+3. 在插件管理器中注册
 
-### 事件处理
+## 优势
 
-```tsx
-// 监听事件
-core.on('content:change', (content) => {
-  console.log('内容变化:', content)
-})
-
-// 触发事件
-core.emit('custom:event', { data: 'value' })
-```
-
-## 性能优化
-
-- **防抖处理**: 内容变化和TOC更新使用防抖
-- **懒加载**: 插件按需加载
-- **内存管理**: 及时清理事件监听器和定时器
-- **AST缓存**: 智能的AST更新机制
-
-## 未来扩展
-
-- **图谱编辑器**: 知识图谱可视化编辑
-- **Canvas编辑器**: 白板式自由编辑
-- **表格编辑器**: 数据库视图编辑
-- **时间线编辑器**: 时间线式内容组织
+1. **真正的多形态**：支持多种视图模式，共享同一份数据
+2. **架构清晰**：AST作为核心，职责分离明确
+3. **高度可扩展**：新视图、新命令、新插件易于添加
+4. **类型安全**：完整的TypeScript支持
+5. **性能优秀**：视图分离，按需渲染
 
 ## 总结
 
-重构后的Editor内核具有以下优势：
+这个重新设计的架构实现了真正的**多形态编辑器内核**：
 
-1. **架构清晰**: 职责分离，易于理解和维护
-2. **高度可扩展**: 插件系统支持无限功能扩展
-3. **性能优秀**: 优化的渲染和事件处理机制
-4. **类型安全**: 完整的TypeScript支持
-5. **易于测试**: 模块化设计便于单元测试
+- **AST作为通信核心**：统一的数据结构支持所有视图模式
+- **视图适配器分离**：纯视图渲染，不处理编辑逻辑
+- **命令驱动架构**：统一的编辑操作处理
+- **插件系统扩展**：业务逻辑通过插件扩展
 
-这个架构为FlowMind的AI原生编辑器提供了坚实的基础，支持未来的功能扩展和性能优化。 
+这样的设计完全符合PRD中"多形态编辑器内核"的要求，为FlowMind的AI原生编辑器提供了坚实的基础。

@@ -529,4 +529,4 @@ export class ASTUtils {
     static deserialize(data: string): DocumentAST {
         return JSON.parse(data)
     }
-} 
+}
