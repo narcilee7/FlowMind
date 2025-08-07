@@ -1,5 +1,5 @@
 import localforage from "localforage"
-import { serialize } from "@/utils/serialize"
+import { serialize } from "lib/serialize"
 
 const useStorage = () => {
     const getItem = (key: string ) => {

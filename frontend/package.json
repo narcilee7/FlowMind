@@ -5,18 +5,22 @@
   "type": "module",
   "main": "dist/main.js",
   "scripts": {
-    "dev": "concurrently \"npm run dev:vite\" \"npm run dev:electron\"",
-    "dev:vite": "vite",
-    "dev:electron": "wait-on tcp:5173 && electron .",
-    "build": "npm run build:vite && npm run build:electron",
-    "build:vite": "vite build",
+    "dev": "concurrently \"npm run dev:web\" \"npm run dev:electron\"",
+    "dev:web": "next dev",
+    "dev:electron": "wait-on tcp:3000 && electron .",
+    "build": "next build && next export && electron-builder",
+    "build:web": "next build && next export",
     "build:electron": "electron-builder",
-    "preview": "vite preview"
+    "preview": "next start"
   },
   "keywords": [
     "electron",
     "react",
-    "markdown",
+    "next",
+    "rich-text",
+    "graph",
+    "canvas",
+    "flowchart",
     "ai",
     "knowledge-management"
   ],
@@ -75,9 +79,9 @@
     "lucide-react": "^0.536.0",
     "moment": "^2.30.1",
     "monaco-editor": "^0.52.2",
+    "next": "^15.4.6",
     "react": "^19.1.1",
     "react-dom": "^19.1.1",
-    "react-router-dom": "^7.7.1",
     "tailwind-merge": "^3.3.1",
     "vis-data": "^8.0.1",
     "vis-network": "^10.0.1",
@@ -89,23 +93,21 @@
     "@types/node": "^24.2.0",
     "@types/react": "^19.1.9",
     "@types/react-dom": "^19.1.7",
-    "@vitejs/plugin-react": "^4.7.0",
     "autoprefixer": "^10.4.21",
     "concurrently": "^9.2.0",
     "electron-devtools-installer": "^4.0.0",
     "postcss": "^8.5.6",
-    "sass": "^1.90.0",
     "tailwindcss": "^3.4.17",
     "tw-animate-css": "^1.3.6",
     "typescript": "^5.9.2",
-    "vite": "^7.0.6",
     "wait-on": "^8.0.4"
   },
   "build": {
     "appId": "com.flowmind.app",
     "productName": "FlowMind",
     "directories": {
-      "output": "release"
+      "output": "release",
+      "app": "dist"
     },
     "files": [
       "dist/**/*",
