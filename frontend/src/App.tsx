@@ -1,7 +1,7 @@
 import React from 'react'
 import { Route, BrowserRouter as Router, Routes } from 'react-router-dom'
 import { useAppStore } from '@/stores/app-store'
-import { ThemeProvider } from '@/theme/ThemeProvider'
+import { ThemeProvider } from '@/styles/ThemeProvider'
 import Sidebar from '@/components/Sidebar'
 import Header from '@/components/Header'
 import styled from 'styled-components'

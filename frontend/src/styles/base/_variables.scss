@@ -1,0 +1,246 @@
+// =============================================================================
+// 设计令牌变量
+// =============================================================================
+
+// 颜色系统
+$colors: (
+  neutral: (
+    0: #ffffff,
+    10: #f9fafb,
+    20: #f3f4f6,
+    30: #e5e7eb,
+    40: #d1d5db,
+    50: #9ca3af,
+    60: #6b7280,
+    70: #4b5563,
+    80: #374151,
+    90: #1f2937,
+    100: #111827
+  ),
+
+  primary: (
+    50: #eff6ff,
+    100: #dbeafe,
+    200: #bfdbfe,
+    300: #93c5fd,
+    400: #60a5fa,
+    500: #3b82f6,
+    600: #2563eb,
+    700: #1d4ed8,
+    800: #1e40af,
+    900: #1e3a8a
+  ),
+
+  accent: (
+    400: #fbbf24,
+    500: #f59e0b
+  ),
+
+  success: (
+    400: #34d399,
+    500: #10b981
+  ),
+
+  warning: (
+    400: #fbbf24,
+    500: #f59e0b
+  ),
+
+  error: (
+    400: #f87171,
+    500: #ef4444
+  ),
+
+  info: (
+    400: #22d3ee,
+    500: #06b6d4
+  )
+);
+
+// 状态变量
+$states: (
+  default: map-get($colors, primary, 500),
+  hover: map-get($colors, primary, 400),
+  focus: map-get($colors, primary, 600),
+  active: map-get($colors, primary, 700),
+  disabled: map-get($colors, neutral, 40),
+  selected: map-get($colors, primary, 200),
+  outline: map-get($colors, primary, 300),
+  inverse: map-get($colors, neutral, 100)
+);
+
+// 透明度与过度动画变量
+$opacity: (
+  none: 0,
+  subtle: 0.05,
+  light: 0.1,
+  medium: 0.3,
+  strong: 0.6,
+  full: 1
+);
+
+// 过渡动画变量
+$transitions: (
+  fast: 150ms,
+  normal: 200ms,
+  slow: 300ms
+);
+
+// 缓动函数变量
+$easing: (
+  default: ease-in-out,
+  in: ease-in,
+  out: ease-out
+);
+
+// 动画变量
+$animation: (
+  fade-in: fadeIn 200ms ease-out,
+  fade-out: fadeOut 200ms ease-in,
+  slide-up: slideUp 200ms ease-out,
+  slide-down: slideDown 200ms ease-in
+);
+
+
+// 字体系统
+$fonts: (
+  family: (
+    primary: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+    secondary: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+    monospace: 'JetBrains Mono, Consolas, Monaco, "Courier New", monospace',
+    code: 'JetBrains Mono, Consolas, Monaco, "Courier New", monospace'
+  ),
+  size: (
+    xs: 0.75rem,    // 12px
+    sm: 0.875rem,   // 14px
+    base: 1rem,     // 16px
+    lg: 1.125rem,   // 18px
+    xl: 1.25rem,    // 20px
+    '2xl': 1.5rem,  // 24px
+    '3xl': 1.875rem, // 30px
+    '4xl': 2.25rem  // 36px
+  ),
+  weight: (
+    light: 300,
+    normal: 400,
+    medium: 500,
+    semibold: 600,
+    bold: 700,
+    extrabold: 800
+  ),
+  lineHeight: (
+    tight: 1.25,
+    normal: 1.5,
+    relaxed: 1.75,
+    loose: 2
+  )
+);
+
+// 间距系统
+$spacing: (
+  xs: 0.25rem,     // 4px
+  sm: 0.5rem,      // 8px
+  md: 1rem,        // 16px
+  lg: 1.5rem,      // 24px
+  xl: 2rem,        // 32px
+  '2xl': 3rem,     // 48px
+  '3xl': 4rem,     // 64px
+  component: (
+    padding: 0.5rem 1rem,
+    margin: 0.5rem,
+    gap: 0.5rem
+  ),
+  layout: (
+    container: 1rem,
+    section: 2rem,
+    group: 1rem
+  )
+);
+
+// 圆角系统
+$radius: (
+  none: 0,
+  sm: 0.125rem,    // 2px
+  md: 0.375rem,    // 6px
+  lg: 0.5rem,      // 8px
+  xl: 0.75rem,     // 12px
+  full: 9999px
+);
+
+// 阴影系统
+$shadows: (
+  none: none,
+  sm: (
+    light: '0 1px 2px 0 rgba(0, 0, 0, 0.05)',
+    dark: '0 1px 2px 0 rgba(0, 0, 0, 0.3)'
+  ),
+  md: (
+    light: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)',
+    dark: '0 4px 6px -1px rgba(0, 0, 0, 0.3), 0 2px 4px -1px rgba(0, 0, 0, 0.2)'
+  ),
+  lg: (
+    light: '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)',
+    dark: '0 10px 15px -3px rgba(0, 0, 0, 0.3), 0 4px 6px -2px rgba(0, 0, 0, 0.2)'
+  ),
+  xl: (
+    light: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)',
+    dark: '0 20px 25px -5px rgba(0, 0, 0, 0.3), 0 10px 10px -5px rgba(0, 0, 0, 0.2)'
+  ),
+  '2xl': (
+    light: '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
+    dark: '0 25px 50px -12px rgba(0, 0, 0, 0.5)'
+  ),
+  inner: (
+    light: 'inset 0 2px 4px 0 rgba(0, 0, 0, 0.06)',
+    dark: 'inset 0 2px 4px 0 rgba(0, 0, 0, 0.2)'
+  )
+);
+
+// 动画系统
+$animations: (
+  duration: (
+    fast: 0.15s,
+    normal: 0.3s,
+    slow: 0.5s
+  ),
+  easing: (
+    linear: linear,
+    ease: ease,
+    easeIn: ease-in,
+    easeOut: ease-out,
+    easeInOut: ease-in-out
+  ),
+  type: (
+    fade: opacity,
+    slide: transform,
+    scale: transform,
+    rotate: transform
+  )
+);
+
+// 断点系统
+$breakpoints: (
+  xs: 0,
+  sm: 640px,
+  md: 768px,
+  lg: 1024px,
+  xl: 1280px,
+  '2xl': 1536px
+);
+
+// Z-index 层级
+$zIndex: (
+  hide: -1,
+  auto: auto,
+  base: 0,
+  docked: 10,
+  dropdown: 1000,
+  sticky: 1100,
+  banner: 1200,
+  overlay: 1300,
+  modal: 1400,
+  popover: 1500,
+  skipLink: 1600,
+  toast: 1700,
+  tooltip: 1800
+);
