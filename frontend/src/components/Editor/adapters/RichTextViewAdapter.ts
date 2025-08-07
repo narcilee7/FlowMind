@@ -11,10 +11,11 @@
  */
 
 import { ViewAdapterOptions, RichTextViewAdapter as IRichTextViewAdapter, TextFormat } from '@/components/Editor/types/ViewAdapter'
-import { EditorType, SceneTemplate } from '@/components/Editor/types/EditorType'
+import { EditorType } from '@/components/Editor/types/EditorType'
 import { DocumentAST, ASTNode, Selection, RichTextNode } from '@/components/Editor/types/EditorAST'
 import { BaseViewAdapter, EventCallback } from './BaseViewAdapter'
-import { ASTUtils } from '../utils/ASTUtils'
+import { createDocumentAST, createRichTextNode, validateAST } from '@/components/Editor/utils/ASTUtils'
+import { debounce, throttle } from '@/components/Editor/utils/CommonUtils'
 
 /**
  * TipTap编辑器类型定义
@@ -279,8 +280,8 @@ export class RichTextViewAdapter extends BaseViewAdapter implements IRichTextVie
             onUpdate: ({ editor }: any) => {
                 this.handleContentUpdate(editor)
             },
-            onSelectionUpdate: ({ editor }: any) => {
-                this.handleSelectionUpdate(editor)
+            onSelectionUpdate: () => {
+                this.handleSelectionUpdate()
             },
             onFocus: () => {
                 this.triggerEvent('focus')
@@ -492,7 +493,7 @@ export class RichTextViewAdapter extends BaseViewAdapter implements IRichTextVie
         this.startPerformanceMonitoring()
 
         // 验证AST
-        const validation = ASTUtils.validateAST(ast)
+        const validation = validateAST(ast)
         if (!validation.success) {
             this.handleError(new Error(`Invalid AST: ${validation.error}`), 'render')
             this.endPerformanceMonitoring('render')
@@ -1182,7 +1183,7 @@ export class RichTextViewAdapter extends BaseViewAdapter implements IRichTextVie
      * 处理内容更新
      * 使用防抖机制避免频繁更新
      */
-    private handleContentUpdate = this.debounce((editor: TipTapEditor): void => {
+    private handleContentUpdate = debounce((editor: TipTapEditor): void => {
         if (this.isContentSyncing) return
 
         const content = editor.getHTML()
@@ -1197,9 +1198,14 @@ export class RichTextViewAdapter extends BaseViewAdapter implements IRichTextVie
      * 处理选择更新
      * 使用节流机制优化性能
      */
-    private handleSelectionUpdate = this.throttle((editor: TipTapEditor): void => {
+    private handleSelectionUpdate = throttle((): void => {
+        if (this.isContentSyncing) return
+
         const selection = this.getSelection()
         this.triggerEvent('selectionChange', selection)
+
+        // 更新位置映射
+        this.updatePositionMapping()
     }, this.SELECTION_THROTTLE_MS)
 
     /**
@@ -1406,7 +1412,7 @@ export class RichTextViewAdapter extends BaseViewAdapter implements IRichTextVie
      */
     private htmlToAST(html: string): DocumentAST {
         if (!html.trim()) {
-            return ASTUtils.createDocument('空文档')
+            return createDocumentAST('空文档')
         }
 
         try {
@@ -1415,7 +1421,7 @@ export class RichTextViewAdapter extends BaseViewAdapter implements IRichTextVie
             tempDiv.innerHTML = html
 
             // 创建根节点
-            const rootNode = ASTUtils.createRichTextNode('group', '', {}, { x: 0, y: 0 })
+            const rootNode = createRichTextNode('group', '', {}, { x: 0, y: 0 })
             rootNode.children = []
 
             // 解析子节点
@@ -1443,7 +1449,7 @@ export class RichTextViewAdapter extends BaseViewAdapter implements IRichTextVie
             return documentAST
         } catch (error) {
             this.handleError(error as Error, 'htmlToAST')
-            return ASTUtils.createDocument('解析失败')
+            return createDocumentAST('解析失败')
         }
     }
 
@@ -1458,7 +1464,7 @@ export class RichTextViewAdapter extends BaseViewAdapter implements IRichTextVie
 
         switch (tagName) {
             case 'p':
-                return ASTUtils.createRichTextNode('paragraph', textContent, {}, { x: 0, y: 0 })
+                return createRichTextNode('paragraph', textContent, {}, { x: 0, y: 0 })
             case 'h1':
             case 'h2':
             case 'h3':
@@ -1466,52 +1472,52 @@ export class RichTextViewAdapter extends BaseViewAdapter implements IRichTextVie
             case 'h5':
             case 'h6':
                 const level = parseInt(tagName.charAt(1))
-                return ASTUtils.createRichTextNode('heading', textContent, { level }, { x: 0, y: 0 })
+                return createRichTextNode('heading', textContent, { level }, { x: 0, y: 0 })
             case 'strong':
             case 'b':
-                return ASTUtils.createRichTextNode('bold', textContent, {}, { x: 0, y: 0 })
+                return createRichTextNode('bold', textContent, {}, { x: 0, y: 0 })
             case 'em':
             case 'i':
-                return ASTUtils.createRichTextNode('italic', textContent, {}, { x: 0, y: 0 })
+                return createRichTextNode('italic', textContent, {}, { x: 0, y: 0 })
             case 'u':
-                return ASTUtils.createRichTextNode('underline', textContent, {}, { x: 0, y: 0 })
+                return createRichTextNode('underline', textContent, {}, { x: 0, y: 0 })
             case 's':
             case 'del':
-                return ASTUtils.createRichTextNode('strikethrough', textContent, {}, { x: 0, y: 0 })
+                return createRichTextNode('strikethrough', textContent, {}, { x: 0, y: 0 })
             case 'code':
-                return ASTUtils.createRichTextNode('code', textContent, {}, { x: 0, y: 0 })
+                return createRichTextNode('code', textContent, {}, { x: 0, y: 0 })
             case 'pre':
                 const codeElement = element.querySelector('code')
                 const language = codeElement?.className?.replace('language-', '') || ''
-                return ASTUtils.createRichTextNode('codeBlock', textContent, { language }, { x: 0, y: 0 })
+                return createRichTextNode('codeBlock', textContent, { language }, { x: 0, y: 0 })
             case 'a':
                 const href = element.getAttribute('href') || '#'
-                return ASTUtils.createRichTextNode('link', textContent, { href }, { x: 0, y: 0 })
+                return createRichTextNode('link', textContent, { href }, { x: 0, y: 0 })
             case 'img':
                 const src = element.getAttribute('src') || ''
                 const alt = element.getAttribute('alt') || ''
-                return ASTUtils.createRichTextNode('image', '', { src, alt }, { x: 0, y: 0 })
+                return createRichTextNode('image', '', { src, alt }, { x: 0, y: 0 })
             case 'ul':
-                return ASTUtils.createRichTextNode('list', '', { ordered: false }, { x: 0, y: 0 })
+                return createRichTextNode('list', '', { ordered: false }, { x: 0, y: 0 })
             case 'ol':
-                return ASTUtils.createRichTextNode('list', '', { ordered: true }, { x: 0, y: 0 })
+                return createRichTextNode('list', '', { ordered: true }, { x: 0, y: 0 })
             case 'li':
-                return ASTUtils.createRichTextNode('listItem', textContent, {}, { x: 0, y: 0 })
+                return createRichTextNode('listItem', textContent, {}, { x: 0, y: 0 })
             case 'blockquote':
-                return ASTUtils.createRichTextNode('blockquote', textContent, {}, { x: 0, y: 0 })
+                return createRichTextNode('blockquote', textContent, {}, { x: 0, y: 0 })
             case 'table':
-                return ASTUtils.createRichTextNode('table', '', {}, { x: 0, y: 0 })
+                return createRichTextNode('table', '', {}, { x: 0, y: 0 })
             case 'tr':
-                return ASTUtils.createRichTextNode('tableRow', '', {}, { x: 0, y: 0 })
+                return createRichTextNode('tableRow', '', {}, { x: 0, y: 0 })
             case 'td':
-                return ASTUtils.createRichTextNode('tableCell', textContent, {}, { x: 0, y: 0 })
+                return createRichTextNode('tableCell', textContent, {}, { x: 0, y: 0 })
             case 'th':
-                return ASTUtils.createRichTextNode('tableHeader', textContent, {}, { x: 0, y: 0 })
+                return createRichTextNode('tableHeader', textContent, {}, { x: 0, y: 0 })
             case 'hr':
-                return ASTUtils.createRichTextNode('horizontalRule', '', {}, { x: 0, y: 0 })
+                return createRichTextNode('horizontalRule', '', {}, { x: 0, y: 0 })
             default:
                 // 对于未知标签，创建为div
-                return ASTUtils.createRichTextNode('paragraph', textContent, {}, { x: 0, y: 0 })
+                return createRichTextNode('paragraph', textContent, {}, { x: 0, y: 0 })
         }
     }
 

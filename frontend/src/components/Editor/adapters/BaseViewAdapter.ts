@@ -7,6 +7,8 @@ import { ViewAdapter, ViewAdapterOptions, Viewport } from '@/components/Editor/t
 import { EditorType, SceneTemplate } from '@/components/Editor/types/EditorType'
 import { DocumentAST, ASTNode, Selection } from '@/components/Editor/types/EditorAST'
 import { EditorTheme } from '@/components/Editor/types/EditorTheme'
+import { EditorErrorInfo, EditorErrorSeverity, EditorErrorType } from '@/components/Editor/types/EditorError'
+import { PerformanceMetrics, PerformanceConfig } from '@/components/Editor/types/EditorPerformance'
 
 /**
  * 事件回调类型
@@ -30,122 +32,107 @@ export type EventMap = {
     edgeClick: (data: { edgeId: string; event: MouseEvent }) => void
 }
 
-/**
- * 错误类型枚举
- */
-export enum ErrorType {
-    INITIALIZATION = 'initialization',
-    RENDERING = 'rendering',
-    USER_INTERACTION = 'user_interaction',
-    NETWORK = 'network',
-    MEMORY = 'memory',
-    UNKNOWN = 'unknown'
-}
-
-/**
- * 错误严重程度
- */
-export enum ErrorSeverity {
-    LOW = 'low',
-    MEDIUM = 'medium',
-    HIGH = 'high',
-    CRITICAL = 'critical'
-}
-
-/**
- * 错误信息结构
- */
-export interface ErrorInfo {
-    type: ErrorType
-    severity: ErrorSeverity
-    message: string
-    context: string
-    timestamp: number
-    recoverable: boolean
-    retryCount: number
-}
-
-/**
- * 性能指标
- */
-export interface PerformanceMetrics {
-    renderTime: number
-    updateTime: number
-    memoryUsage: number
-    operationCount: number
-    errorRate: number
-    lastUpdate: number
-}
-
-/**
- * 性能监控配置
- */
-export interface PerformanceConfig {
-    enableProfiling: boolean
-    maxMetricsHistory: number
-    slowOperationThreshold: number
-    memoryWarningThreshold: number
-}
 
 /**
  * 基础视图适配器实现
  */
 export abstract class BaseViewAdapter implements ViewAdapter {
+    // 编辑器类型：抽象属性只读，由子类实现
     public abstract readonly type: EditorType
+    // 场景模板：由子类实现构造函数初始化，用于存储适配器创建的场景模板
     public sceneTemplate: SceneTemplate
-    
-    protected element: HTMLElement | null = null
-    protected options: ViewAdapterOptions | null = null
-    protected eventCallbacks: Map<keyof EventMap, EventCallback[]> = new Map()
-    protected isDestroyed = false
-    protected isInitialized = false
-    protected errorHandler?: (error: Error) => void
 
-    // 错误管理增强
-    private errorHistory: ErrorInfo[] = []
-    private readonly MAX_ERROR_HISTORY = 50
-    private readonly MAX_RETRY_ATTEMPTS = 3
-    private readonly ERROR_RECOVERY_STRATEGIES = new Map<ErrorType, () => void>()
+    // 基础属性
+    // 元素：用于存储适配器创建的DOM元素
+    protected element: HTMLElement | null = null
+    // 选项：用于存储适配器创建时的配置选项
+    protected options: ViewAdapterOptions | null = null
+    // 事件回调：用于存储事件回调函数
+    protected eventCallbacks: Map<keyof EventMap, EventCallback[]> = new Map()
+    // 销毁状态：用于标识适配器是否已销毁
+    protected isDestroyed = false
+    // 初始化状态：用于标识适配器是否已初始化
+    protected isInitialized = false
+    // 错误处理器：用于处理错误事件
+    protected errorHandler?: (error: Error) => void
+    // 错误计数：用于记录错误发生的次数
     protected errorCount = 0
+    // 最后一次错误时间：用于记录最后一次错误发生的时间
     protected lastErrorTime = 0
 
-    // 性能监控
-    private performanceMetrics: PerformanceMetrics[] = []
-    private performanceConfig: PerformanceConfig = {
-        enableProfiling: true,
-        maxMetricsHistory: 100,
-        slowOperationThreshold: 100, // 100ms
-        memoryWarningThreshold: 50 * 1024 * 1024 // 50MB
-    }
+    // 错误历史：用于记录错误发生的历史
+    private errorHistory: EditorErrorInfo[] = []
+    // 最大错误历史：用于限制错误历史记录的最大数量
+    private readonly MAX_ERROR_HISTORY = 50
+    // 最大重试次数：用于限制错误重试的最大次数
+    private readonly MAX_RETRY_ATTEMPTS = 3
+    // 错误恢复策略：用于存储不同错误类型的恢复策略
+    private readonly errorRecoveryStrategies: Map<EditorErrorType, () => void> = new Map()
+    // 性能指标：用于记录性能指标
+    private performanceMetricsList: PerformanceMetrics[] = []
+    // 性能配置：用于存储性能配置选项
+    private performanceMetricsOptions: PerformanceConfig | null = null
+    // 操作开始时间：用于记录操作开始的时间
     private operationStartTime: number = 0
 
     /**
      * 构造函数
      */
-    constructor(sceneTemplate: SceneTemplate) {
+    constructor(sceneTemplate: SceneTemplate, options: ViewAdapterOptions) {
+        // 初始化场景模板
         this.sceneTemplate = sceneTemplate
+        // 初始化错误恢复策略
         this.initializeErrorRecoveryStrategies()
+        // 初始化性能监控配置
+        const performanceMetricsOptions = {
+            enableProfiling: options.enableProfiling,
+            maxMetricsHistory: options.maxMetricsHistory ?? 100,
+            slowOperationThreshold: options.slowOperationThreshold ?? 100,
+            memoryWarningThreshold: options.memoryWarningThreshold ?? 50 * 1024 * 1024
+        } as PerformanceConfig
+        // 初始化性能配置
+        this.performanceMetricsOptions = performanceMetricsOptions
+        // 初始化性能监控
+        this.initializePerformanceMonitoring(performanceMetricsOptions)
     }
 
     /**
      * 初始化错误恢复策略
      */
     private initializeErrorRecoveryStrategies(): void {
-        this.ERROR_RECOVERY_STRATEGIES.set(ErrorType.INITIALIZATION, () => {
+        this.errorRecoveryStrategies.set(EditorErrorType.INITIALIZATION, () => {
             this.handleInitializationError()
         })
         
-        this.ERROR_RECOVERY_STRATEGIES.set(ErrorType.RENDERING, () => {
+        this.errorRecoveryStrategies.set(EditorErrorType.RENDERING, () => {
             this.handleRenderingError()
         })
         
-        this.ERROR_RECOVERY_STRATEGIES.set(ErrorType.MEMORY, () => {
+        this.errorRecoveryStrategies.set(EditorErrorType.MEMORY, () => {
             this.handleMemoryError()
         })
         
-        this.ERROR_RECOVERY_STRATEGIES.set(ErrorType.USER_INTERACTION, () => {
+        this.errorRecoveryStrategies.set(EditorErrorType.USER_INTERACTION, () => {
             this.handleUserInteractionError()
         })
+    }
+
+    /**
+     * 初始化性能监控
+     */
+    private initializePerformanceMonitoring(options: PerformanceConfig): void {
+        if (!options.enableProfiling) return
+        this.performanceMetricsOptions = {
+            // 是否启用性能监控
+            enableProfiling: options.enableProfiling,
+            // 最大性能指标历史记录数
+            maxMetricsHistory: options.maxMetricsHistory,
+            // 慢操作阈值
+            slowOperationThreshold: options.slowOperationThreshold,
+            // 内存警告阈值
+            memoryWarningThreshold: options.memoryWarningThreshold
+        }
+        this.startPerformanceMonitoring()
     }
 
     /**
@@ -448,7 +435,7 @@ export abstract class BaseViewAdapter implements ViewAdapter {
     }
 
     /**
-     * 增强的错误处理方法
+     * 错误处理方法
      */
     protected handleError(error: Error, context: string): void {
         const errorInfo = this.classifyError(error, context)
@@ -477,28 +464,29 @@ export abstract class BaseViewAdapter implements ViewAdapter {
     /**
      * 错误分类
      */
-    private classifyError(error: Error, context: string): ErrorInfo {
-        let type = ErrorType.UNKNOWN
-        let severity = ErrorSeverity.MEDIUM
+    private classifyError(error: Error, context: string): EditorErrorInfo {
+        let type = EditorErrorType.UNKNOWN
+        let severity = EditorErrorSeverity.MEDIUM
         let recoverable = true
         
         // 根据错误信息和上下文分类
         if (context.includes('create') || context.includes('init')) {
-            type = ErrorType.INITIALIZATION
-            severity = ErrorSeverity.HIGH
+            type = EditorErrorType.INITIALIZATION
+            severity = EditorErrorSeverity.HIGH
         } else if (context.includes('render') || context.includes('update')) {
-            type = ErrorType.RENDERING
-            severity = ErrorSeverity.MEDIUM
+            type = EditorErrorType.RENDERING
+            severity = EditorErrorSeverity.MEDIUM
         } else if (context.includes('memory') || context.includes('out of memory')) {
-            type = ErrorType.MEMORY
-            severity = ErrorSeverity.CRITICAL
+            type = EditorErrorType.MEMORY
+            severity = EditorErrorSeverity.CRITICAL
             recoverable = false
         } else if (context.includes('click') || context.includes('key') || context.includes('drag')) {
-            type = ErrorType.USER_INTERACTION
-            severity = ErrorSeverity.LOW
+            type = EditorErrorType.USER_INTERACTION
+            severity = EditorErrorSeverity.LOW
         }
         
         return {
+            id: `error_${Date.now()}_${Math.random().toString(36).substring(2, 15)}`,
             type,
             severity,
             message: error.message,
@@ -512,8 +500,8 @@ export abstract class BaseViewAdapter implements ViewAdapter {
     /**
      * 尝试错误恢复
      */
-    private attemptErrorRecovery(errorInfo: ErrorInfo): void {
-        const strategy = this.ERROR_RECOVERY_STRATEGIES.get(errorInfo.type)
+    private attemptErrorRecovery(errorInfo: EditorErrorInfo): void {
+        const strategy = this.errorRecoveryStrategies.get(errorInfo.type)
         if (strategy) {
             try {
                 strategy()
@@ -571,24 +559,24 @@ export abstract class BaseViewAdapter implements ViewAdapter {
      */
     public getErrorStats(): {
         total: number
-        byType: Record<ErrorType, number>
-        bySeverity: Record<ErrorSeverity, number>
-        recentErrors: ErrorInfo[]
+        byType: Record<EditorErrorType, number>
+        bySeverity: Record<EditorErrorSeverity, number>
+        recentErrors: EditorErrorInfo[]
     } {
         const stats = {
             total: this.errorHistory.length,
-            byType: {} as Record<ErrorType, number>,
-            bySeverity: {} as Record<ErrorSeverity, number>,
+            byType: {} as Record<EditorErrorType, number>,
+            bySeverity: {} as Record<EditorErrorSeverity, number>,
             recentErrors: this.errorHistory.slice(-10)
         }
         
         // 统计错误类型
-        Object.values(ErrorType).forEach(type => {
+        Object.values(EditorErrorType).forEach(type => {
             stats.byType[type] = this.errorHistory.filter(e => e.type === type).length
         })
         
         // 统计错误严重程度
-        Object.values(ErrorSeverity).forEach(severity => {
+        Object.values(EditorErrorSeverity).forEach(severity => {
             stats.bySeverity[severity] = this.errorHistory.filter(e => e.severity === severity).length
         })
         
@@ -599,6 +587,7 @@ export abstract class BaseViewAdapter implements ViewAdapter {
      * 清除错误历史
      */
     public clearErrorHistory(): void {
+        if (this.errorHistory.length === 0) return
         this.errorHistory = []
     }
 
@@ -628,37 +617,6 @@ export abstract class BaseViewAdapter implements ViewAdapter {
     }
 
     /**
-     * 防抖函数
-     */
-    protected debounce<T extends (...args: any[]) => any>(
-        func: T,
-        wait: number
-    ): (...args: Parameters<T>) => void {
-        let timeout: NodeJS.Timeout | null = null
-        return (...args: Parameters<T>) => {
-            if (timeout) clearTimeout(timeout)
-            timeout = setTimeout(() => func(...args), wait)
-        }
-    }
-
-    /**
-     * 节流函数
-     */
-    protected throttle<T extends (...args: any[]) => any>(
-        func: T,
-        limit: number
-    ): (...args: Parameters<T>) => void {
-        let inThrottle: boolean = false
-        return (...args: Parameters<T>) => {
-            if (!inThrottle) {
-                func(...args)
-                inThrottle = true
-                setTimeout(() => inThrottle = false, limit)
-            }
-        }
-    }
-
-    /**
      * 批量更新
      */
     protected batchUpdate(updates: (() => void)[]): void {
@@ -666,9 +624,9 @@ export abstract class BaseViewAdapter implements ViewAdapter {
 
         // 使用 requestAnimationFrame 进行批量更新
         requestAnimationFrame(() => {
-            updates.forEach(update => {
+            updates.forEach(callback => {
                 try {
-                    update()
+                    callback()
                 } catch (error) {
                     this.handleError(error as Error, 'batchUpdate')
                 }
@@ -705,13 +663,22 @@ export abstract class BaseViewAdapter implements ViewAdapter {
      */
     protected startPerformanceMonitoring(): void {
         this.operationStartTime = performance.now()
+        this.performanceMetricsList.push({
+            renderTime: 0,
+            updateTime: 0,
+            memoryUsage: 0,
+            operationCount: 0,
+            errorRate: 0,
+            lastUpdate: this.operationStartTime,
+            createdAt: Date.now()
+        })
     }
 
     /**
      * 结束性能监控
      */
     protected endPerformanceMonitoring(operation: string): void {
-        if (!this.performanceConfig.enableProfiling) return
+        if (!this.performanceMetricsOptions?.enableProfiling) return
 
         const duration = performance.now() - this.operationStartTime
         const memoryUsage = this.getMemoryUsage()
@@ -725,20 +692,20 @@ export abstract class BaseViewAdapter implements ViewAdapter {
             lastUpdate: Date.now()
         }
         
-        this.performanceMetrics.push(metrics)
+        this.performanceMetricsList.push(metrics)
         
         // 限制历史记录大小
-        if (this.performanceMetrics.length > this.performanceConfig.maxMetricsHistory) {
-            this.performanceMetrics = this.performanceMetrics.slice(-this.performanceConfig.maxMetricsHistory)
+        if (this.performanceMetricsList.length > this.performanceMetricsOptions.maxMetricsHistory) {
+            this.performanceMetricsList = this.performanceMetricsList.slice(-this.performanceMetricsOptions.maxMetricsHistory)
         }
         
         // 检查慢操作
-        if (duration > this.performanceConfig.slowOperationThreshold) {
+        if (duration > this.performanceMetricsOptions.slowOperationThreshold) {
             console.warn(`[${this.constructor.name}] Slow operation detected: ${operation} took ${duration.toFixed(2)}ms`)
         }
         
         // 检查内存使用
-        if (memoryUsage > this.performanceConfig.memoryWarningThreshold) {
+        if (memoryUsage > this.performanceMetricsOptions.memoryWarningThreshold) {
             console.warn(`[${this.constructor.name}] High memory usage: ${(memoryUsage / 1024 / 1024).toFixed(2)}MB`)
         }
     }
@@ -765,7 +732,7 @@ export abstract class BaseViewAdapter implements ViewAdapter {
         errorRate: number
         recommendations: string[]
     } {
-        if (this.performanceMetrics.length === 0) {
+        if (this.performanceMetricsList.length === 0 || !this.performanceMetricsOptions?.enableProfiling) {
             return {
                 averageRenderTime: 0,
                 averageUpdateTime: 0,
@@ -777,27 +744,27 @@ export abstract class BaseViewAdapter implements ViewAdapter {
             }
         }
         
-        const renderTimes = this.performanceMetrics.filter(m => m.renderTime > 0).map(m => m.renderTime)
-        const updateTimes = this.performanceMetrics.filter(m => m.updateTime > 0).map(m => m.updateTime)
-        const memoryUsages = this.performanceMetrics.map(m => m.memoryUsage)
+        const renderTimes = this.performanceMetricsList.filter(m => m.renderTime > 0).map(m => m.renderTime)
+        const updateTimes = this.performanceMetricsList.filter(m => m.updateTime > 0).map(m => m.updateTime)
+        const memoryUsages = this.performanceMetricsList.map(m => m.memoryUsage)
         
         const averageRenderTime = renderTimes.length > 0 ? renderTimes.reduce((a, b) => a + b, 0) / renderTimes.length : 0
         const averageUpdateTime = updateTimes.length > 0 ? updateTimes.reduce((a, b) => a + b, 0) / updateTimes.length : 0
         const averageMemoryUsage = memoryUsages.reduce((a, b) => a + b, 0) / memoryUsages.length
-        const totalOperations = this.performanceMetrics.length
-        const slowOperations = this.performanceMetrics.filter(m => 
-            m.renderTime > this.performanceConfig.slowOperationThreshold || 
-            m.updateTime > this.performanceConfig.slowOperationThreshold
+        const totalOperations = this.performanceMetricsList.length
+        const slowOperations = this.performanceMetricsList.filter(m => 
+            m.renderTime > this.performanceMetricsOptions!.slowOperationThreshold || 
+            m.updateTime > this.performanceMetricsOptions!.slowOperationThreshold
         ).length
         
         const errorRate = this.getErrorStats().total / totalOperations
         
         // 生成优化建议
         const recommendations: string[] = []
-        if (averageRenderTime > this.performanceConfig.slowOperationThreshold) {
+        if (averageRenderTime > this.performanceMetricsOptions.slowOperationThreshold) {
             recommendations.push('Consider implementing virtual scrolling for large documents')
         }
-        if (averageMemoryUsage > this.performanceConfig.memoryWarningThreshold) {
+        if (averageMemoryUsage > this.performanceMetricsOptions.memoryWarningThreshold) {
             recommendations.push('Consider implementing memory cleanup and object pooling')
         }
         if (errorRate > 0.1) {
@@ -819,14 +786,14 @@ export abstract class BaseViewAdapter implements ViewAdapter {
      * 设置性能监控配置
      */
     public setPerformanceConfig(config: Partial<PerformanceConfig>): void {
-        this.performanceConfig = { ...this.performanceConfig, ...config }
+        this.performanceMetricsOptions = { ...this.performanceMetricsOptions!, ...config }
     }
 
     /**
      * 清除性能指标
      */
     public clearPerformanceMetrics(): void {
-        this.performanceMetrics = []
+        this.performanceMetricsList = []
     }
 
     /**
@@ -860,8 +827,8 @@ export abstract class BaseViewAdapter implements ViewAdapter {
      */
     protected optimizeMemory(): void {
         // 清理过期的性能指标
-        if (this.performanceMetrics.length > this.performanceConfig.maxMetricsHistory) {
-            this.performanceMetrics = this.performanceMetrics.slice(-this.performanceConfig.maxMetricsHistory)
+        if (this.performanceMetricsList.length > this.performanceMetricsOptions!.maxMetricsHistory) {
+            this.performanceMetricsList = this.performanceMetricsList.slice(-this.performanceMetricsOptions!.maxMetricsHistory)
         }
         
         // 清理错误历史
@@ -901,13 +868,13 @@ export abstract class BaseViewAdapter implements ViewAdapter {
         }
         
         // 检查性能
-        if (performanceStats.averageRenderTime > this.performanceConfig.slowOperationThreshold) {
+        if (performanceStats.averageRenderTime > this.performanceMetricsOptions!.slowOperationThreshold) {
             issues.push(`Slow rendering: ${performanceStats.averageRenderTime.toFixed(2)}ms`)
             recommendations.push('Consider implementing virtual scrolling or lazy loading')
         }
         
         // 检查内存使用
-        if (performanceStats.averageMemoryUsage > this.performanceConfig.memoryWarningThreshold) {
+        if (performanceStats.averageMemoryUsage > this.performanceMetricsOptions!.memoryWarningThreshold) {
             issues.push(`High memory usage: ${(performanceStats.averageMemoryUsage / 1024 / 1024).toFixed(2)}MB`)
             recommendations.push('Implement memory cleanup and object pooling')
         }
@@ -915,7 +882,7 @@ export abstract class BaseViewAdapter implements ViewAdapter {
         // 计算健康分数
         const errorRate = errorStats.total / Math.max(performanceStats.totalOperations, 1)
         const performanceScore = Math.max(0, 100 - (performanceStats.averageRenderTime / 10))
-        const memoryScore = Math.max(0, 100 - (performanceStats.averageMemoryUsage / this.performanceConfig.memoryWarningThreshold * 100))
+        const memoryScore = Math.max(0, 100 - (performanceStats.averageMemoryUsage / this.performanceMetricsOptions!.memoryWarningThreshold * 100))
         
         const overallHealth = (performanceScore + memoryScore) / 2 - errorRate * 100
         
@@ -952,7 +919,7 @@ export abstract class BaseViewAdapter implements ViewAdapter {
             errorCount: this.getErrorStats().total,
             performanceScore: health.stats.performanceScore,
             lastActivity: performanceStats.totalOperations > 0 ? 
-                this.performanceMetrics[this.performanceMetrics.length - 1]?.lastUpdate || 0 : 0
+                this.performanceMetricsList[this.performanceMetricsList.length - 1]?.lastUpdate || 0 : 0
         }
     }
 
@@ -975,6 +942,9 @@ export abstract class BaseViewAdapter implements ViewAdapter {
             // 重置错误计数
             this.errorCount = 0
             this.lastErrorTime = 0
+
+            // 重置性能指标
+            this.performanceMetricsList = []
             
             console.log(`[${this.constructor.name}] Adapter reset successfully`)
         } catch (error) {
@@ -987,7 +957,7 @@ export abstract class BaseViewAdapter implements ViewAdapter {
      */
     public exportDebugInfo(): {
         adapterInfo: any
-        errorHistory: ErrorInfo[]
+        errorHistory: EditorErrorInfo[]
         performanceMetrics: PerformanceMetrics[]
         healthCheck: any
         recommendations: string[]
@@ -995,7 +965,7 @@ export abstract class BaseViewAdapter implements ViewAdapter {
         return {
             adapterInfo: this.getStatusSummary(),
             errorHistory: [...this.errorHistory],
-            performanceMetrics: [...this.performanceMetrics],
+            performanceMetrics: [...this.performanceMetricsList],
             healthCheck: this.healthCheck(),
             recommendations: [
                 ...this.getPerformanceStats().recommendations,
@@ -1003,4 +973,5 @@ export abstract class BaseViewAdapter implements ViewAdapter {
             ]
         }
     }
-} 
+}
+

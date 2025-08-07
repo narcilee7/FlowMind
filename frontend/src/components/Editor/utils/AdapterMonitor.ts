@@ -4,7 +4,7 @@
  */
 
 import { ViewAdapter } from '../types/ViewAdapter'
-import { BaseViewAdapter, ErrorType, ErrorSeverity, PerformanceMetrics } from '../adapters/BaseViewAdapter'
+import { BaseViewAdapter } from '../adapters/BaseViewAdapter'
 
 /**
  * 适配器监控配置
@@ -38,11 +38,15 @@ interface AdapterMonitorItem {
     type: string
     createdAt: number
     lastActivity: number
-    healthStatus: 'healthy' | 'warning' | 'critical'
+    healthStatus: HealthStatus
     performanceScore: number
     errorCount: number
 }
 
+/**
+ * 适配器监控事件
+ */
+export type HealthStatus = 'healthy' | 'warning' | 'critical'
 /**
  * 适配器监控工具类
  */
