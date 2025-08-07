@@ -10,6 +10,13 @@ interface AppState {
   theme: Theme
   setTheme: (theme: Theme) => void
   toggleTheme: () => void
+
+  // 体验状态: 沉浸式
+  /**
+   * 沉浸式：只保留editor, sidebar、header、footer都不展示
+   */
+  immersive: boolean
+  setImmersive: (immersive: boolean) => void
   
   // 侧边栏状态
   sidebarCollapsed: boolean
@@ -50,6 +57,10 @@ export const useAppStore = create<AppState>((set, get) => {
       themeHook.toggleTheme()
       set({ theme: themeHook.theme })
     },
+    
+    // 体验状态: 沉浸式
+    immersive: false,
+    setImmersive: (immersive) => set({ immersive }),
     
     // 侧边栏状态
     sidebarCollapsed: false,

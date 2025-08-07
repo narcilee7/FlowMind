@@ -6,124 +6,127 @@
 
 @layer base {
   :root {
-    --background: 0 0% 100%;
-    --foreground: 222.2 84% 4.9%;
+    /* 基础 UI 色彩（浅色模式） */
+    --background: 0 0% 98%;
+    --foreground: 220 13% 18%;
     --card: 0 0% 100%;
-    --card-foreground: 222.2 84% 4.9%;
+    --card-foreground: 220 13% 18%;
     --popover: 0 0% 100%;
-    --popover-foreground: 222.2 84% 4.9%;
-    --primary: 221.2 83.2% 53.3%;
-    --primary-foreground: 210 40% 98%;
-    --secondary: 210 40% 96%;
-    --secondary-foreground: 222.2 84% 4.9%;
-    --muted: 210 40% 96%;
-    --muted-foreground: 215.4 16.3% 46.9%;
-    --accent: 210 40% 96%;
-    --accent-foreground: 222.2 84% 4.9%;
-    --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 210 40% 98%;
-    --border: 214.3 31.8% 91.4%;
-    --input: 214.3 31.8% 91.4%;
-    --ring: 221.2 83.2% 53.3%;
-    --radius: 0.5rem;
-    
-    /* 编辑器专用颜色 */
-    --editor-background: 0 0% 100%;
-    --editor-foreground: 222.2 84% 4.9%;
-    --editor-selection: 221.2 83.2% 53.3%;
-    --editor-cursor: 222.2 84% 4.9%;
-    --editor-line: 214.3 31.8% 91.4%;
-    --editor-comment: 215.4 16.3% 46.9%;
-    --editor-string: 142.1 76.2% 36.3%;
-    --editor-keyword: 221.2 83.2% 53.3%;
-    --editor-function: 262.1 83.3% 57.8%;
-    --editor-variable: 222.2 84% 4.9%;
-    --editor-number: 47.9 95.8% 53.1%;
-    --editor-boolean: 262.1 83.3% 57.8%;
-    --editor-operator: 222.2 84% 4.9%;
-    --editor-punctuation: 215.4 16.3% 46.9%;
-    --editor-gutter: 215.4 16.3% 46.9%;
-    --editor-active-line: 210 40% 96%;
-    --editor-bracket: 215.4 16.3% 46.9%;
-    --editor-bracket-match: 221.2 83.2% 53.3%;
-    
-    /* 侧边栏专用颜色 */
-    --sidebar: 0 0% 100%;
-    --sidebar-foreground: 222.2 84% 4.9%;
-    --sidebar-primary: 221.2 83.2% 53.3%;
-    --sidebar-primary-foreground: 210 40% 98%;
-    --sidebar-accent: 210 40% 96%;
-    --sidebar-accent-foreground: 222.2 84% 4.9%;
-    --sidebar-border: 214.3 31.8% 91.4%;
-    --sidebar-ring: 221.2 83.2% 53.3%;
-    
+    --popover-foreground: 220 13% 18%;
+    --primary: 220 13% 18%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 0 0% 95%;
+    --secondary-foreground: 220 13% 18%;
+    --muted: 0 0% 92%;
+    --muted-foreground: 220 9% 50%;
+    --accent: 220 13% 95%;
+    --accent-foreground: 220 13% 18%;
+    --destructive: 0 85% 60%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 0 0% 90%;
+    --input: 0 0% 90%;
+    --ring: 220 13% 40%;
+    --radius: 0.375rem;
+
+    /* 编辑器配色 - 浅色 */
+    --editor-background: 0 0% 98%;
+    --editor-foreground: 220 13% 18%;
+    --editor-selection: 220 13% 90%;
+    --editor-cursor: 220 13% 18%;
+    --editor-line: 0 0% 94%;
+    --editor-comment: 220 8% 50%;
+    --editor-string: 155 60% 40%;
+    --editor-keyword: 221 70% 50%;
+    --editor-function: 260 70% 55%;
+    --editor-variable: 220 13% 18%;
+    --editor-number: 38 90% 50%;
+    --editor-boolean: 10 80% 50%;
+    --editor-operator: 220 13% 18%;
+    --editor-punctuation: 220 8% 50%;
+    --editor-gutter: 0 0% 88%;
+    --editor-active-line: 0 0% 96%;
+    --editor-bracket: 220 8% 50%;
+    --editor-bracket-match: 220 60% 70%;
+
+    /* Sidebar */
+    --sidebar: 0 0% 98%;
+    --sidebar-foreground: 220 13% 18%;
+    --sidebar-primary: 220 13% 18%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 0 0% 94%;
+    --sidebar-accent-foreground: 220 13% 18%;
+    --sidebar-border: 0 0% 90%;
+    --sidebar-ring: 220 13% 40%;
+
     /* 图表颜色 */
-    --chart-1: 142.1 76.2% 36.3%;
-    --chart-2: 221.2 83.2% 53.3%;
-    --chart-3: 262.1 83.3% 57.8%;
-    --chart-4: 47.9 95.8% 53.1%;
-    --chart-5: 0 84.2% 60.2%;
+    --chart-1: 155 60% 40%;
+    --chart-2: 220 60% 60%;
+    --chart-3: 260 60% 60%;
+    --chart-4: 38 90% 50%;
+    --chart-5: 0 80% 50%;
   }
 
   .dark {
-    --background: 222.2 84% 4.9%;
-    --foreground: 210 40% 98%;
-    --card: 222.2 84% 4.9%;
-    --card-foreground: 210 40% 98%;
-    --popover: 222.2 84% 4.9%;
-    --popover-foreground: 210 40% 98%;
-    --primary: 217.2 91.2% 59.8%;
-    --primary-foreground: 222.2 84% 4.9%;
-    --secondary: 217.2 32.6% 17.5%;
-    --secondary-foreground: 210 40% 98%;
-    --muted: 217.2 32.6% 17.5%;
-    --muted-foreground: 215 20.2% 65.1%;
-    --accent: 217.2 32.6% 17.5%;
-    --accent-foreground: 210 40% 98%;
-    --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 210 40% 98%;
-    --border: 217.2 32.6% 17.5%;
-    --input: 217.2 32.6% 17.5%;
-    --ring: 224.3 76.3% 94.1%;
-    
-    /* 编辑器专用颜色 - 暗色主题 */
-    --editor-background: 222.2 84% 4.9%;
-    --editor-foreground: 210 40% 98%;
-    --editor-selection: 217.2 91.2% 59.8%;
-    --editor-cursor: 210 40% 98%;
-    --editor-line: 217.2 32.6% 17.5%;
-    --editor-comment: 215 20.2% 65.1%;
-    --editor-string: 142.1 70.6% 45.3%;
-    --editor-keyword: 217.2 91.2% 59.8%;
-    --editor-function: 262.1 83.3% 57.8%;
-    --editor-variable: 210 40% 98%;
-    --editor-number: 47.9 95.8% 53.1%;
-    --editor-boolean: 262.1 83.3% 57.8%;
-    --editor-operator: 210 40% 98%;
-    --editor-punctuation: 215 20.2% 65.1%;
-    --editor-gutter: 215 20.2% 65.1%;
-    --editor-active-line: 217.2 32.6% 17.5%;
-    --editor-bracket: 215 20.2% 65.1%;
-    --editor-bracket-match: 217.2 91.2% 59.8%;
-    
-    /* 侧边栏专用颜色 - 暗色主题 */
-    --sidebar: 222.2 84% 4.9%;
-    --sidebar-foreground: 210 40% 98%;
-    --sidebar-primary: 217.2 91.2% 59.8%;
-    --sidebar-primary-foreground: 222.2 84% 4.9%;
-    --sidebar-accent: 217.2 32.6% 17.5%;
-    --sidebar-accent-foreground: 210 40% 98%;
-    --sidebar-border: 217.2 32.6% 17.5%;
-    --sidebar-ring: 224.3 76.3% 94.1%;
-    
-    /* 图表颜色 - 暗色主题 */
-    --chart-1: 142.1 70.6% 45.3%;
-    --chart-2: 217.2 91.2% 59.8%;
-    --chart-3: 262.1 83.3% 57.8%;
-    --chart-4: 47.9 95.8% 53.1%;
-    --chart-5: 0 62.8% 30.6%;
+    /* 基础 UI 色彩（暗色模式） */
+    --background: 230 15% 10%;
+    --foreground: 220 14% 90%;
+    --card: 230 15% 12%;
+    --card-foreground: 220 14% 90%;
+    --popover: 230 15% 12%;
+    --popover-foreground: 220 14% 90%;
+    --primary: 220 14% 90%;
+    --primary-foreground: 230 15% 10%;
+    --secondary: 230 10% 16%;
+    --secondary-foreground: 220 14% 90%;
+    --muted: 230 10% 18%;
+    --muted-foreground: 220 10% 60%;
+    --accent: 230 10% 18%;
+    --accent-foreground: 220 14% 90%;
+    --destructive: 0 60% 50%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 230 10% 20%;
+    --input: 230 10% 20%;
+    --ring: 220 14% 70%;
+
+    /* 编辑器配色 - 暗色 */
+    --editor-background: 230 15% 10%;
+    --editor-foreground: 220 14% 90%;
+    --editor-selection: 220 14% 20%;
+    --editor-cursor: 220 14% 90%;
+    --editor-line: 230 10% 16%;
+    --editor-comment: 220 10% 60%;
+    --editor-string: 155 60% 50%;
+    --editor-keyword: 221 70% 70%;
+    --editor-function: 260 70% 70%;
+    --editor-variable: 220 14% 90%;
+    --editor-number: 38 90% 60%;
+    --editor-boolean: 10 80% 60%;
+    --editor-operator: 220 14% 90%;
+    --editor-punctuation: 220 10% 60%;
+    --editor-gutter: 230 10% 20%;
+    --editor-active-line: 230 10% 16%;
+    --editor-bracket: 220 10% 60%;
+    --editor-bracket-match: 220 60% 70%;
+
+    /* Sidebar - 暗色 */
+    --sidebar: 230 15% 10%;
+    --sidebar-foreground: 220 14% 90%;
+    --sidebar-primary: 220 14% 90%;
+    --sidebar-primary-foreground: 230 15% 10%;
+    --sidebar-accent: 230 10% 16%;
+    --sidebar-accent-foreground: 220 14% 90%;
+    --sidebar-border: 230 10% 20%;
+    --sidebar-ring: 220 14% 70%;
+
+    /* 图表颜色 - 暗色 */
+    --chart-1: 155 60% 50%;
+    --chart-2: 220 60% 70%;
+    --chart-3: 260 60% 70%;
+    --chart-4: 38 90% 60%;
+    --chart-5: 0 70% 60%;
   }
 }
+
 
 @layer base {
   * {

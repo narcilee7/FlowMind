@@ -7,7 +7,7 @@ import EditorCore from './components/Editor/core/EditorCore'
 import OnlineBar from './components/OnlineBar'
 
 function App() {
-  const { isOnline, setIsOnline } = useAppStore()
+  const { isOnline, setIsOnline, immersive } = useAppStore()
 
   React.useEffect(() => {
     // 监听网络状态
@@ -26,9 +26,9 @@ function App() {
   return (
       <Router>
         <div className="flex flex-col h-screen bg-background text-foreground">
-          <Header />
+          {!immersive && <Header />}
           <div className="flex flex-1 overflow-hidden">
-            <Sidebar />
+            {!immersive && <Sidebar />}
             <main className="flex-1 overflow-hidden bg-background">
               <Routes>
                 {/* <Route path="/" element={<EditorCore />} /> */}
@@ -37,7 +37,7 @@ function App() {
           </div>
           
           {/* 离线提示 */}
-          <OnlineBar isOnline={isOnline} />
+          {!immersive && <OnlineBar isOnline={isOnline} />}
         </div>
       </Router>
   )
