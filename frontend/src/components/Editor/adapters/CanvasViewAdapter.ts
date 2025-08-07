@@ -20,76 +20,129 @@ import { ASTUtils } from '../utils/ASTUtils'
  * Fabric.js类型定义
  */
 export interface FabricCanvas {
+    // 添加对象
     add: (object: any) => void
+    // 移除对象
     remove: (object: any) => void
+    // 获取所有对象
     getObjects: () => any[]
     getActiveObject: () => any
     getActiveObjects: () => any[]
+    // 设置活动对象
     setActiveObject: (object: any) => void
+    // 设置活动对象
     setActiveObjects: (objects: any[]) => void
+    // 清空
     clear: () => void
+    // 渲染所有
     renderAll: () => void
+    // 设置缩放
     setZoom: (zoom: number) => void
+    // 获取缩放
     getZoom: () => number
+    // 设置视口变换
     setViewportTransform: (transform: number[]) => void
     getViewportTransform: () => number[]
+    // 绝对平移
     absolutePan: (point: { x: number; y: number }) => void
+    // 相对平移
     relativePan: (point: { x: number; y: number }) => void
+    // 居中对象
     centerObject: (object: any) => void
     centerObjectH: (object: any) => void
     centerObjectV: (object: any) => void
+    // 事件监听
     on: (event: string, callback: Function) => void
+    // 事件移除
     off: (event: string, callback: Function) => void
+    // 销毁
     dispose: () => void
+    // 宽度
     width: number
     height: number
+    // 背景颜色
     backgroundColor: string
+    // 选择
     selection: boolean
+    // 保留对象堆叠
     preserveObjectStacking: boolean
+    // 默认光标
     defaultCursor: string
+    // 转换为数据URL
     toDataURL: (options?: any) => string
+    // 转换为SVG
     toSVG: (options?: any) => string
+    // 获取指针
     getPointer: (e: any) => { x: number; y: number }
 }
 
 export interface FabricObject {
+    // 唯一标识
     id?: string
+    // 左上角坐标
     left: number
+    // 左上角坐标
     top: number
+    // 宽度
     width: number
     height: number
+    // 缩放X
     scaleX: number
+    // 缩放Y
     scaleY: number
+    // 角度
     angle: number
+    // 填充颜色
     fill: string
+    // 描边颜色
     stroke: string
+    // 描边宽度
     strokeWidth: number
+    // 可选择
     selectable: boolean
+    // 事件
     evented: boolean
+    // 事件监听
     on: (event: string, callback: Function) => void
+    // 事件移除
     off: (event: string, callback: Function) => void
+    // 设置
     set: (options: any) => void
+    // 获取
     get: (property: string) => any
+    // 转换为对象
     toObject: () => any
     clone: () => FabricObject
 }
 
-interface FabricLibrary {
+/**
+ * Fabric.js库
+ */
+export interface FabricLibrary {
+    // 画布
     Canvas: new (element: HTMLCanvasElement, options?: any) => FabricCanvas
+    // 矩形
     Rect: new (options?: any) => FabricObject
+    // 圆形
     Circle: new (options?: any) => FabricObject
+    // 三角形
     Triangle: new (options?: any) => FabricObject
+    // 文本
     Text: new (text: string, options?: any) => FabricObject
+    // 图片
     Image: new (element: HTMLImageElement, options?: any) => FabricObject
+    // 路径
     Path: new (path: string, options?: any) => FabricObject
+    // 线条
     Line: new (points: number[], options?: any) => FabricObject
+    // 组
     Group: new (objects: FabricObject[], options?: any) => FabricObject
 }
 
 /**
  * Fabric.js对象映射
  */
-interface FabricObjectMap {
+export interface FabricObjectMap {
     [nodeId: string]: FabricObject
 }
 
@@ -124,25 +177,27 @@ export class CanvasViewAdapter extends BaseViewAdapter implements ICanvasViewAda
      */
     async create(element: HTMLElement, options: ViewAdapterOptions): Promise<void> {
         if (this.isInitialized) {
+            // 如果已经初始化，则抛出错误
             this.handleError(new Error('Adapter already initialized'), 'create')
             return
         }
 
+        // 设置元素和选项
         this.element = element
         this.options = options
 
         try {
-            // 动态导入Fabric.js
+            // 动态导入Fabric.js库
             const fabricModule = await import('fabric')
             this.fabric = fabricModule as unknown as FabricLibrary
             
-            // 创建Canvas元素
+            // 创建Canvas元素，并设置宽高
             const canvasElement = document.createElement('canvas')
             canvasElement.width = element.clientWidth || 800
             canvasElement.height = element.clientHeight || 600
             element.appendChild(canvasElement)
 
-            // 初始化Fabric.js画布
+            // 初始化Fabric.js画布，并设置背景颜色
             this.canvas = new this.fabric.Canvas(canvasElement, {
                 width: canvasElement.width,
                 height: canvasElement.height,
@@ -151,18 +206,21 @@ export class CanvasViewAdapter extends BaseViewAdapter implements ICanvasViewAda
                 preserveObjectStacking: true
             })
 
-            // 设置画布事件监听
+            // 设置画布事件监听，包括鼠标事件、键盘事件、画布事件
             this.setupCanvasEvents()
             
-            // 设置主题样式
+            // 设置主题样式，默认使用auto主题
             this.applyTheme(options?.theme || 'auto')
             
-            // 初始化工具
+            // 初始化工具，默认使用选择工具
             this.selectTool('select')
             
+            // 设置初始化状态
             this.isInitialized = true
+            // 触发视图变化事件
             this.triggerEvent('viewChange', { type: 'initialized' })
 
+        // 捕获错误，并抛出
         } catch (error) {
             this.handleError(error as Error, 'create')
             throw error
@@ -173,12 +231,18 @@ export class CanvasViewAdapter extends BaseViewAdapter implements ICanvasViewAda
      * 执行销毁逻辑
      */
     protected performDestroy(): void {
+        // 如果画布存在，则销毁
         if (this.canvas) {
+            // 销毁画布
             this.canvas.dispose()
+            // 清空画布
             this.canvas = null
         }
+        // 清空Fabric.js库
         this.fabric = null
-        this.fabricObjectMap = {}
+        // 清空Fabric.js对象映射
+        this.fabricObjectMap = {} as FabricObjectMap
+        // 清空绘制路径
         this.drawingPath = []
     }
 
@@ -202,8 +266,9 @@ export class CanvasViewAdapter extends BaseViewAdapter implements ICanvasViewAda
                 return promises
             }, 'render')
 
-            if (renderPromises) {
-                Promise.all(renderPromises).then(() => {
+            if (renderPromises && renderPromises.length > 0) {
+                // 使用Promise.allSettled，避免单个渲染失败导致整个渲染失败
+                Promise.allSettled(renderPromises).then(() => {
                     this.canvas!.renderAll()
                     this.triggerEvent('viewChange', { type: 'rendered', ast })
                 }).catch(error => {
@@ -221,9 +286,12 @@ export class CanvasViewAdapter extends BaseViewAdapter implements ICanvasViewAda
     updateNode(nodeId: string, node: ASTNode): void {
         if (!this.validateInitialized() || !this.canvas) return
 
+        // 获取Fabric.js对象
         const fabricObject = this.fabricObjectMap[nodeId]
         if (fabricObject) {
+            // 更新Fabric.js对象
             this.safeSync(() => this.updateFabricObject(fabricObject, node), 'updateNode')
+            // 渲染所有
             this.canvas.renderAll()
         }
     }
@@ -234,10 +302,14 @@ export class CanvasViewAdapter extends BaseViewAdapter implements ICanvasViewAda
     removeNode(nodeId: string): void {
         if (!this.validateInitialized() || !this.canvas) return
 
+        // 获取Fabric.js对象
         const fabricObject = this.fabricObjectMap[nodeId]
         if (fabricObject) {
+            // 移除Fabric.js对象
             this.canvas.remove(fabricObject)
+            // 删除Fabric.js对象映射
             delete this.fabricObjectMap[nodeId]
+            // 渲染所有
             this.canvas.renderAll()
         }
     }
@@ -248,8 +320,10 @@ export class CanvasViewAdapter extends BaseViewAdapter implements ICanvasViewAda
     addNode(node: ASTNode, _parentId?: string, _index?: number): void {
         if (!this.validateInitialized() || !this.canvas) return
 
+        // 渲染节点
         this.safeAsync(async () => {
             await this.renderNode(node)
+            // 渲染所有
             this.canvas!.renderAll()
         }, 'addNode')
     }
@@ -260,13 +334,19 @@ export class CanvasViewAdapter extends BaseViewAdapter implements ICanvasViewAda
     setSelection(selection: Selection): void {
         if (!this.validateInitialized() || !this.canvas) return
 
+        // 如果选择类型为节点，并且节点ID列表不为空
         if (selection.type === 'node' && selection.nodeIds.length > 0) {
+            // 获取Fabric.js对象列表
             const objects = selection.nodeIds
                 .map(id => this.fabricObjectMap[id])
+                // 过滤掉undefined对象
                 .filter(obj => obj !== undefined)
 
+            // 如果对象列表不为空
             if (objects.length > 0) {
+                // 设置活动对象
                 this.canvas.setActiveObjects(objects)
+                // 渲染所有
                 this.canvas.renderAll()
             }
         } else {
@@ -283,13 +363,16 @@ export class CanvasViewAdapter extends BaseViewAdapter implements ICanvasViewAda
             return { nodeIds: [], type: 'node' }
         }
 
+        // 获取活动对象
         const activeObjects = this.canvas.getActiveObjects()
 
+        // 如果活动对象列表不为空
         if (activeObjects.length > 0) {
             const nodeIds = activeObjects
                 .map(obj => this.getNodeIdFromFabricObject(obj))
                 .filter(id => id !== null) as string[]
 
+            // 返回选择状态
             return {
                 nodeIds,
                 type: 'node'
@@ -332,8 +415,10 @@ export class CanvasViewAdapter extends BaseViewAdapter implements ICanvasViewAda
     scrollToNode(nodeId: string): void {
         if (!this.validateInitialized() || !this.canvas) return
 
+        // 获取Fabric.js对象
         const fabricObject = this.fabricObjectMap[nodeId]
         if (fabricObject) {
+            // 居中对象
             this.canvas.centerObject(fabricObject)
             this.canvas.renderAll()
         }
@@ -345,8 +430,11 @@ export class CanvasViewAdapter extends BaseViewAdapter implements ICanvasViewAda
     zoomIn(): void {
         if (!this.validateInitialized() || !this.canvas) return
 
+        // 获取当前缩放
         const currentZoom = this.canvas.getZoom()
+        // 设置缩放: 最大为5, 按比例1.2放大, 最小为0.1
         this.canvas.setZoom(Math.min(currentZoom * 1.2, 5))
+        // 渲染所有
         this.canvas.renderAll()
         this.triggerEvent('viewChange', { type: 'zoom', zoom: this.canvas.getZoom() })
     }
@@ -357,8 +445,11 @@ export class CanvasViewAdapter extends BaseViewAdapter implements ICanvasViewAda
     zoomOut(): void {
         if (!this.validateInitialized() || !this.canvas) return
 
+        // 获取当前缩放
         const currentZoom = this.canvas.getZoom()
+        // 设置缩放: 最小为0.1, 按比例0.8缩小
         this.canvas.setZoom(Math.max(currentZoom * 0.8, 0.1))
+        // 渲染所有
         this.canvas.renderAll()
         this.triggerEvent('viewChange', { type: 'zoom', zoom: this.canvas.getZoom() })
     }
@@ -369,7 +460,9 @@ export class CanvasViewAdapter extends BaseViewAdapter implements ICanvasViewAda
     resetZoom(): void {
         if (!this.validateInitialized() || !this.canvas) return
 
+        // 设置缩放为1
         this.canvas.setZoom(1)
+        // 渲染所有
         this.canvas.renderAll()
         this.triggerEvent('viewChange', { type: 'zoom', zoom: 1 })
     }
@@ -380,10 +473,12 @@ export class CanvasViewAdapter extends BaseViewAdapter implements ICanvasViewAda
     fitToView(): void {
         if (!this.validateInitialized() || !this.canvas) return
 
+        // 获取所有Fabric.js对象
         const objects = this.canvas.getObjects()
+        // 如果对象列表为空，则返回
         if (objects.length === 0) return
 
-        // 计算所有对象的边界
+        // 计算所有对象的边界: 左上角和右下角
         let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity
         
         objects.forEach(obj => {
@@ -392,13 +487,15 @@ export class CanvasViewAdapter extends BaseViewAdapter implements ICanvasViewAda
             const width = (obj.width || 0) * (obj.scaleX || 1)
             const height = (obj.height || 0) * (obj.scaleY || 1)
             
+            // 更新左上角和右下角
             minX = Math.min(minX, left)
             minY = Math.min(minY, top)
+            // 更新右下角
             maxX = Math.max(maxX, left + width)
             maxY = Math.max(maxY, top + height)
         })
 
-        // 计算合适的缩放比例
+        // 计算合适的缩放比例: 画布宽度/内容宽度, 画布高度/内容高度, 取最小值, 再乘以0.9
         const canvasWidth = this.canvas.width
         const canvasHeight = this.canvas.height
         const contentWidth = maxX - minX

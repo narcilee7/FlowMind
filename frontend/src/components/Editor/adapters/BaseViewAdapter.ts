@@ -233,7 +233,7 @@ export abstract class BaseViewAdapter implements ViewAdapter {
         this.errorHandler = callback
     }
 
-    // AI集成方法 - 默认实现
+    // TODO: 实现并扩展AI集成方法 - 默认实现
     /**
      * 请求AI补全
      */
@@ -334,7 +334,7 @@ export abstract class BaseViewAdapter implements ViewAdapter {
      * 触发事件
      */
     protected triggerEvent<K extends keyof EventMap>(event: K, data?: Parameters<EventMap[K]>[0]): void {
-        if (this.isDestroyed) return
+        if (this.isDestroyed || !this.isInitialized) return
 
         const callbacks = this.eventCallbacks.get(event)
         if (callbacks) {
