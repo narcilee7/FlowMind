@@ -31,7 +31,7 @@ function App() {
             <Sidebar />
             <main className="flex-1 overflow-hidden bg-background">
               <Routes>
-                <Route path="/" element={<EditorCore />} />
+                {/* <Route path="/" element={<EditorCore />} /> */}
               </Routes>
             </main>
           </div>

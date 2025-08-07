@@ -1,7 +1,6 @@
-@import "tailwindcss";
-/* @import "tailwindcss/base"; */
 @import "tw-animate-css";
 
+@tailwind base;
 @tailwind components;
 @tailwind utilities;
 
@@ -47,6 +46,23 @@
     --editor-active-line: 210 40% 96%;
     --editor-bracket: 215.4 16.3% 46.9%;
     --editor-bracket-match: 221.2 83.2% 53.3%;
+    
+    /* 侧边栏专用颜色 */
+    --sidebar: 0 0% 100%;
+    --sidebar-foreground: 222.2 84% 4.9%;
+    --sidebar-primary: 221.2 83.2% 53.3%;
+    --sidebar-primary-foreground: 210 40% 98%;
+    --sidebar-accent: 210 40% 96%;
+    --sidebar-accent-foreground: 222.2 84% 4.9%;
+    --sidebar-border: 214.3 31.8% 91.4%;
+    --sidebar-ring: 221.2 83.2% 53.3%;
+    
+    /* 图表颜色 */
+    --chart-1: 142.1 76.2% 36.3%;
+    --chart-2: 221.2 83.2% 53.3%;
+    --chart-3: 262.1 83.3% 57.8%;
+    --chart-4: 47.9 95.8% 53.1%;
+    --chart-5: 0 84.2% 60.2%;
   }
 
   .dark {
@@ -89,6 +105,23 @@
     --editor-active-line: 217.2 32.6% 17.5%;
     --editor-bracket: 215 20.2% 65.1%;
     --editor-bracket-match: 217.2 91.2% 59.8%;
+    
+    /* 侧边栏专用颜色 - 暗色主题 */
+    --sidebar: 222.2 84% 4.9%;
+    --sidebar-foreground: 210 40% 98%;
+    --sidebar-primary: 217.2 91.2% 59.8%;
+    --sidebar-primary-foreground: 222.2 84% 4.9%;
+    --sidebar-accent: 217.2 32.6% 17.5%;
+    --sidebar-accent-foreground: 210 40% 98%;
+    --sidebar-border: 217.2 32.6% 17.5%;
+    --sidebar-ring: 224.3 76.3% 94.1%;
+    
+    /* 图表颜色 - 暗色主题 */
+    --chart-1: 142.1 70.6% 45.3%;
+    --chart-2: 217.2 91.2% 59.8%;
+    --chart-3: 262.1 83.3% 57.8%;
+    --chart-4: 47.9 95.8% 53.1%;
+    --chart-5: 0 62.8% 30.6%;
   }
 }
 
@@ -290,65 +323,4 @@
   .custom-cursor {
     @apply editor-cursor;
   }
-}
-
-@theme {
-  --color-background: hsl(var(--background));
-  --color-foreground: hsl(var(--foreground));
-  --color-card: hsl(var(--card));
-  --color-card-foreground: hsl(var(--card-foreground));
-  --color-popover: hsl(var(--popover));
-  --color-popover-foreground: hsl(var(--popover-foreground));
-  --color-primary: hsl(var(--primary));
-  --color-primary-foreground: hsl(var(--primary-foreground));
-  --color-secondary: hsl(var(--secondary));
-  --color-secondary-foreground: hsl(var(--secondary-foreground));
-  --color-muted: hsl(var(--muted));
-  --color-muted-foreground: hsl(var(--muted-foreground));
-  --color-accent: hsl(var(--accent));
-  --color-accent-foreground: hsl(var(--accent-foreground));
-  --color-destructive: hsl(var(--destructive));
-  --color-destructive-foreground: hsl(var(--destructive-foreground));
-  --color-border: hsl(var(--border));
-  --color-input: hsl(var(--input));
-  --color-ring: hsl(var(--ring));
-  
-  --color-editor-background: hsl(var(--editor-background));
-  --color-editor-foreground: hsl(var(--editor-foreground));
-  --color-editor-selection: hsl(var(--editor-selection));
-  --color-editor-cursor: hsl(var(--editor-cursor));
-  --color-editor-line: hsl(var(--editor-line));
-  --color-editor-comment: hsl(var(--editor-comment));
-  --color-editor-string: hsl(var(--editor-string));
-  --color-editor-keyword: hsl(var(--editor-keyword));
-  --color-editor-function: hsl(var(--editor-function));
-  --color-editor-variable: hsl(var(--editor-variable));
-  --color-editor-number: hsl(var(--editor-number));
-  --color-editor-boolean: hsl(var(--editor-boolean));
-  --color-editor-operator: hsl(var(--editor-operator));
-  --color-editor-punctuation: hsl(var(--editor-punctuation));
-  --color-editor-gutter: hsl(var(--editor-gutter));
-  --color-editor-active-line: hsl(var(--editor-active-line));
-  --color-editor-bracket: hsl(var(--editor-bracket));
-  --color-editor-bracket-match: hsl(var(--editor-bracket-match));
-  
-  --color-sidebar: hsl(var(--sidebar));
-  --color-sidebar-foreground: hsl(var(--sidebar-foreground));
-  --color-sidebar-primary: hsl(var(--sidebar-primary));
-  --color-sidebar-primary-foreground: hsl(var(--sidebar-primary-foreground));
-  --color-sidebar-accent: hsl(var(--sidebar-accent));
-  --color-sidebar-accent-foreground: hsl(var(--sidebar-accent-foreground));
-  --color-sidebar-border: hsl(var(--sidebar-border));
-  --color-sidebar-ring: hsl(var(--sidebar-ring));
-  
-  --color-chart-1: hsl(var(--chart-1));
-  --color-chart-2: hsl(var(--chart-2));
-  --color-chart-3: hsl(var(--chart-3));
-  --color-chart-4: hsl(var(--chart-4));
-  --color-chart-5: hsl(var(--chart-5));
-  
-  --radius-sm: calc(var(--radius) - 4px);
-  --radius-md: calc(var(--radius) - 2px);
-  --radius-lg: var(--radius);
-  --radius-xl: calc(var(--radius) + 4px);
 }
