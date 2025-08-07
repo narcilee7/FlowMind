@@ -32,7 +32,7 @@ const NavListView: React.FC<NavListViewProps> = ({
         <div key={item.id} className='flex items-center gap-2 p-2 rounded-md hover:bg-accent hover:text-accent-foreground' onClick={() => handleItemClick(item)}>
           {item.icon}
           <span>{item.label}</span>
-          {!isCollapsed &&  <Badge className='text-sm text-muted-foreground'>{item.badge}</Badge>}
+          {!isCollapsed && item.badge && <Badge className='text-sm text-muted-foreground'>{item.badge}</Badge>}
         </div>
       ))}
     </div>

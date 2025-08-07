@@ -28,7 +28,7 @@ const Sidebar: React.FC = () => {
 
   if (sidebarCollapsed) {
     return (
-      <aside className='w-16 bg-background border-r border-border flex flex-col'>
+      <aside className='w-16 bg-background border-r border-border flex flex-col items-center'>
         <CollapsedButton
           isSidebarCollapsed={sidebarCollapsed}
           toggleSidebar={toggleSidebar}
@@ -44,7 +44,7 @@ const Sidebar: React.FC = () => {
   }
 
   return (
-    <aside className='w-64 bg-background border-r border-border flex flex-col'>
+    <aside className='w-48 bg-background border-r border-border flex flex-col items-center'>
       <NavListView
         isCollapsed={sidebarCollapsed}
         menuList={menuList}

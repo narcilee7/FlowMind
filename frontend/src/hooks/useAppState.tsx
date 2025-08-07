@@ -19,6 +19,9 @@ export const useAppState = () => {
     currentTheme: { type: themeHook.theme },
     availableThemes: themeHook.availableThemes,
     themeManager: themeHook,
+    // 沉浸式
+    immersive: store.immersive || false,
+    setImmersive: store.setImmersive || (() => {}),
     
     // 侧边栏相关
     sidebarCollapsed: store.sidebarCollapsed || false,
