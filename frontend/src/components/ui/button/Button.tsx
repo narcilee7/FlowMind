@@ -1,6 +1,5 @@
 import React from 'react'
 import classNames from 'classnames'
-import styles from './Button.module.scss'
 
 export interface ButtonProps {
   variant?: 'default' | 'destructive' | 'outline' | 'secondary' | 'ghost' | 'link'
@@ -23,19 +22,30 @@ export const Button: React.FC<ButtonProps> = ({
   ...props
 }) => {
   const classes = classNames(
-    styles.button,
-    styles[`button__${variant}`],
-    styles[`button__${size === 'default' ? 'default-size' : size}`],
+    'btn',
+    {
+      'btn-default': variant === 'default',
+      'btn-destructive': variant === 'destructive',
+      'btn-outline': variant === 'outline',
+      'btn-secondary': variant === 'secondary',
+      'btn-ghost': variant === 'ghost',
+      'btn-link': variant === 'link',
+    },
+    {
+      'btn-sm': size === 'sm',
+      'btn-lg': size === 'lg',
+      'btn-icon': size === 'icon',
+    },
     className
   )
 
   return (
     <button
-    className={classes}
-    disabled={disabled}
-    onClick={onClick}
-    type={type}
-    {...props}
+      className={classes}
+      disabled={disabled}
+      onClick={onClick}
+      type={type}
+      {...props}
     >
       {children}
     </button>
