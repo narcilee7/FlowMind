@@ -1,46 +1,40 @@
 'use client'
 
 import Link from 'next/link'
-import { usePathname } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 
-const routes = [
-  { label: '研究', path: '/research' },
-  { label: '写作', path: '/writing' },
-  { label: '学习', path: '/learning' },
-  { label: '规划', path: '/planning' },
-  { label: '创意', path: '/creative' },
+const modes = [
+  { label: '写作', value: 'writing' },
+  { label: '研究', value: 'research' },
+  { label: '学习', value: 'learning' },
+  { label: '规划', value: 'planning' },
+  { label: '创意', value: 'creative' },
 ]
 
-export default function Header() {
-  const pathname = usePathname()
+export default function Header({ mode }: { mode: string }) {
 
   return (
-    <header className="sticky top-0 z-30 h-12 border-b border-border bg-background/70 backdrop-blur flex items-center px-4 justify-between">
-      <div className="flex items-center gap-4">
+    <header className="sticky top-0 z-20 h-12 border-b bg-background/70 backdrop-blur flex items-center px-4 justify-between">
+      <div className="flex items-center gap-3">
         <Link href="/" className="font-bold text-sm text-primary">
           FlowMind
         </Link>
-        <span className="text-muted-foreground text-xs">AI Native Editor</span>
-
-        {routes.map((r) => (
-          <Link key={r.path} href={r.path}>
+        {modes.map((m) => (
+          <Link key={m.value} href={`/editor?mode=${m.value}`}>
             <Button
-              variant={pathname.startsWith(r.path) ? 'secondary' : 'ghost'}
+              variant={mode === m.value ? 'secondary' : 'ghost'}
               size="sm"
               className="text-xs"
             >
-              {r.label}
+              {m.label}
             </Button>
           </Link>
         ))}
       </div>
-
       <div className="flex items-center gap-2">
         <Link href="/search">
-          <Button variant="ghost" size="icon">🔍</Button>
+          <Button variant="ghost" size="icon" className="text-xs">🔍</Button>
         </Link>
-        {/* TODO: 用户按钮 / 命令面板 / 主题切换 */}
       </div>
     </header>
   )
