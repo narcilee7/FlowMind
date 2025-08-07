@@ -10,7 +10,7 @@ export interface ButtonProps {
   size?: 'default' | 'sm' | 'lg' | 'icon'
   disabled?: boolean
   children: React.ReactNode
-  onClick?: () => void
+  onClick?: (e: React.MouseEvent<HTMLButtonElement>) => void
   className?: string
   type?: 'button' | 'submit' | 'reset'
 }
@@ -20,6 +20,7 @@ const buttonVariants = {
     background: var(--primary);
     color: var(--primary-foreground);
     border: 1px solid var(--primary);
+    transition: all 0.3s ease-in-out;
     
     &:hover:not(:disabled) {
       background: var(--primary);
