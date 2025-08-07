@@ -83,10 +83,15 @@
 - 一致的事件系统
 - 标准化的错误处理
 
-### 3. 扩展性
+### 3. AI Native 支持
+- 统一的AI集成接口
+- 智能补全、重写、研究功能
+- 知识提取和建议系统
+
+### 4. 扩展性
 - 易于添加新的适配器类型
 - 统一的扩展点(AI集成、场景模板等)
-- 标准化的协作功能
+- 面向C端的简化架构
 
 ## 技术细节
 
@@ -111,6 +116,14 @@
 - `batchUpdate`: 批量更新优化
 - `validateInitialized`: 状态验证
 
+### AI Native 方法
+- `requestAICompletion`: 智能文本补全
+- `requestAIRewrite`: 智能内容重写
+- `requestAIResearch`: 智能研究助手
+- `extractKnowledge`: 知识提取
+- `getAISuggestions`: 智能建议系统
+- `applyAISuggestion`: 应用AI建议
+
 ## 使用示例
 
 ```typescript
@@ -134,11 +147,12 @@ adapter.destroy()
 
 ## 总结
 
-所有适配器都已正确继承BaseViewAdapter，实现了统一的架构设计。这种继承关系提供了：
+所有适配器都已正确继承BaseViewAdapter，实现了统一的AI Native Editor架构设计。这种继承关系提供了：
 
 1. **代码复用**: 减少重复代码，提高开发效率
 2. **一致性**: 统一的接口和行为
-3. **可维护性**: 集中的功能实现，易于维护
-4. **扩展性**: 标准化的扩展点，便于功能扩展
+3. **AI Native**: 内置AI集成能力，支持智能编辑
+4. **可维护性**: 集中的功能实现，易于维护
+5. **扩展性**: 标准化的扩展点，便于功能扩展
 
-整个适配器架构为FlowMind Editor提供了强大而灵活的基础，支持多种编辑器类型的统一管理和扩展。 
+整个适配器架构为FlowMind AI Native Editor提供了强大而灵活的基础，支持多种编辑器类型的统一管理和AI能力扩展。面向C端的设计简化了架构复杂度，专注于提供优秀的AI辅助编辑体验。 
