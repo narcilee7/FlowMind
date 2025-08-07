@@ -22,17 +22,17 @@ const OnlineContainer = styled.div`
   transition: all 0.2s ease;
 `
 
-const OnlineIndicator = styled(OnlineContainer)<{ isOnline: boolean }>`
-  background: ${props => props.isOnline ? 'var(--success)' : 'var(--destructive)'};
-  color: ${props => props.isOnline ? 'var(--success-foreground)' : 'var(--destructive-foreground)'};
+const OnlineIndicator = styled(OnlineContainer)<{ $isOnline: boolean }>`
+  background: ${props => props.$isOnline ? 'var(--success)' : 'var(--destructive)'};
+  color: ${props => props.$isOnline ? 'var(--success-foreground)' : 'var(--destructive-foreground)'};
 `
 
-const StatusDot = styled.div<{ isOnline: boolean }>`
+const StatusDot = styled.div<{ $isOnline: boolean }>`
   width: 0.5rem;
   height: 0.5rem;
   border-radius: 50%;
   background: currentColor;
-  animation: ${props => props.isOnline ? 'pulse' : 'none'} 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  animation: ${props => props.$isOnline ? 'pulse' : 'none'} 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
   
   @keyframes pulse {
     0%, 100% { opacity: 1; }
@@ -41,10 +41,10 @@ const StatusDot = styled.div<{ isOnline: boolean }>`
 `
 
 const OnlineShowView: React.FC<OnlineShowViewProps> = ({ isOnline, className }) => {
-  return (
-    <OnlineIndicator isOnline={isOnline} className={className}>
+    return (
+    <OnlineIndicator $isOnline={isOnline} className={className}>
       {isOnline ? <Wifi size={12} /> : <WifiOff size={12} />}
-      <StatusDot isOnline={isOnline} />
+      <StatusDot $isOnline={isOnline} />
       <span>{isOnline ? '在线' : '离线'}</span>
     </OnlineIndicator>
   )

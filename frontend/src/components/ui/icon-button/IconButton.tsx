@@ -15,6 +15,12 @@ export interface IconButtonProps {
   title?: string
 }
 
+// 内部使用的styled-components props接口
+interface StyledIconButtonProps {
+  $variant?: 'default' | 'ghost' | 'outline' | 'destructive'
+  $size?: 'sm' | 'md' | 'lg'
+}
+
 const buttonVariants = {
   default: css`
     background: var(--primary);
@@ -76,7 +82,7 @@ const buttonSizes = {
   `
 }
 
-const StyledIconButton = styled.button<IconButtonProps>`
+const StyledIconButton = styled.button<StyledIconButtonProps>`
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -85,8 +91,8 @@ const StyledIconButton = styled.button<IconButtonProps>`
   transition: all 0.2s ease-in-out;
   font-family: inherit;
   
-  ${props => buttonVariants[props.variant || 'default']}
-  ${props => buttonSizes[props.size || 'md']}
+  ${props => buttonVariants[props.$variant || 'default']}
+  ${props => buttonSizes[props.$size || 'md']}
   
   &:disabled {
     opacity: 0.5;
@@ -111,8 +117,8 @@ export const IconButton: React.FC<IconButtonProps> = ({
 }) => {
   return (
     <StyledIconButton
-      variant={variant}
-      size={size}
+      $variant={variant}
+      $size={size}
       disabled={disabled}
       onClick={onClick}
       className={className}

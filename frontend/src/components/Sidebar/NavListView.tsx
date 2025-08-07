@@ -26,7 +26,7 @@ const NavListContainer = styled.div`
   padding: 0.5rem;
 `
 
-const NavItem = styled.div<{ isCollapsed: boolean }>`
+const NavItem = styled.div<{ $isCollapsed: boolean }>`
   display: flex;
   align-items: center;
   gap: 0.75rem;
@@ -42,7 +42,7 @@ const NavItem = styled.div<{ isCollapsed: boolean }>`
     color: var(--accent-foreground);
   }
   
-  ${props => props.isCollapsed && `
+  ${props => props.$isCollapsed && `
     justify-content: center;
     padding: 0.75rem 0.5rem;
   `}
@@ -57,13 +57,13 @@ const ItemIcon = styled.div`
   color: var(--muted-foreground);
 `
 
-const ItemContent = styled.div<{ isCollapsed: boolean }>`
+const ItemContent = styled.div<{ $isCollapsed: boolean }>`
   flex: 1;
   display: flex;
   align-items: center;
   justify-content: space-between;
   
-  ${props => props.isCollapsed && `
+  ${props => props.$isCollapsed && `
     display: none;
   `}
 `
@@ -97,12 +97,12 @@ const NavListView: React.FC<NavListViewProps> = ({
       {menuList.map((item) => (
         <NavItem
           key={item.id}
-          isCollapsed={isCollapsed}
+          $isCollapsed={isCollapsed}
           onClick={() => handleItemClick(item)}
           title={isCollapsed ? item.label : undefined}
         >
           <ItemIcon>{item.icon}</ItemIcon>
-          <ItemContent isCollapsed={isCollapsed}>
+          <ItemContent $isCollapsed={isCollapsed}>
             <ItemLabel>{item.label}</ItemLabel>
             {item.badge && <ItemBadge>{item.badge}</ItemBadge>}
           </ItemContent>
