@@ -22,6 +22,7 @@ import { EditorTheme } from '@/components/Editor/types/EditorTheme'
 import ViewAdapterFactory from '@/components/Editor/core/ViewAdapterFactory'
 import { createDocumentAST } from '@/components/Editor/utils/ASTUtils'
 import { useTheme } from '@/hooks/useAppState'
+import { Button } from '@/components/ui/button'
 
 /**
  * 编辑器核心属性
