@@ -233,34 +233,7 @@ export abstract class BaseViewAdapter implements ViewAdapter {
         this.errorHandler = callback
     }
 
-    // TODO: 实现并扩展AI集成方法 - 默认实现
-    /**
-     * 请求AI补全
-     */
-    async requestAICompletion(context: string, position: number): Promise<string> {
-        throw new Error('AI completion not implemented in this adapter')
-    }
-
-    /**
-     * 请求AI重写
-     */
-    async requestAIRewrite(content: string, style: string): Promise<string> {
-        throw new Error('AI rewrite not implemented in this adapter')
-    }
-
-    /**
-     * 请求AI研究
-     */
-    async requestAIResearch(query: string): Promise<any> {
-        throw new Error('AI research not implemented in this adapter')
-    }
-
-    /**
-     * 提取知识
-     */
-    async extractKnowledge(content: string): Promise<any> {
-        throw new Error('Knowledge extraction not implemented in this adapter')
-    }
+    // 场景模板方法 - 简化实现
 
     // 场景模板方法 - 默认实现
     /**
@@ -276,7 +249,6 @@ export abstract class BaseViewAdapter implements ViewAdapter {
      */
     getSceneFeatures(): any {
         return {
-            aiFeatures: [],
             templates: [],
             tools: [],
             shortcuts: []
@@ -290,33 +262,63 @@ export abstract class BaseViewAdapter implements ViewAdapter {
         this.triggerEvent('viewChange', { type: 'settingsChange', settings })
     }
 
-    // 协作方法 - 默认实现
+    // 协作方法已移除 - 面向C端，不需要协同编辑功能
+
+    // AI Native Editor 核心方法
     /**
-     * 启用协作
+     * 请求AI补全 - 智能文本补全
      */
-    enableCollaboration(enabled: boolean): void {
-        this.triggerEvent('viewChange', { type: 'collaborationChange', enabled })
+    async requestAICompletion(context: string, position: number): Promise<string> {
+        // 子类可以重写此方法实现具体的AI补全逻辑
+        throw new Error('AI completion not implemented in this adapter')
     }
 
     /**
-     * 获取协作者
+     * 请求AI重写 - 智能内容重写
      */
-    getCollaborators(): any[] {
+    async requestAIRewrite(content: string, style: string): Promise<string> {
+        // 子类可以重写此方法实现具体的AI重写逻辑
+        throw new Error('AI rewrite not implemented in this adapter')
+    }
+
+    /**
+     * 请求AI研究 - 智能研究助手
+     */
+    async requestAIResearch(query: string): Promise<any> {
+        // 子类可以重写此方法实现具体的AI研究逻辑
+        throw new Error('AI research not implemented in this adapter')
+    }
+
+    /**
+     * 提取知识 - 智能知识提取
+     */
+    async extractKnowledge(content: string): Promise<any> {
+        // 子类可以重写此方法实现具体的知识提取逻辑
+        throw new Error('Knowledge extraction not implemented in this adapter')
+    }
+
+    /**
+     * 获取当前内容上下文 - 用于AI分析
+     */
+    protected getCurrentContext(): string {
+        // 子类可以重写此方法提供当前编辑器的上下文信息
+        return ''
+    }
+
+    /**
+     * 获取AI建议 - 智能建议系统
+     */
+    async getAISuggestions(context?: string): Promise<string[]> {
+        // 子类可以重写此方法实现智能建议功能
         return []
     }
 
     /**
-     * 解决冲突
+     * 应用AI建议 - 应用AI生成的建议
      */
-    resolveConflict(conflict: any): void {
-        this.triggerEvent('viewChange', { type: 'conflictResolved', conflict })
-    }
-
-    /**
-     * 获取版本历史
-     */
-    getVersionHistory(): any[] {
-        return []
+    async applyAISuggestion(suggestion: string): Promise<void> {
+        // 子类可以重写此方法实现建议应用逻辑
+        throw new Error('AI suggestion application not implemented in this adapter')
     }
 
     // 保护方法

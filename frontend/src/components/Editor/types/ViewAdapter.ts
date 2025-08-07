@@ -66,11 +66,7 @@ export interface ViewAdapter {
     getSceneFeatures(): SceneFeatures
     customizeSceneSettings(settings: SceneSettings): void
     
-    // 协作方法
-    enableCollaboration(enabled: boolean): void
-    getCollaborators(): Collaborator[]
-    resolveConflict(conflict: Conflict): void
-    getVersionHistory(): VersionHistory[]
+    // 协作方法已移除 - 面向C端，不需要协同编辑功能
 }
 
 /**
@@ -357,51 +353,8 @@ export interface SceneFeatures {
 export interface SceneSettings {
     aiModel?: string
     autoSave?: boolean
-    collaboration?: boolean
     theme?: string
     [key: string]: any
 }
 
-/**
- * 协作者
- */
-export interface Collaborator {
-    id: string
-    name: string
-    avatar?: string
-    status: 'online' | 'offline' | 'away'
-    lastSeen: Date
-    permissions: string[]
-}
-
-/**
- * 冲突
- */
-export interface Conflict {
-    id: string
-    type: 'content' | 'structure' | 'metadata'
-    description: string
-    options: ConflictResolution[]
-    createdAt: Date
-}
-
-/**
- * 冲突解决方案
- */
-export interface ConflictResolution {
-    id: string
-    description: string
-    action: () => void
-}
-
-/**
- * 版本历史
- */
-export interface VersionHistory {
-    id: string
-    version: string
-    description: string
-    author: string
-    createdAt: Date
-    changes: string[]
-}
+// 协作相关接口已移除 - 面向C端，不需要协同编辑功能
