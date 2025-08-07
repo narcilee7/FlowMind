@@ -74,6 +74,7 @@
     "electron": "^37.2.5",
     "electron-builder": "^26.0.12",
     "fabric": "^6.6.0",
+    "framer-motion": "^12.23.12",
     "handsontable": "^14.0.0",
     "localforage": "^1.10.0",
     "lucide-react": "^0.536.0",
