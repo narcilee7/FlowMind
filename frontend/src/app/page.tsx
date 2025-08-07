@@ -1,66 +1,48 @@
-'use client'
+// app/page.tsx
+import type { Metadata } from 'next'
 
-import { Button } from '@/components/ui/button'
-import Link from 'next/link'
-import { Sparkles, PencilLine, BrainCog, BookOpenText, CalendarClock } from 'lucide-react'
+import Hero from '@/components/Home/Hero'
+import FeatureWithPhilosophies from '@/components/Home/FeatureWithPhilosophies'
+import Footer from '@/components/Home/Footers'
+
+export const metadata: Metadata = {
+  title: 'FlowMind – AI Native Editor',
+  description: '一个云端、AI 原生的沉浸式内容创作平台，集写作、研究、学习、规划于一体。重新定义未来的写作。',
+  keywords: ['AI Editor', 'AI写作', '研究助手', '学习工具', '内容创作', 'AI 原生'],
+  openGraph: {
+    title: 'FlowMind – AI Native Editor',
+    description: '一个 AI 原生的沉浸式内容创作平台，重构你的写作、研究、学习方式。',
+    // TODO: 添加 url
+    // url: 'https://flowmind.app',
+    siteName: 'FlowMind',
+    locale: 'zh_CN',
+    type: 'website',
+    // images: [
+    //   {
+    //     // TODO: 添加 og-image.jpg
+    //     url: 'https://flowmind.app/og-image.jpg',
+    //     width: 1200,
+    //     height: 630,
+    //     alt: 'FlowMind - AI Native Editor',
+    //   },
+    // ],
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'FlowMind – AI Native Editor',
+    description: '一个 AI 原生的沉浸式内容创作平台。',
+    images: ['https://flowmind.app/og-image.jpg'],
+  },
+  // TODO: 添加 metadataBase
+  // metadataBase: new URL('https://flowmind.app'),
+}
 
 export default function HomePage() {
   return (
-    <section className="min-h-screen w-full flex flex-col items-center justify-center text-center px-4 py-16 bg-background">
-      <div className="max-w-3xl">
-        <h1 className="text-5xl font-bold leading-tight mb-4">
-          FlowMind · AI Native Editor
-        </h1>
-        <p className="text-lg text-muted-foreground mb-6">
-          一体化 · 沉浸式 · AI-First 的创作平台<br />
-          写作、研究、学习、规划，一站式完成。
-        </p>
-
-        <div className="mt-6 flex justify-center gap-4 flex-wrap">
-          <Link href="/editor?mode=writing">
-            <Button variant="default" size="lg" aria-label="立即开始创作">
-              🚀 开始创作
-            </Button>
-          </Link>
-          <Link href="/explore">
-            <Button variant="outline" size="lg" aria-label="探索 AI 模板">
-              <Sparkles className="w-4 h-4 mr-2" />
-              探索 AI 能力
-            </Button>
-          </Link>
-        </div>
-      </div>
-
-      <div className="mt-16 grid grid-cols-1 md:grid-cols-4 gap-6 max-w-5xl w-full">
-        <Feature icon={PencilLine} title="AI 写作" desc="从灵感到成稿，AI 帮你流畅完成整篇文章。" />
-        <Feature icon={BrainCog} title="AI 研究" desc="多文献理解、结构化分析、知识图谱归纳。" />
-        <Feature icon={BookOpenText} title="AI 学习" desc="长文本拆解、重点提取、自主学习空间。" />
-        <Feature icon={CalendarClock} title="AI 规划" desc="任务规划、目标拆解、时间线智能协同。" />
-      </div>
-
-      <footer className="mt-20 text-sm text-muted-foreground">
-        <p>© 2025 FlowMind · Made for creators & thinkers</p>
-      </footer>
-    </section>
-  )
-}
-
-function Feature({
-  icon: Icon,
-  title,
-  desc,
-}: {
-  icon: React.ElementType
-  title: string
-  desc: string
-}) {
-  return (
-    <div className="bg-muted p-6 rounded-xl shadow-sm text-left h-full">
-      <div className="flex items-center gap-2 mb-2 text-primary">
-        <Icon className="w-5 h-5" />
-        <h3 className="font-semibold">{title}</h3>
-      </div>
-      <p className="text-sm text-muted-foreground">{desc}</p>
-    </div>
+    <main className="flex flex-col items-center justify-center">
+      <Hero />
+      <FeatureWithPhilosophies />
+      <Footer />
+    </main>
   )
 }
