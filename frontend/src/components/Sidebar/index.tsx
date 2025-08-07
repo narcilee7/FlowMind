@@ -13,8 +13,8 @@ import {
 } from 'lucide-react'
 import { useAppStore } from '@/stores/app-store'
 
-const StyledSidebar = styled.aside<{ collapsed: boolean }>`
-  width: ${props => props.collapsed ? '4rem' : '16rem'};
+const StyledSidebar = styled.aside<{ $collapsed: boolean }>`
+  width: ${props => props.$collapsed ? '4rem' : '16rem'};
   background: var(--background);
   border-right: 1px solid var(--border);
   transition: width 0.3s ease;
@@ -35,12 +35,12 @@ const SidebarHeader = styled.div`
   justify-content: space-between;
 `
 
-const SidebarTitle = styled.h2<{ collapsed: boolean }>`
+const SidebarTitle = styled.h2<{ $collapsed: boolean }>`
   font-size: 1rem;
   font-weight: 600;
   color: var(--foreground);
   margin: 0;
-  opacity: ${props => props.collapsed ? 0 : 1};
+  opacity: ${props => props.$collapsed ? 0 : 1};
   transition: opacity 0.3s ease;
 `
 
@@ -78,7 +78,7 @@ const Sidebar: React.FC = () => {
   const { sidebarCollapsed, toggleSidebar } = useAppStore()
 
   return (
-    <StyledSidebar collapsed={sidebarCollapsed}>
+    <StyledSidebar $collapsed={sidebarCollapsed}>
       <SidebarContent>
         <CollapsedButton 
           isSidebarCollapsed={sidebarCollapsed} 
@@ -86,7 +86,7 @@ const Sidebar: React.FC = () => {
         />
         
         <SidebarHeader>
-          <SidebarTitle collapsed={sidebarCollapsed}>
+          <SidebarTitle $collapsed={sidebarCollapsed}>
             {sidebarCollapsed ? '' : '导航'}
           </SidebarTitle>
         </SidebarHeader>

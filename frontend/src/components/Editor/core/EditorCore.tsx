@@ -135,8 +135,8 @@ export const EditorCore: React.FC<EditorCoreProps> = ({
     const { currentTheme, setEditorTheme } = useTheme()
     /** 有效主题 - 自动模式时使用系统主题 */
     const effectiveTheme: EditorTheme = useMemo(() => 
-        theme === 'auto' ? (currentTheme.type as EditorTheme) : theme, 
-        [theme, currentTheme.type]
+        theme === 'auto' ? (currentTheme?.type as EditorTheme || 'light') : theme, 
+        [theme, currentTheme?.type]
     )
 
     // ==================== 适配器管理 ====================
