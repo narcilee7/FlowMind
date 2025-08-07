@@ -1,7 +1,7 @@
 import { EditorType, SceneTemplate } from '@/components/Editor/types/EditorType'
 import { UserModel } from '@/model/userModel'
 import { create } from 'zustand'
-import { ThemeManager } from '@/theme/theme'
+import { ThemeManager } from '@/styles/theme'
 
 export type Theme = 'light' | 'dark' | 'system'
 

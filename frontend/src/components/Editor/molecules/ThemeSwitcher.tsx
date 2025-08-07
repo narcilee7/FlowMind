@@ -4,7 +4,7 @@
 
 import React, { useState } from 'react'
 import styled from 'styled-components'
-import { useTheme } from '@/theme/ThemeProvider'
+import { useTheme } from '@/styles/ThemeProvider'
 import { Button } from '@/components/ui/button'
 import { Panel } from '@/components/ui/panel'
 

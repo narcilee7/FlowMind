@@ -1,0 +1,174 @@
+// =============================================================================
+// SCSS 工具函数（基于设计令牌）
+// =============================================================================
+
+@use './variables' as *;
+
+// 获取嵌套 map 中的值（支持多层级）
+@function map-get-nested($map, $keys...) {
+  $value: $map;
+
+  @each $key in $keys {
+    @if type-of($value) != 'map' or not map-has-key($value, $key) {
+      @warn "Key '#{$key}' not found.";
+      @return null;
+    }
+
+    $value: map-get($value, $key);
+  }
+
+  @return $value;
+}
+
+// =============================================
+// 获取颜色值（设计令牌）
+// =============================================
+
+/// 获取颜色（颜色组, 色阶）
+/// e.g. color(neutral, 100)
+@function color($group, $step) {
+  $val: map-get-nested($colors, $group, $step);
+
+  @if $val != null {
+    @return $val;
+  }
+
+  @warn "Color '#{$group}-#{$step}' not found.";
+  @return null;
+}
+
+// =============================================
+// 获取状态颜色（例如 hover, disabled 等）
+// =============================================
+
+@function state($name) {
+  @return map-get($states, $name);
+}
+
+// =============================================
+// 字体系统
+// =============================================
+
+@function font-family($name: primary) {
+  @return map-get-nested($fonts, family, $name);
+}
+
+@function font-size($size: base) {
+  @return map-get-nested($fonts, size, $size);
+}
+
+@function font-weight($weight: normal) {
+  @return map-get-nested($fonts, weight, $weight);
+}
+
+@function line-height($line: normal) {
+  @return map-get-nested($fonts, lineHeight, $line);
+}
+
+// =============================================
+// 间距
+// =============================================
+
+@function spacing($key) {
+  @return map-get($spacing, $key);
+}
+
+@function spacing-component($key) {
+  @return map-get-nested($spacing, component, $key);
+}
+
+@function spacing-layout($key) {
+  @return map-get-nested($spacing, layout, $key);
+}
+
+// =============================================
+// 圆角
+// =============================================
+
+@function radius($size) {
+  @return map-get($radius, $size);
+}
+
+// =============================================
+// 阴影
+// =============================================
+
+@function shadow($size: md, $theme: light) {
+  $map: map-get($shadows, $size);
+
+  @if type-of($map) == 'map' {
+    @return map-get($map, $theme);
+  }
+
+  @return $map;
+}
+
+// =============================================
+// 动画
+// =============================================
+
+@function animation($type) {
+  @return map-get($animations, type, $type);
+}
+
+@function animation-duration($speed: normal) {
+  @return map-get-nested($animations, duration, $speed);
+}
+
+@function animation-easing($easing: ease) {
+  @return map-get-nested($animations, easing, $easing);
+}
+
+// =============================================
+// 响应式断点 & 层级
+// =============================================
+
+@function breakpoint($key) {
+  @return map-get($breakpoints, $key);
+}
+
+@function z($level) {
+  @return map-get($zIndex, $level);
+}
+
+// =============================================
+// 单位转换
+// =============================================
+
+@function rem($px) {
+  @return ($px / 16) * 1rem;
+}
+
+@function em($px, $base: 16) {
+  @return ($px / $base) * 1em;
+}
+
+// =============================================
+// 颜色处理工具
+// =============================================
+
+@function alpha($color, $opacity) {
+  @return rgba($color, $opacity);
+}
+
+@function mix-colors($color1, $color2, $weight: 50%) {
+  @return mix($color1, $color2, $weight);
+}
+
+@function contrast-color($color) {
+  @return if(lightness($color) > 50%, #000000, #ffffff);
+}
+
+// =============================================
+// 动态主题工具
+// =============================================
+
+/// 默认开启 light theme（实际应配合 CSS 变量切换）
+@function is-light-theme() {
+  @return true;
+}
+
+/// 动态返回值（使用 CSS var）
+@function theme-value($name, $fallback: null) {
+  @return var(--#{$name}, $fallback);
+}

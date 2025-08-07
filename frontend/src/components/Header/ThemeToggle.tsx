@@ -1,4 +1,4 @@
-import { useTheme } from "@/theme/ThemeProvider"
+import { useTheme } from "@/styles/ThemeProvider"
 import { Moon, Sun } from "lucide-react"
 import React from "react"
 import styled from "styled-components"
