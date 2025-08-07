@@ -14,7 +14,7 @@ import { ViewAdapterOptions, CanvasViewAdapter as ICanvasViewAdapter, CanvasTool
 import { EditorType } from '@/components/Editor/types/EditorType'
 import { DocumentAST, ASTNode, Selection, CanvasNode, CanvasData, Point } from '@/components/Editor/types/EditorAST'
 import { BaseViewAdapter } from './BaseViewAdapter'
-import { ASTUtils } from '../utils/ASTUtils'
+import { traverse } from '@/components/Editor/utils/ASTUtils'
 
 /**
  * Fabric.js类型定义
@@ -260,7 +260,7 @@ export class CanvasViewAdapter extends BaseViewAdapter implements ICanvasViewAda
             // 渲染所有节点
             const renderPromises = this.safeSync(() => {
                 const promises: Promise<void>[] = []
-                ASTUtils.traverse(ast, (node) => {
+                traverse(ast, (node) => {
                     promises.push(this.renderNode(node))
                 })
                 return promises

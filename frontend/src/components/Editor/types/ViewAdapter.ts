@@ -73,37 +73,75 @@ export interface ViewAdapter {
  * 视图适配器选项
  */
 export interface ViewAdapterOptions {
-    // 基础选项
+    /**
+     * 基础选项
+     */
     type: EditorType
     sceneTemplate: SceneTemplate
     theme?: EditorTheme
     
-    // 视图选项
+    /**
+     * 视图选项
+     */
+    // 允许滚动
+    enableScroll?: boolean
+    // 视口配置
     viewport?: Viewport
+    // 缩放配置
     zoom?: number
+    // 显示网格
     showGrid?: boolean
+    // 显示标尺
     showRulers?: boolean
     
-    // 交互选项
+    /**
+     * 交互选项
+     */
+    // 允许选择
     enableSelection?: boolean
+    // 允许拖拽
     enableDrag?: boolean
+    // 允许调整大小
     enableResize?: boolean
+    // 允许右键菜单
     enableContextMenu?: boolean
     
-    // 性能选项
+    /**
+     * 性能选项
+     */
+    // 允许虚拟化
     enableVirtualization?: boolean
+    // 批量更新
     batchUpdates?: boolean
+    // 防抖更新
     debounceUpdates?: number
+    // 允许性能监控
+    enableProfiling?: boolean
+
+    /**
+     * 性能监控配置
+     */
+    // 最大性能指标历史记录数
+    maxMetricsHistory?: number
+    // 慢操作阈值
+    slowOperationThreshold?: number
+    // 内存警告阈值
+    memoryWarningThreshold?: number
 }
 
 /**
  * 视口信息
  */
 export interface Viewport {
+    // 视口x坐标
     x: number
+    // 视口y坐标
     y: number
+    // 视口宽度
     width: number
+    // 视口高度
     height: number
+    // 视口缩放比例
     zoom: number
 }
 
@@ -111,9 +149,13 @@ export interface Viewport {
  * 视图数据
  */
 export interface ViewData {
+    // 视口信息
     viewport: Viewport
+    // 选择状态
     selection: Selection
+    // 聚焦节点
     focusedNodeId?: string
+    // 悬停节点
     hoveredNodeId?: string
 }
 

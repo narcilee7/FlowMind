@@ -33,7 +33,6 @@ export interface Position {
 export interface NodeMetadata {
     createdAt: string             // 创建时间
     updatedAt: string             // 更新时间
-    author?: string               // 作者
     tags?: string[]               // 标签
     version?: string              // 版本
     [key: string]: any            // 扩展属性
@@ -114,7 +113,7 @@ export interface GraphNode extends BaseNode {
  * 图谱数据
  */
 export interface GraphData {
-    nodeType?: string             // 节点类型（概念、实体、事件等）
+    nodeType?: string      // 节点类型（概念、实体、事件等）
     properties?: Record<string, any> // 节点属性
     connections?: string[]        // 连接的边ID
     group?: string                // 所属组
