@@ -1,7 +1,3 @@
-/**
- * CommandPalette组件 - 使用Tailwind CSS实现
- */
-
 import React, { useState, useEffect, useRef } from 'react'
 import { Search, FileText, Settings, Palette, Bot, HelpCircle } from 'lucide-react'
 import { cn } from '@/utils/cn'

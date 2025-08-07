@@ -1,6 +1,5 @@
 import React from 'react'
 import { cn } from '@/utils/cn'
-// import { Panel, PanelHeader, PanelTitle } from '@/components/ui/panel'
 import { List, ListChecks } from 'lucide-react'
 
 interface TocItem {
