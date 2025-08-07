@@ -1,13 +1,11 @@
 import React from 'react'
 import { Route, BrowserRouter as Router, Routes } from 'react-router-dom'
 import { useAppStore } from '@/stores/app-store'
-import Sidebar from '@/components/Sidebar'
 import Header from '@/components/Header'
 import EditorCore from './components/Editor/core/EditorCore'
-import OnlineBar from './components/OnlineBar'
 
 function App() {
-  const { isOnline, setIsOnline, immersive } = useAppStore()
+  const { setIsOnline, immersive } = useAppStore()
 
   React.useEffect(() => {
     // 监听网络状态
@@ -27,17 +25,11 @@ function App() {
       <Router>
         <div className="flex flex-col h-screen bg-background text-foreground">
           {!immersive && <Header />}
-          <div className="flex flex-1 overflow-hidden">
-            {!immersive && <Sidebar />}
-            <main className="flex-1 overflow-hidden bg-background">
-              <Routes>
-                {/* <Route path="/" element={<EditorCore />} /> */}
-              </Routes>
-            </main>
-          </div>
-          
-          {/* 离线提示 */}
-          {!immersive && <OnlineBar isOnline={isOnline} />}
+          <main>
+            <Routes>
+              <Route path="/" element={<EditorCore />} />
+            </Routes>
+          </main>
         </div>
       </Router>
   )
