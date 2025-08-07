@@ -1,4 +1,4 @@
-import { useAppStore } from '@/stores/app-store'
+import { useAppStore } from 'src/stores/app-store'
 import { useTheme } from './useTheme'
 
 export type Theme = 'light' | 'dark' | 'system'

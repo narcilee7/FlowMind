@@ -2,7 +2,7 @@
  * 沉浸式模式钩子
  */
 
-import { useAppStore } from "@/stores/app-store"
+import { useAppStore } from "src/stores/app-store"
 
 export const useImmersive = () => {
     const { immersive, setImmersive } = useAppStore()
