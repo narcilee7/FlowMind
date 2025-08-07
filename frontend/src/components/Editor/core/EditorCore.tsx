@@ -21,7 +21,7 @@ import { DocumentAST, Selection } from '@/components/Editor/types/EditorAST'
 import { EditorTheme } from '@/components/Editor/types/EditorTheme'
 import ViewAdapterFactory from '@/components/Editor/core/ViewAdapterFactory'
 import { createDocumentAST } from '@/components/Editor/utils/ASTUtils'
-import { useTheme } from '@/hooks/useAppState'
+import { useTheme } from '@/hooks/useTheme'
 import { Button } from '@/components/ui/button'
 
 /**
@@ -55,7 +55,7 @@ export interface EditorCoreProps {
  * 编辑器核心组件
  * 负责AST状态管理和适配器协调
  */
-export const EditorCore: React.FC<EditorCoreProps> = ({
+export default function EditorCore({
     className = '',
     style = {},
     initialAST,
@@ -66,7 +66,7 @@ export const EditorCore: React.FC<EditorCoreProps> = ({
     onSelectionChange,
     onViewChange,
     onError,
-}) => {
+}: EditorCoreProps) {
     // 状态管理
     const [ast, setAST] = useState<DocumentAST>(() => initialAST || createDocumentAST())
     const [selection, setSelection] = useState<Selection>({ 
@@ -237,15 +237,12 @@ export const EditorCore: React.FC<EditorCoreProps> = ({
                         <div className="text-muted-foreground text-sm mb-4">
                             {error.message}
                         </div>
-                        <button
-                            onClick={() => {
-                                setError(null)
-                                createAdapter()
-                            }}
-                            className="btn btn-default"
-                        >
+                        <Button onClick={() => {
+                            setError(null)
+                            createAdapter()
+                        }}>
                             重试
-                        </button>
+                        </Button>
                     </div>
                 </div>
             </div>

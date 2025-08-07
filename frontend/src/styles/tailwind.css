@@ -1,9 +1,7 @@
-
+@import "tailwindcss";
+/* @import "tailwindcss/base"; */
 @import "tw-animate-css";
 
-@custom-variant dark (&:is(.dark *));
-
-@tailwind base;
 @tailwind components;
 @tailwind utilities;
 
@@ -104,8 +102,6 @@
 }
 
 @layer components {
-
-
   /* 输入框组件 */
   .input {
     @apply flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50;
@@ -296,172 +292,63 @@
   }
 }
 
-@theme inline {
+@theme {
+  --color-background: hsl(var(--background));
+  --color-foreground: hsl(var(--foreground));
+  --color-card: hsl(var(--card));
+  --color-card-foreground: hsl(var(--card-foreground));
+  --color-popover: hsl(var(--popover));
+  --color-popover-foreground: hsl(var(--popover-foreground));
+  --color-primary: hsl(var(--primary));
+  --color-primary-foreground: hsl(var(--primary-foreground));
+  --color-secondary: hsl(var(--secondary));
+  --color-secondary-foreground: hsl(var(--secondary-foreground));
+  --color-muted: hsl(var(--muted));
+  --color-muted-foreground: hsl(var(--muted-foreground));
+  --color-accent: hsl(var(--accent));
+  --color-accent-foreground: hsl(var(--accent-foreground));
+  --color-destructive: hsl(var(--destructive));
+  --color-destructive-foreground: hsl(var(--destructive-foreground));
+  --color-border: hsl(var(--border));
+  --color-input: hsl(var(--input));
+  --color-ring: hsl(var(--ring));
+  
+  --color-editor-background: hsl(var(--editor-background));
+  --color-editor-foreground: hsl(var(--editor-foreground));
+  --color-editor-selection: hsl(var(--editor-selection));
+  --color-editor-cursor: hsl(var(--editor-cursor));
+  --color-editor-line: hsl(var(--editor-line));
+  --color-editor-comment: hsl(var(--editor-comment));
+  --color-editor-string: hsl(var(--editor-string));
+  --color-editor-keyword: hsl(var(--editor-keyword));
+  --color-editor-function: hsl(var(--editor-function));
+  --color-editor-variable: hsl(var(--editor-variable));
+  --color-editor-number: hsl(var(--editor-number));
+  --color-editor-boolean: hsl(var(--editor-boolean));
+  --color-editor-operator: hsl(var(--editor-operator));
+  --color-editor-punctuation: hsl(var(--editor-punctuation));
+  --color-editor-gutter: hsl(var(--editor-gutter));
+  --color-editor-active-line: hsl(var(--editor-active-line));
+  --color-editor-bracket: hsl(var(--editor-bracket));
+  --color-editor-bracket-match: hsl(var(--editor-bracket-match));
+  
+  --color-sidebar: hsl(var(--sidebar));
+  --color-sidebar-foreground: hsl(var(--sidebar-foreground));
+  --color-sidebar-primary: hsl(var(--sidebar-primary));
+  --color-sidebar-primary-foreground: hsl(var(--sidebar-primary-foreground));
+  --color-sidebar-accent: hsl(var(--sidebar-accent));
+  --color-sidebar-accent-foreground: hsl(var(--sidebar-accent-foreground));
+  --color-sidebar-border: hsl(var(--sidebar-border));
+  --color-sidebar-ring: hsl(var(--sidebar-ring));
+  
+  --color-chart-1: hsl(var(--chart-1));
+  --color-chart-2: hsl(var(--chart-2));
+  --color-chart-3: hsl(var(--chart-3));
+  --color-chart-4: hsl(var(--chart-4));
+  --color-chart-5: hsl(var(--chart-5));
+  
   --radius-sm: calc(var(--radius) - 4px);
   --radius-md: calc(var(--radius) - 2px);
   --radius-lg: var(--radius);
   --radius-xl: calc(var(--radius) + 4px);
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --color-card: var(--card);
-  --color-card-foreground: var(--card-foreground);
-  --color-popover: var(--popover);
-  --color-popover-foreground: var(--popover-foreground);
-  --color-primary: var(--primary);
-  --color-primary-foreground: var(--primary-foreground);
-  --color-secondary: var(--secondary);
-  --color-secondary-foreground: var(--secondary-foreground);
-  --color-muted: var(--muted);
-  --color-muted-foreground: var(--muted-foreground);
-  --color-accent: var(--accent);
-  --color-accent-foreground: var(--accent-foreground);
-  --color-destructive: var(--destructive);
-  --color-border: var(--border);
-  --color-input: var(--input);
-  --color-ring: var(--ring);
-  --color-chart-1: var(--chart-1);
-  --color-chart-2: var(--chart-2);
-  --color-chart-3: var(--chart-3);
-  --color-chart-4: var(--chart-4);
-  --color-chart-5: var(--chart-5);
-  --color-sidebar: var(--sidebar);
-  --color-sidebar-foreground: var(--sidebar-foreground);
-  --color-sidebar-primary: var(--sidebar-primary);
-  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
-  --color-sidebar-accent: var(--sidebar-accent);
-  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
-  --color-sidebar-border: var(--sidebar-border);
-  --color-sidebar-ring: var(--sidebar-ring);
-  --color-editor-background: var(--editor-background);
-  --color-editor-foreground: var(--editor-foreground);
-  --color-editor-selection: var(--editor-selection);
-  --color-editor-cursor: var(--editor-cursor);
-  --color-editor-line: var(--editor-line);
-  --color-editor-comment: var(--editor-comment);
-  --color-editor-string: var(--editor-string);
-  --color-editor-keyword: var(--editor-keyword);
-  --color-editor-function: var(--editor-function);
-  --color-editor-variable: var(--editor-variable);
-  --color-editor-number: var(--editor-number);
-  --color-editor-boolean: var(--editor-boolean);
-  --color-editor-operator: var(--editor-operator);
-  --color-editor-punctuation: var(--editor-punctuation);
-  --color-editor-gutter: var(--editor-gutter);
-  --color-editor-active-line: var(--editor-active-line);
-  --color-editor-bracket: var(--editor-bracket);
-  --color-editor-bracket-match: var(--editor-bracket-match);
-}
-
-:root {
-  --radius: 0.625rem;
-  --background: oklch(1 0 0);
-  --foreground: oklch(0.129 0.042 264.695);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.129 0.042 264.695);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.129 0.042 264.695);
-  --primary: oklch(0.208 0.042 265.755);
-  --primary-foreground: oklch(0.984 0.003 247.858);
-  --secondary: oklch(0.968 0.007 247.896);
-  --secondary-foreground: oklch(0.208 0.042 265.755);
-  --muted: oklch(0.968 0.007 247.896);
-  --muted-foreground: oklch(0.554 0.046 257.417);
-  --accent: oklch(0.968 0.007 247.896);
-  --accent-foreground: oklch(0.208 0.042 265.755);
-  --destructive: oklch(0.577 0.245 27.325);
-  --border: oklch(0.929 0.013 255.508);
-  --input: oklch(0.929 0.013 255.508);
-  --ring: oklch(0.704 0.04 256.788);
-  --chart-1: oklch(0.646 0.222 41.116);
-  --chart-2: oklch(0.6 0.118 184.704);
-  --chart-3: oklch(0.398 0.07 227.392);
-  --chart-4: oklch(0.828 0.189 84.429);
-  --chart-5: oklch(0.769 0.188 70.08);
-  --sidebar: oklch(0.984 0.003 247.858);
-  --sidebar-foreground: oklch(0.129 0.042 264.695);
-  --sidebar-primary: oklch(0.208 0.042 265.755);
-  --sidebar-primary-foreground: oklch(0.984 0.003 247.858);
-  --sidebar-accent: oklch(0.968 0.007 247.896);
-  --sidebar-accent-foreground: oklch(0.208 0.042 265.755);
-  --sidebar-border: oklch(0.929 0.013 255.508);
-  --sidebar-ring: oklch(0.704 0.04 256.788);
-  --editor-background: oklch(1 0 0);
-  --editor-foreground: oklch(0.129 0.042 264.695);
-  --editor-selection: oklch(0.208 0.042 265.755 / 0.2);
-  --editor-cursor: oklch(0.129 0.042 264.695);
-  --editor-line: oklch(0.968 0.007 247.896);
-  --editor-comment: oklch(0.554 0.046 257.417);
-  --editor-string: oklch(0.398 0.07 227.392);
-  --editor-keyword: oklch(0.208 0.042 265.755);
-  --editor-function: oklch(0.646 0.222 41.116);
-  --editor-variable: oklch(0.129 0.042 264.695);
-  --editor-number: oklch(0.769 0.188 70.08);
-  --editor-boolean: oklch(0.646 0.222 41.116);
-  --editor-operator: oklch(0.129 0.042 264.695);
-  --editor-punctuation: oklch(0.554 0.046 257.417);
-  --editor-gutter: oklch(0.554 0.046 257.417);
-  --editor-active-line: oklch(0.968 0.007 247.896);
-  --editor-bracket: oklch(0.554 0.046 257.417);
-  --editor-bracket-match: oklch(0.208 0.042 265.755 / 0.3);
-}
-
-.dark {
-  --background: oklch(0.129 0.042 264.695);
-  --foreground: oklch(0.984 0.003 247.858);
-  --card: oklch(0.208 0.042 265.755);
-  --card-foreground: oklch(0.984 0.003 247.858);
-  --popover: oklch(0.208 0.042 265.755);
-  --popover-foreground: oklch(0.984 0.003 247.858);
-  --primary: oklch(0.929 0.013 255.508);
-  --primary-foreground: oklch(0.208 0.042 265.755);
-  --secondary: oklch(0.279 0.041 260.031);
-  --secondary-foreground: oklch(0.984 0.003 247.858);
-  --muted: oklch(0.279 0.041 260.031);
-  --muted-foreground: oklch(0.704 0.04 256.788);
-  --accent: oklch(0.279 0.041 260.031);
-  --accent-foreground: oklch(0.984 0.003 247.858);
-  --destructive: oklch(0.704 0.191 22.216);
-  --border: oklch(1 0 0 / 10%);
-  --input: oklch(1 0 0 / 15%);
-  --ring: oklch(0.551 0.027 264.364);
-  --chart-1: oklch(0.488 0.243 264.376);
-  --chart-2: oklch(0.696 0.17 162.48);
-  --chart-3: oklch(0.769 0.188 70.08);
-  --chart-4: oklch(0.627 0.265 303.9);
-  --chart-5: oklch(0.645 0.246 16.439);
-  --sidebar: oklch(0.208 0.042 265.755);
-  --sidebar-foreground: oklch(0.984 0.003 247.858);
-  --sidebar-primary: oklch(0.488 0.243 264.376);
-  --sidebar-primary-foreground: oklch(0.984 0.003 247.858);
-  --sidebar-accent: oklch(0.279 0.041 260.031);
-  --sidebar-accent-foreground: oklch(0.984 0.003 247.858);
-  --sidebar-border: oklch(1 0 0 / 10%);
-  --sidebar-ring: oklch(0.551 0.027 264.364);
-  --editor-background: oklch(0.129 0.042 264.695);
-  --editor-foreground: oklch(0.984 0.003 247.858);
-  --editor-selection: oklch(0.929 0.013 255.508 / 0.2);
-  --editor-cursor: oklch(0.984 0.003 247.858);
-  --editor-line: oklch(0.279 0.041 260.031);
-  --editor-comment: oklch(0.704 0.04 256.788);
-  --editor-string: oklch(0.696 0.17 162.48);
-  --editor-keyword: oklch(0.929 0.013 255.508);
-  --editor-function: oklch(0.488 0.243 264.376);
-  --editor-variable: oklch(0.984 0.003 247.858);
-  --editor-number: oklch(0.769 0.188 70.08);
-  --editor-boolean: oklch(0.488 0.243 264.376);
-  --editor-operator: oklch(0.984 0.003 247.858);
-  --editor-punctuation: oklch(0.704 0.04 256.788);
-  --editor-gutter: oklch(0.704 0.04 256.788);
-  --editor-active-line: oklch(0.279 0.041 260.031);
-  --editor-bracket: oklch(0.704 0.04 256.788);
-  --editor-bracket-match: oklch(0.929 0.013 255.508 / 0.3);
-}
-
-@layer base {
-  * {
-    @apply border-border outline-ring/50;
-  }
-  body {
-    @apply bg-background text-foreground;
-  }
 }

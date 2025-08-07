@@ -1,7 +1,6 @@
 import React from 'react'
 import { Route, BrowserRouter as Router, Routes } from 'react-router-dom'
 import { useAppStore } from '@/stores/app-store'
-import { ThemeProvider } from '@/styles/ThemeProvider'
 import Sidebar from '@/components/Sidebar'
 import Header from '@/components/Header'
 import EditorCore from './components/Editor/core/EditorCore'
@@ -25,7 +24,6 @@ function App() {
   }, [setIsOnline])
 
   return (
-    <ThemeProvider>
       <Router>
         <div className="flex flex-col h-screen bg-background text-foreground">
           <Header />
@@ -42,7 +40,6 @@ function App() {
           <OnlineBar isOnline={isOnline} />
         </div>
       </Router>
-    </ThemeProvider>
   )
 }
 

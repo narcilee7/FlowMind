@@ -9,63 +9,10 @@
  */
 
 import React, { useState, useEffect, useCallback } from 'react'
-import styled from 'styled-components'
 import { EditorType, SceneTemplate } from '../types/EditorType'
 import { Selection } from '../types/EditorAST'
 import { Button } from '@/components/ui/button'
-import { IconButton } from '@/components/ui/icon-button'
-
-// 样式组件 - 极简设计
-const ToolbarContainer = styled.div<{ isVisible: boolean; isMinimal: boolean }>`
-  position: fixed;
-  top: ${props => props.isMinimal ? '20px' : '60px'};
-  left: 50%;
-  transform: translateX(-50%);
-  background: var(--background);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-  padding: ${props => props.isMinimal ? '8px' : '12px'};
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  z-index: 1000;
-  opacity: ${props => props.isVisible ? 1 : 0};
-  visibility: ${props => props.isVisible ? 'visible' : 'hidden'};
-  transition: all 0.2s ease-in-out;
-  
-  /* 极简模式样式 */
-  ${props => props.isMinimal && `
-    padding: 6px;
-    gap: 4px;
-    border-radius: 20px;
-    backdrop-filter: blur(10px);
-    background: rgba(255, 255, 255, 0.9);
-  `}
-`
-
-const ToolbarGroup = styled.div`
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  
-  &:not(:last-child)::after {
-    content: '';
-    width: 1px;
-    height: 20px;
-    background: var(--border);
-    margin: 0 4px;
-  }
-`
-
-const ContextualTools = styled.div<{ isVisible: boolean }>`
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  opacity: ${props => props.isVisible ? 1 : 0};
-  transform: ${props => props.isVisible ? 'translateX(0)' : 'translateX(-10px)'};
-  transition: all 0.2s ease-in-out;
-`
+import { cn } from '@/utils/cn'
 
 /**
  * 工具栏配置
@@ -189,7 +136,7 @@ export const EditorToolbar: React.FC<EditorToolbarProps> = ({
    * 渲染核心工具
    */
   const renderCoreTools = () => (
-    <ToolbarGroup>
+    <div className="flex items-center gap-1">
       {/* 新建文档 */}
       <Button
         size="sm"
@@ -216,7 +163,7 @@ export const EditorToolbar: React.FC<EditorToolbarProps> = ({
       >
         搜索
       </Button>
-    </ToolbarGroup>
+    </div>
   )
 
   /**
@@ -228,52 +175,57 @@ export const EditorToolbar: React.FC<EditorToolbarProps> = ({
     }
 
     return (
-      <ContextualTools isVisible={toolbarConfig.showContextualTools}>
+      <div className={cn(
+        "flex items-center gap-1 transition-all duration-200",
+        toolbarConfig.showContextualTools 
+          ? "opacity-100 translate-x-0" 
+          : "opacity-0 -translate-x-2.5"
+      )}>
         {contextualTools.includes('format') && (
-          <ToolbarGroup>
-            <IconButton
+          <div className="flex items-center gap-1">
+            <Button
               size="sm"
               variant="ghost"
               onClick={() => onCommand?.('format-bold')}
               title="加粗 (⌘B)"
             >
               B
-            </IconButton>
-            <IconButton
+            </Button>
+            <Button
               size="sm"
               variant="ghost"
               onClick={() => onCommand?.('format-italic')}
               title="斜体 (⌘I)"
             >
               I
-            </IconButton>
-          </ToolbarGroup>
+            </Button>
+          </div>
         )}
         
-                 {contextualTools.includes('ai-rewrite') && (
-           <ToolbarGroup>
-             <Button
-               size="sm"
-               variant="outline"
-               onClick={() => onCommand?.('ai-rewrite')}
-             >
-               AI重写
-             </Button>
-           </ToolbarGroup>
-         )}
-         
-         {contextualTools.includes('convert') && (
-           <ToolbarGroup>
-             <Button
-               size="sm"
-               variant="ghost"
-               onClick={() => onCommand?.('convert-block')}
-             >
-               转换
-             </Button>
-           </ToolbarGroup>
-         )}
-      </ContextualTools>
+        {contextualTools.includes('ai-rewrite') && (
+          <div className="flex items-center gap-1">
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => onCommand?.('ai-rewrite')}
+            >
+              AI重写
+            </Button>
+          </div>
+        )}
+        
+        {contextualTools.includes('convert') && (
+          <div className="flex items-center gap-1">
+            <Button
+              size="sm"
+              variant="ghost"
+              onClick={() => onCommand?.('convert-block')}
+            >
+              转换
+            </Button>
+          </div>
+        )}
+      </div>
     )
   }
 
@@ -281,7 +233,7 @@ export const EditorToolbar: React.FC<EditorToolbarProps> = ({
    * 渲染模式切换
    */
   const renderModeToggle = () => (
-    <ToolbarGroup>
+    <div className="flex items-center gap-1">
       <Button
         size="sm"
         variant="ghost"
@@ -293,7 +245,7 @@ export const EditorToolbar: React.FC<EditorToolbarProps> = ({
       >
         {toolbarConfig.minimalMode ? '⋯' : '−'}
       </Button>
-    </ToolbarGroup>
+    </div>
   )
 
   // ==================== 效果处理 ====================
@@ -315,14 +267,27 @@ export const EditorToolbar: React.FC<EditorToolbarProps> = ({
   // ==================== 渲染 ====================
   
   return (
-    <ToolbarContainer 
-      isVisible={isVisible} 
-      isMinimal={toolbarConfig.minimalMode}
+    <div
+      className={cn(
+        "fixed left-1/2 transform -translate-x-1/2 bg-background border border-border rounded-lg shadow-lg flex items-center gap-2 z-[1000] transition-all duration-200",
+        toolbarConfig.minimalMode 
+          ? "top-5 p-1.5 gap-1 rounded-full backdrop-blur-md bg-white/90" 
+          : "top-15 p-3 gap-2",
+        isVisible ? "opacity-100 visible" : "opacity-0 invisible"
+      )}
     >
       {renderCoreTools()}
+      
+      {/* 分隔线 */}
+      <div className="w-px h-5 bg-border mx-1" />
+      
       {renderContextualTools()}
+      
+      {/* 分隔线 */}
+      <div className="w-px h-5 bg-border mx-1" />
+      
       {renderModeToggle()}
-    </ToolbarContainer>
+    </div>
   )
 }
 

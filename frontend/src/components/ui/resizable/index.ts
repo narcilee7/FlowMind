@@ -1,2 +1,0 @@
-export { Resizable, ResizablePanelGroup, ResizablePanel, ResizableHandle } from './Resizable'
-export type { ResizableProps, ResizablePanelGroupProps, ResizablePanelProps, ResizableHandleProps } from './Resizable' 

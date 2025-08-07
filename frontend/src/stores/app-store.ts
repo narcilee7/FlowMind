@@ -1,13 +1,12 @@
 import { EditorType, SceneTemplate } from '@/components/Editor/types/EditorType'
 import { UserModel } from '@/model/userModel'
 import { create } from 'zustand'
-import { ThemeManager } from '@/styles/theme'
+import { useTheme } from '@/hooks/useTheme'
 
 export type Theme = 'light' | 'dark' | 'system'
 
 interface AppState {
-  // 主题管理器
-  themeManager: ThemeManager
+  // 主题相关
   theme: Theme
   setTheme: (theme: Theme) => void
   toggleTheme: () => void
@@ -38,20 +37,18 @@ interface AppState {
 }
 
 export const useAppStore = create<AppState>((set, get) => {
-  // 获取主题管理器单例
-  const themeManager = ThemeManager.getInstance()
-  
   return {
-    // 主题管理器
-    themeManager,
-    theme: themeManager.getThemeType(),
+    // 主题相关 - 使用新的useTheme hook
+    theme: 'system',
     setTheme: (theme) => {
-      themeManager.setTheme(theme)
+      const themeHook = useTheme()
+      themeHook.setTheme(theme)
       set({ theme })
     },
     toggleTheme: () => {
-      themeManager.toggleTheme()
-      set({ theme: themeManager.getThemeType() })
+      const themeHook = useTheme()
+      themeHook.toggleTheme()
+      set({ theme: themeHook.theme })
     },
     
     // 侧边栏状态

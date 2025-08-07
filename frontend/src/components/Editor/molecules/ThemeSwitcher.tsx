@@ -1,106 +1,54 @@
-/**
- * ThemeSwitcher组件 - 使用styled-components实现
- */
-
 import React, { useState } from 'react'
-import styled from 'styled-components'
-import { useTheme } from '@/styles/ThemeProvider'
+import { useTheme } from '@/hooks/useTheme'
 import { Button } from '@/components/ui/button'
-import { Panel } from '@/components/ui/panel'
 
-export interface ThemeSwitcherProps {
-  className?: string
-}
+import { Moon, Settings, Sun } from 'lucide-react'
 
-const ThemeSwitcherContainer = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: 1rem;
-  padding: 1rem;
-`
-
-const ThemeSection = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-`
-
-const SectionTitle = styled.h3`
-  font-size: 0.875rem;
-  font-weight: 600;
-  color: var(--foreground);
-  margin: 0;
-`
-
-const ButtonGroup = styled.div`
-  display: flex;
-  gap: 0.5rem;
-  flex-wrap: wrap;
-`
-
-const ThemeSwitcher: React.FC<ThemeSwitcherProps> = ({ className }) => {
-  const { theme, themeType, setTheme, toggleTheme, isDark, isLight } = useTheme()
+const ThemeSwitcher: React.FC = () => {
+  const { theme, setTheme, isDark, isLight } = useTheme()
   const [showAdvanced, setShowAdvanced] = useState(false)
 
-  const handleThemeChange = (newTheme: 'light' | 'dark' | 'system') => {
-    setTheme(newTheme)
+  const toggleTheme = () => {
+    setTheme(theme === 'light' ? 'dark' : 'light')
   }
 
   return (
-    <ThemeSwitcherContainer className={className}>
-      <ThemeSection>
-        <SectionTitle>基础主题</SectionTitle>
-        <ButtonGroup>
-          <Button
-            variant={themeType === 'light' ? 'default' : 'outline'}
-            size="sm"
-            onClick={() => handleThemeChange('light')}
-          >
-            浅色
+    <div className='flex items-center gap-2 p-2'>
+      <div className='flex flex-col gap-1'>
+        <div className='text-sm text-muted-foreground'>主题</div>
+        <div className='flex items-center gap-1'>
+          <Button variant="outline" size="sm">
+            <Sun size={16} />
           </Button>
-          <Button
-            variant={themeType === 'dark' ? 'default' : 'outline'}
-            size="sm"
-            onClick={() => handleThemeChange('dark')}
-          >
-            深色
+        </div>
+        <div className='flex items-center gap-1'>
+          <Button variant="outline" size="sm">
+            <Moon size={16} />
           </Button>
-          <Button
-            variant={themeType === 'system' ? 'default' : 'outline'}
-            size="sm"
-            onClick={() => handleThemeChange('system')}
-          >
-            系统
+        </div>
+        <div className='flex items-center gap-1'>
+          <Button variant="outline" size="sm">
+            <Settings size={16} />
           </Button>
-        </ButtonGroup>
-      </ThemeSection>
-
-      <ThemeSection>
-        <SectionTitle>快速切换</SectionTitle>
-        <ButtonGroup>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={toggleTheme}
-          >
-            切换主题
-          </Button>
-        </ButtonGroup>
-      </ThemeSection>
-
-      {showAdvanced && (
-        <ThemeSection>
-          <SectionTitle>主题信息</SectionTitle>
-          <Panel variant="bordered" padding="sm">
-            <div style={{ fontSize: '0.75rem', color: 'var(--muted-foreground)' }}>
-              <div>当前主题: {themeType}</div>
-              <div>主题类型: {isDark ? '深色' : isLight ? '浅色' : '系统'}</div>
-              <div>主色调: {theme.colors.primary}</div>
+        </div>
+      </div>
+      <div className='flex items-center gap-1'>
+        <Button variant="outline" size="sm" onClick={toggleTheme}>
+          <span>快速切换</span>
+        </Button>
+        <Button variant="outline" size="sm" onClick={toggleTheme}>
+        </Button>
+        {showAdvanced && (
+          <div className='flex items-center gap-1'>
+           <div className='p-2 border border-border rounded-md'>
+             <div style={{ fontSize: '0.75rem', color: 'var(--muted-foreground)' }}>
+               <div>当前主题: {theme}</div>
+               <div>主题类型: {isDark ? '深色' : isLight ? '浅色' : '系统'}</div>
+             </div>
             </div>
-          </Panel>
-        </ThemeSection>
-      )}
-
+          </div>
+        )}
+      </div>
       <Button
         variant="ghost"
         size="sm"
@@ -108,8 +56,9 @@ const ThemeSwitcher: React.FC<ThemeSwitcherProps> = ({ className }) => {
       >
         {showAdvanced ? '隐藏' : '显示'}高级选项
       </Button>
-    </ThemeSwitcherContainer>
+    </div>
   )
+
 }
 
 export default ThemeSwitcher 

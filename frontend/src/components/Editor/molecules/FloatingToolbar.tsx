@@ -1,11 +1,7 @@
-/**
- * FloatingToolbar组件 - 使用styled-components实现
- */
-
 import React from 'react'
-import styled from 'styled-components'
 import { Bold, Italic, Underline, Link, Quote, Code } from 'lucide-react'
-import { IconButton } from '@/components/ui/icon-button'
+import { Button } from '@/components/ui/button'
+import { cn } from '@/utils/cn'
 
 export interface FloatingToolbarProps {
   isVisible: boolean
@@ -13,30 +9,6 @@ export interface FloatingToolbarProps {
   onAction?: (action: string) => void
   className?: string
 }
-
-const FloatingToolbarContainer = styled.div<{ isVisible: boolean; x: number; y: number }>`
-  position: fixed;
-  left: ${props => props.x}px;
-  top: ${props => props.y}px;
-  display: ${props => props.isVisible ? 'flex' : 'none'};
-  align-items: center;
-  gap: 0.25rem;
-  padding: 0.5rem;
-  background: var(--background);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  box-shadow: var(--shadow-lg);
-  z-index: 1000;
-  transform: translate(-50%, -100%);
-  margin-top: -0.5rem;
-`
-
-const ToolbarButton = styled(IconButton)`
-  &:hover {
-    background: var(--accent);
-    color: var(--accent-foreground);
-  }
-`
 
 const FloatingToolbar: React.FC<FloatingToolbarProps> = ({ 
   isVisible, 
@@ -48,67 +20,79 @@ const FloatingToolbar: React.FC<FloatingToolbarProps> = ({
     onAction?.(action)
   }
 
+  if (!isVisible) return null
+
   return (
-    <FloatingToolbarContainer
-      isVisible={isVisible}
-      x={position.x}
-      y={position.y}
-      className={className}
+    <div
+      className={cn(
+        "fixed flex items-center gap-1 p-2 bg-background border border-border rounded-lg shadow-lg z-[1000] transform -translate-x-1/2 -translate-y-full -mt-2",
+        className
+      )}
+      style={{
+        left: position.x,
+        top: position.y,
+      }}
     >
-      <ToolbarButton
+      <Button
         variant="ghost"
         size="sm"
         onClick={() => handleAction('bold')}
         title="粗体"
+        className="hover:bg-accent hover:text-accent-foreground"
       >
         <Bold size={14} />
-      </ToolbarButton>
+      </Button>
       
-      <ToolbarButton
+      <Button
         variant="ghost"
         size="sm"
         onClick={() => handleAction('italic')}
         title="斜体"
+        className="hover:bg-accent hover:text-accent-foreground"
       >
         <Italic size={14} />
-      </ToolbarButton>
+      </Button>
       
-      <ToolbarButton
+      <Button
         variant="ghost"
         size="sm"
         onClick={() => handleAction('underline')}
         title="下划线"
+        className="hover:bg-accent hover:text-accent-foreground"
       >
         <Underline size={14} />
-      </ToolbarButton>
+      </Button>
       
-      <ToolbarButton
+      <Button
         variant="ghost"
         size="sm"
         onClick={() => handleAction('link')}
         title="链接"
+        className="hover:bg-accent hover:text-accent-foreground"
       >
         <Link size={14} />
-      </ToolbarButton>
+      </Button>
       
-      <ToolbarButton
+      <Button
         variant="ghost"
         size="sm"
         onClick={() => handleAction('quote')}
         title="引用"
+        className="hover:bg-accent hover:text-accent-foreground"
       >
         <Quote size={14} />
-      </ToolbarButton>
+      </Button>
       
-      <ToolbarButton
+      <Button
         variant="ghost"
         size="sm"
         onClick={() => handleAction('code')}
         title="代码"
+        className="hover:bg-accent hover:text-accent-foreground"
       >
         <Code size={14} />
-      </ToolbarButton>
-    </FloatingToolbarContainer>
+      </Button>
+    </div>
   )
 }
 
