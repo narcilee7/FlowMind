@@ -1,10 +1,6 @@
-/**
- * FileTree组件 - 使用styled-components实现
- */
-
 import React, { useState } from 'react'
-import styled from 'styled-components'
 import { ChevronRight, ChevronDown, File, Folder, FolderOpen } from 'lucide-react'
+import { cn } from '@/utils/cn'
 
 export interface FileNode {
   id: string
@@ -19,43 +15,6 @@ export interface FileTreeProps {
   onSelect?: (node: FileNode) => void
   className?: string
 }
-
-const FileTreeContainer = styled.div`
-  padding: 0.5rem;
-  background: var(--background);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  font-size: 0.875rem;
-`
-
-const TreeNode = styled.div<{ level: number }>`
-  display: flex;
-  align-items: center;
-  gap: 0.25rem;
-  padding: 0.25rem 0;
-  padding-left: ${props => props.level * 1.5}rem;
-  cursor: pointer;
-  border-radius: 0.25rem;
-  
-  &:hover {
-    background: var(--accent);
-    color: var(--accent-foreground);
-  }
-`
-
-const TreeIcon = styled.div`
-  width: 1rem;
-  height: 1rem;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: var(--muted-foreground);
-`
-
-const TreeName = styled.span`
-  flex: 1;
-  user-select: none;
-`
 
 const FileTree: React.FC<FileTreeProps> = ({ data, onSelect, className }) => {
   const [expandedNodes, setExpandedNodes] = useState<Set<string>>(new Set())
@@ -76,34 +35,41 @@ const FileTree: React.FC<FileTreeProps> = ({ data, onSelect, className }) => {
 
     return (
       <div key={node.id}>
-        <TreeNode level={level} onClick={() => {
-          if (node.type === 'folder' && hasChildren) {
-            toggleNode(node.id)
-          }
-          onSelect?.(node)
-        }}>
+        <div 
+          className={cn(
+            "flex items-center gap-1 py-1 px-0 cursor-pointer rounded hover:bg-accent hover:text-accent-foreground",
+            `pl-${level * 6}`
+          )}
+          style={{ paddingLeft: `${level * 1.5}rem` }}
+          onClick={() => {
+            if (node.type === 'folder' && hasChildren) {
+              toggleNode(node.id)
+            }
+            onSelect?.(node)
+          }}
+        >
           {node.type === 'folder' && hasChildren && (
-            <TreeIcon>
+            <div className="w-4 h-4 flex items-center justify-center text-muted-foreground">
               {isExpanded ? <ChevronDown size={12} /> : <ChevronRight size={12} />}
-            </TreeIcon>
+            </div>
           )}
           {node.type === 'folder' && !hasChildren && (
-            <TreeIcon>
+            <div className="w-4 h-4 flex items-center justify-center text-muted-foreground">
               <Folder size={12} />
-            </TreeIcon>
+            </div>
           )}
           {node.type === 'folder' && hasChildren && (
-            <TreeIcon>
+            <div className="w-4 h-4 flex items-center justify-center text-muted-foreground">
               {isExpanded ? <FolderOpen size={12} /> : <Folder size={12} />}
-            </TreeIcon>
+            </div>
           )}
           {node.type === 'file' && (
-            <TreeIcon>
+            <div className="w-4 h-4 flex items-center justify-center text-muted-foreground">
               <File size={12} />
-            </TreeIcon>
+            </div>
           )}
-          <TreeName>{node.name}</TreeName>
-        </TreeNode>
+          <span className="flex-1 select-none">{node.name}</span>
+        </div>
         
         {node.type === 'folder' && hasChildren && isExpanded && (
           <div>
@@ -115,9 +81,9 @@ const FileTree: React.FC<FileTreeProps> = ({ data, onSelect, className }) => {
   }
 
   return (
-    <FileTreeContainer className={className}>
+    <div className={cn("p-2 bg-background border border-border rounded-lg text-sm", className)}>
       {data.map(node => renderNode(node))}
-    </FileTreeContainer>
+    </div>
   )
 }
 

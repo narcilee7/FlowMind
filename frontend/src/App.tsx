@@ -1,32 +1,10 @@
 import React from 'react'
 import { Route, BrowserRouter as Router, Routes } from 'react-router-dom'
 import { useAppStore } from '@/stores/app-store'
-import { ThemeProvider } from '@/styles/ThemeProvider'
 import Sidebar from '@/components/Sidebar'
 import Header from '@/components/Header'
-import styled from 'styled-components'
 import EditorCore from './components/Editor/core/EditorCore'
 import OnlineBar from './components/OnlineBar'
-
-const AppContainer = styled.div`
-  display: flex;
-  flex-direction: column;
-  height: 100vh;
-  background: var(--background);
-  color: var(--foreground);
-`
-
-const AppContent = styled.div`
-  display: flex;
-  flex: 1;
-  overflow: hidden;
-`
-
-const MainContent = styled.main`
-  flex: 1;
-  overflow: hidden;
-  background: var(--background);
-`
 
 function App() {
   const { isOnline, setIsOnline } = useAppStore()
@@ -46,24 +24,22 @@ function App() {
   }, [setIsOnline])
 
   return (
-    <ThemeProvider>
       <Router>
-        <AppContainer>
+        <div className="flex flex-col h-screen bg-background text-foreground">
           <Header />
-          <AppContent>
+          <div className="flex flex-1 overflow-hidden">
             <Sidebar />
-            <MainContent>
+            <main className="flex-1 overflow-hidden bg-background">
               <Routes>
-                <Route path="/" element={<EditorCore />} />
+                {/* <Route path="/" element={<EditorCore />} /> */}
               </Routes>
-            </MainContent>
-          </AppContent>
+            </main>
+          </div>
           
           {/* 离线提示 */}
           <OnlineBar isOnline={isOnline} />
-        </AppContainer>
+        </div>
       </Router>
-    </ThemeProvider>
   )
 }
 

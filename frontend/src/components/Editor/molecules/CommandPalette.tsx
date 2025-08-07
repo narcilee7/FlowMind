@@ -1,10 +1,10 @@
 /**
- * CommandPalette组件 - 使用styled-components实现
+ * CommandPalette组件 - 使用Tailwind CSS实现
  */
 
 import React, { useState, useEffect, useRef } from 'react'
-import styled from 'styled-components'
 import { Search, FileText, Settings, Palette, Bot, HelpCircle } from 'lucide-react'
+import { cn } from '@/utils/cn'
 
 export interface CommandItem {
   id: string
@@ -21,112 +21,6 @@ export interface CommandPaletteProps {
   onSelect: (item: CommandItem) => void
   className?: string
 }
-
-const CommandPaletteOverlay = styled.div<{ isOpen: boolean }>`
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(0, 0, 0, 0.5);
-  z-index: 1000;
-  display: ${props => props.isOpen ? 'flex' : 'none'};
-  align-items: flex-start;
-  justify-content: center;
-  padding-top: 10vh;
-`
-
-const CommandPaletteContainer = styled.div`
-  background: var(--background);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  box-shadow: var(--shadow-xl);
-  width: 90%;
-  max-width: 600px;
-  max-height: 60vh;
-  overflow: hidden;
-`
-
-const CommandPaletteHeader = styled.div`
-  padding: 1rem;
-  border-bottom: 1px solid var(--border);
-  background: var(--muted);
-`
-
-const SearchContainer = styled.div`
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-`
-
-const SearchInput = styled.input`
-  flex: 1;
-  padding: 0.5rem;
-  border: none;
-  background: transparent;
-  color: var(--foreground);
-  font-size: 1rem;
-  
-  &:focus {
-    outline: none;
-  }
-  
-  &::placeholder {
-    color: var(--muted-foreground);
-  }
-`
-
-const CommandPaletteList = styled.div`
-  max-height: 400px;
-  overflow-y: auto;
-`
-
-const CommandItem = styled.div<{ isSelected: boolean }>`
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-  padding: 0.75rem 1rem;
-  cursor: pointer;
-  background: ${props => props.isSelected ? 'var(--accent)' : 'transparent'};
-  color: ${props => props.isSelected ? 'var(--accent-foreground)' : 'var(--foreground)'};
-  
-  &:hover {
-    background: var(--accent);
-    color: var(--accent-foreground);
-  }
-`
-
-const ItemIcon = styled.div`
-  width: 1.5rem;
-  height: 1.5rem;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: var(--muted-foreground);
-`
-
-const ItemContent = styled.div`
-  flex: 1;
-`
-
-const ItemTitle = styled.div`
-  font-size: 0.875rem;
-  font-weight: 500;
-`
-
-const ItemDescription = styled.div`
-  font-size: 0.75rem;
-  color: var(--muted-foreground);
-  margin-top: 0.125rem;
-`
-
-const ItemCategory = styled.div`
-  font-size: 0.75rem;
-  color: var(--muted-foreground);
-  padding: 0.25rem 0.5rem;
-  background: var(--muted);
-  border-radius: 0.25rem;
-`
 
 const CommandPalette: React.FC<CommandPaletteProps> = ({ isOpen, onClose, onSelect, className }) => {
   const [searchTerm, setSearchTerm] = useState('')
@@ -218,39 +112,58 @@ const CommandPalette: React.FC<CommandPaletteProps> = ({ isOpen, onClose, onSele
   if (!isOpen) return null
 
   return (
-    <CommandPaletteOverlay isOpen={isOpen} onClick={onClose}>
-      <CommandPaletteContainer onClick={e => e.stopPropagation()} className={className}>
-        <CommandPaletteHeader>
-          <SearchContainer>
+    <div 
+      className="fixed inset-0 bg-black/50 z-[1000] flex items-start justify-center pt-[10vh]"
+      onClick={onClose}
+    >
+      <div 
+        className={cn(
+          "bg-background border border-border rounded-lg shadow-2xl w-[90%] max-w-[600px] max-h-[60vh] overflow-hidden",
+          className
+        )}
+        onClick={e => e.stopPropagation()}
+      >
+        <div className="p-4 border-b border-border bg-muted">
+          <div className="flex items-center gap-2">
             <Search size={16} />
-            <SearchInput
+            <input
               ref={inputRef}
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               onKeyDown={handleKeyDown}
               placeholder="搜索命令..."
+              className="flex-1 p-2 border-none bg-transparent text-foreground text-base focus:outline-none placeholder:text-muted-foreground"
             />
-          </SearchContainer>
-        </CommandPaletteHeader>
+          </div>
+        </div>
         
-        <CommandPaletteList>
+        <div className="max-h-[400px] overflow-y-auto">
           {filteredItems.map((item, index) => (
-            <CommandItem
+            <div
               key={item.id}
-              isSelected={index === selectedIndex}
+              className={cn(
+                "flex items-center gap-3 p-3 cursor-pointer",
+                index === selectedIndex 
+                  ? "bg-accent text-accent-foreground" 
+                  : "hover:bg-accent hover:text-accent-foreground"
+              )}
               onClick={() => onSelect(item)}
             >
-              <ItemIcon>{item.icon}</ItemIcon>
-              <ItemContent>
-                <ItemTitle>{item.title}</ItemTitle>
-                <ItemDescription>{item.description}</ItemDescription>
-              </ItemContent>
-              <ItemCategory>{item.category}</ItemCategory>
-            </CommandItem>
+              <div className="w-6 h-6 flex items-center justify-center text-muted-foreground">
+                {item.icon}
+              </div>
+              <div className="flex-1">
+                <div className="text-sm font-medium">{item.title}</div>
+                <div className="text-xs text-muted-foreground mt-0.5">{item.description}</div>
+              </div>
+              <div className="text-xs text-muted-foreground px-2 py-1 bg-muted rounded">
+                {item.category}
+              </div>
+            </div>
           ))}
-        </CommandPaletteList>
-      </CommandPaletteContainer>
-    </CommandPaletteOverlay>
+        </div>
+      </div>
+    </div>
   )
 }
 

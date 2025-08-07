@@ -1,35 +1,22 @@
-/**
- * SettingsButton组件 - 使用styled-components实现
- */
-
 import React from 'react'
-import styled from 'styled-components'
 import { Settings } from 'lucide-react'
-import { IconButton } from '@/components/ui/icon-button'
+import { Button } from '@/components/ui/button'
 
 export interface SettingsButtonProps {
   onClick?: () => void
-  className?: string
 }
 
-const StyledSettingsButton = styled(IconButton)`
-  &:hover {
-    background: var(--accent);
-    color: var(--accent-foreground);
-  }
-`
-
-const SettingsButton: React.FC<SettingsButtonProps> = ({ onClick, className }) => {
+const SettingsButton: React.FC<SettingsButtonProps> = ({ onClick }) => {
   return (
-    <StyledSettingsButton
+    <Button
       variant="ghost"
-      size="md"
+      size="icon"
       onClick={onClick}
-      className={className}
+      className='hover:bg-accent hover:text-accent-foreground'
       title="设置"
     >
       <Settings size={16} />
-    </StyledSettingsButton>
+    </Button>
   )
 }
 

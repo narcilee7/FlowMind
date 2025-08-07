@@ -15,59 +15,14 @@
  */
 
 import React, { useEffect, useRef, useState, useCallback, useMemo } from 'react'
-import styled from 'styled-components'
 import { ViewAdapter } from '@/components/Editor/types/ViewAdapter'
 import { EditorType, SceneTemplate } from '@/components/Editor/types/EditorType'
 import { DocumentAST, Selection } from '@/components/Editor/types/EditorAST'
 import { EditorTheme } from '@/components/Editor/types/EditorTheme'
 import ViewAdapterFactory from '@/components/Editor/core/ViewAdapterFactory'
 import { createDocumentAST } from '@/components/Editor/utils/ASTUtils'
-import { useTheme } from '@/hooks/useAppState'
-
-// 样式组件 - 保持简洁，专注于布局
-const EditorContainer = styled.div`
-  width: 100%;
-  height: 100%;
-  background: var(--background);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  overflow: hidden;
-  display: flex;
-  flex-direction: column;
-`
-
-const EditorContent = styled.div`
-  flex: 1;
-  position: relative;
-  overflow: hidden;
-`
-
-const LoadingOverlay = styled.div`
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: var(--background);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 10;
-`
-
-const LoadingSpinner = styled.div`
-  width: 2rem;
-  height: 2rem;
-  border: 2px solid var(--border);
-  border-top: 2px solid var(--primary);
-  border-radius: 50%;
-  animation: spin 1s linear infinite;
-  
-  @keyframes spin {
-    0% { transform: rotate(0deg); }
-    100% { transform: rotate(360deg); }
-  }
-`
+import { useTheme } from '@/hooks/useTheme'
+import { Button } from '@/components/ui/button'
 
 /**
  * 编辑器核心属性
@@ -98,13 +53,9 @@ export interface EditorCoreProps {
 
 /**
  * 编辑器核心组件
- * 
- * 设计模式：
- * - 组合模式：通过props组合不同功能
- * - 观察者模式：通过回调函数通知状态变化
- * - 策略模式：通过editorType切换不同适配器
+ * 负责AST状态管理和适配器协调
  */
-export const EditorCore: React.FC<EditorCoreProps> = ({
+export default function EditorCore({
     className = '',
     style = {},
     initialAST,
@@ -115,180 +66,224 @@ export const EditorCore: React.FC<EditorCoreProps> = ({
     onSelectionChange,
     onViewChange,
     onError,
-}) => {
-    // ==================== 状态管理 ====================
-    
-    /** 容器引用 - 用于适配器挂载 */
-    const containerRef = useRef<HTMLDivElement>(null)
-    /** 适配器引用 - 当前活动的视图适配器 */
-    const adapterRef = useRef<ViewAdapter | null>(null)
-    /** AST状态 - 文档的核心数据结构 */
-    const [ast, setAST] = useState<DocumentAST>(initialAST || createDocumentAST('无标题文档'))
-    /** 选择状态 - 当前选中的节点或文本范围 */
-    const [selection, setSelection] = useState<Selection>({ nodeIds: [], type: 'node' })
-    /** 加载状态 - 适配器初始化状态 */
+}: EditorCoreProps) {
+    // 状态管理
+    const [ast, setAST] = useState<DocumentAST>(() => initialAST || createDocumentAST())
+    const [selection, setSelection] = useState<Selection>({ 
+        nodeIds: [], 
+        type: 'node' 
+    })
+    const [currentAdapter, setCurrentAdapter] = useState<ViewAdapter | null>(null)
     const [isLoading, setIsLoading] = useState(false)
-    
-    // ==================== 主题管理 ====================
-    
-    /** 使用主题系统 */
-    const { currentTheme, setEditorTheme } = useTheme()
-    /** 有效主题 - 自动模式时使用系统主题 */
-    const effectiveTheme: EditorTheme = useMemo(() => 
-        theme === 'auto' ? (currentTheme?.type as EditorTheme || 'light') : theme, 
-        [theme, currentTheme?.type]
-    )
+    const [error, setError] = useState<Error | null>(null)
 
-    // ==================== 适配器管理 ====================
-    
-    /**
-     * 初始化适配器
-     * 职责：创建、配置、挂载视图适配器
-     */
-    const initializeAdapter = useCallback(async () => {
-        if (!containerRef.current) return
+    // 引用管理
+    const containerRef = useRef<HTMLDivElement>(null)
+    const adapterRef = useRef<ViewAdapter | null>(null)
 
-        setIsLoading(true)
+    // 主题管理
+    const { theme: appTheme } = useTheme()
+    const effectiveTheme: EditorTheme = useMemo(() => {
+        if (theme === 'auto') {
+            return appTheme === 'system' ? 'auto' : (appTheme as EditorTheme)
+        }
+        return theme
+    }, [theme, appTheme])
+
+    // 创建适配器
+    const createAdapter = useCallback(async () => {
         try {
-            // 1. 创建适配器实例
+            setIsLoading(true)
+            setError(null)
+
+            if (!containerRef.current) {
+                throw new Error('Container element not found')
+            }
+
             const adapter = ViewAdapterFactory.createAdapter(editorType, {
                 sceneTemplate,
                 options: {
-                    type: editorType,
-                    sceneTemplate,
                     theme: effectiveTheme,
-                    enableSelection: true,
-                    enableDrag: true,
-                    enableResize: true,
-                    enableContextMenu: true,
-                },
-                onError: (error) => {
-                    console.error('Adapter error:', error)
-                    onError?.(error)
                 }
             })
-            adapterRef.current = adapter
 
-            // 2. 初始化适配器
+            adapterRef.current = adapter
+            setCurrentAdapter(adapter)
+
+            // 初始化适配器
             await adapter.create(containerRef.current, {
                 type: editorType,
                 sceneTemplate,
                 theme: effectiveTheme,
-                enableSelection: true,
-                enableDrag: true,
-                enableResize: true,
-                enableContextMenu: true,
             })
 
-            // 3. 渲染初始AST
+            // 设置初始AST
             adapter.render(ast)
 
-            // 4. 设置事件监听
-            setupAdapterEvents(adapter)
+            // 绑定事件
+            adapter.onSelectionChange((newSelection) => {
+                setSelection(newSelection)
+                onSelectionChange?.(newSelection)
+            })
 
-        } catch (error) {
-            console.error('Failed to initialize adapter:', error)
-            onError?.(error as Error)
+            adapter.onViewChange((viewData) => {
+                onViewChange?.(viewData)
+            })
+
+            adapter.onError((error) => {
+                setError(error)
+                onError?.(error)
+            })
+
+        } catch (err) {
+            const error = err instanceof Error ? err : new Error('Failed to create adapter')
+            setError(error)
+            onError?.(error)
         } finally {
             setIsLoading(false)
         }
-    }, [editorType, sceneTemplate, effectiveTheme, ast, onError])
+    }, [editorType, effectiveTheme, sceneTemplate, ast, onSelectionChange, onViewChange, onError])
 
-    /**
-     * 设置适配器事件监听
-     * 职责：统一管理适配器事件，避免重复代码
-     */
-    const setupAdapterEvents = useCallback((adapter: ViewAdapter) => {
-        // 选择状态变化
-        adapter.onSelectionChange((newSelection: Selection) => {
-            setSelection(newSelection)
-            onSelectionChange?.(newSelection)
-        })
-
-        // 视图变化
-        adapter.onViewChange((viewData: any) => {
-            onViewChange?.(viewData)
-        })
-
-        // 节点交互
-        adapter.onNodeClick(({ nodeId, event }) => {
-            console.log('Node clicked:', nodeId, event)
-        })
-
-        adapter.onNodeDoubleClick(({ nodeId, event }) => {
-            console.log('Node double clicked:', nodeId, event)
-        })
-
-        // 焦点管理
-        adapter.onFocus(() => {
-            console.log('Editor focused')
-        })
-
-        adapter.onBlur(() => {
-            console.log('Editor blurred')
-        })
-    }, [onSelectionChange, onViewChange])
-
-    // ==================== AST管理 ====================
-    
-    /**
-     * 更新AST
-     * 职责：同步AST状态到适配器
-     */
-    const updateAST = useCallback((newAST: DocumentAST) => {
-        setAST(newAST)
+    // 销毁适配器
+    const destroyAdapter = useCallback(async () => {
         if (adapterRef.current) {
-            adapterRef.current.update(newAST)
-        }
-        onASTChange?.(newAST)
-    }, [onASTChange])
-
-    /**
-     * 设置选择状态
-     * 职责：同步选择状态到适配器
-     */
-    const setSelectionState = useCallback((newSelection: Selection) => {
-        setSelection(newSelection)
-        if (adapterRef.current) {
-            adapterRef.current.setSelection(newSelection)
-        }
-    }, [onASTChange])
-
-    // ==================== 生命周期管理 ====================
-    
-    /** 初始化 - 组件挂载时创建适配器 */
-    useEffect(() => {
-        initializeAdapter()
-    }, [initializeAdapter])
-
-    /** 清理 - 组件卸载时销毁适配器 */
-    useEffect(() => {
-        return () => {
-            if (adapterRef.current) {
+            try {
                 adapterRef.current.destroy()
+            } catch (err) {
+                console.error('Error destroying adapter:', err)
             }
+            adapterRef.current = null
+            setCurrentAdapter(null)
         }
     }, [])
 
-    /** 主题变化时重新初始化适配器 */
-    useEffect(() => {
+    // 更新AST
+    const updateAST = useCallback(async (newAST: DocumentAST) => {
+        setAST(newAST)
+        onASTChange?.(newAST)
+
         if (adapterRef.current) {
-            initializeAdapter()
+            try {
+                adapterRef.current.update(newAST)
+            } catch (err) {
+                const error = err instanceof Error ? err : new Error('Failed to update AST')
+                setError(error)
+                onError?.(error)
+            }
         }
-    }, [effectiveTheme, initializeAdapter])
+    }, [onASTChange, onError])
+
+    // 更新选择状态
+    const updateSelection = useCallback(async (newSelection: Selection) => {
+        setSelection(newSelection)
+        onSelectionChange?.(newSelection)
+
+        if (adapterRef.current) {
+            try {
+                adapterRef.current.setSelection(newSelection)
+            } catch (err) {
+                const error = err instanceof Error ? err : new Error('Failed to update selection')
+                setError(error)
+                onError?.(error)
+            }
+        }
+    }, [onSelectionChange, onError])
+
+    // 切换编辑器类型
+    const switchEditorType = useCallback(async (newType: EditorType) => {
+        await destroyAdapter()
+        // 重新创建适配器会在useEffect中触发
+    }, [destroyAdapter])
+
+    // 切换主题
+    const switchTheme = useCallback(async (newTheme: EditorTheme) => {
+        if (adapterRef.current) {
+            try {
+                // 重新创建适配器以应用新主题
+                await destroyAdapter()
+                // 重新创建适配器会在useEffect中触发
+            } catch (err) {
+                const error = err instanceof Error ? err : new Error('Failed to switch theme')
+                setError(error)
+                onError?.(error)
+            }
+        }
+    }, [destroyAdapter, onError])
+
+    // 生命周期管理
+    useEffect(() => {
+        createAdapter()
+        return () => {
+            destroyAdapter()
+        }
+    }, [createAdapter, destroyAdapter])
+
+    // 主题变化处理
+    useEffect(() => {
+        if (currentAdapter && theme !== 'auto') {
+            switchTheme(theme)
+        }
+    }, [theme, currentAdapter, switchTheme])
+
+    // 错误边界处理
+    if (error) {
+        return (
+            <div className={`editor-container ${className}`} style={style}>
+                <div className="flex items-center justify-center h-full p-4">
+                    <div className="text-center">
+                        <div className="text-destructive text-lg font-medium mb-2">
+                            编辑器加载失败
+                        </div>
+                        <div className="text-muted-foreground text-sm mb-4">
+                            {error.message}
+                        </div>
+                        <Button onClick={() => {
+                            setError(null)
+                            createAdapter()
+                        }}>
+                            重试
+                        </Button>
+                    </div>
+                </div>
+            </div>
+        )
+    }
 
     return (
-        <EditorContainer className={className} style={style}>
-            <EditorContent>
-                <div ref={containerRef} style={{ width: '100%', height: '100%' }} />
+        <div 
+            ref={containerRef}
+            className={`editor-container ${className}`} 
+            style={style}
+        >
+            {/* 编辑器内容区域 */}
+            <div className="editor-content">
                 {isLoading && (
-                    <LoadingOverlay>
-                        <LoadingSpinner />
-                    </LoadingOverlay>
+                    <div className="absolute inset-0 bg-background flex items-center justify-center z-10">
+                        <div className="loading-spinner" />
+                    </div>
                 )}
-            </EditorContent>
-        </EditorContainer>
-    )
-}
+                
+                {/* 适配器渲染区域 */}
+                {currentAdapter && (
+                    <div className="w-full h-full">
+                        {/* 适配器会在这里渲染其内容 */}
+                    </div>
+                )}
+            </div>
 
-export default EditorCore 
+            {/* 状态栏 */}
+            <div className="editor-statusbar">
+                <div className="flex items-center gap-4 text-xs">
+                    <span>选中节点: {selection.nodeIds.length}</span>
+                    <span>类型: {selection.type}</span>
+                    <span>{editorType}</span>
+                </div>
+                <div className="flex items-center gap-2">
+                    <span className="text-xs text-muted-foreground">
+                        {effectiveTheme}
+                    </span>
+                </div>
+            </div>
+        </div>
+    )
+} 

@@ -1,0 +1,326 @@
+@import "tw-animate-css";
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 0 0% 100%;
+    --foreground: 222.2 84% 4.9%;
+    --card: 0 0% 100%;
+    --card-foreground: 222.2 84% 4.9%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 222.2 84% 4.9%;
+    --primary: 221.2 83.2% 53.3%;
+    --primary-foreground: 210 40% 98%;
+    --secondary: 210 40% 96%;
+    --secondary-foreground: 222.2 84% 4.9%;
+    --muted: 210 40% 96%;
+    --muted-foreground: 215.4 16.3% 46.9%;
+    --accent: 210 40% 96%;
+    --accent-foreground: 222.2 84% 4.9%;
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 210 40% 98%;
+    --border: 214.3 31.8% 91.4%;
+    --input: 214.3 31.8% 91.4%;
+    --ring: 221.2 83.2% 53.3%;
+    --radius: 0.5rem;
+    
+    /* 编辑器专用颜色 */
+    --editor-background: 0 0% 100%;
+    --editor-foreground: 222.2 84% 4.9%;
+    --editor-selection: 221.2 83.2% 53.3%;
+    --editor-cursor: 222.2 84% 4.9%;
+    --editor-line: 214.3 31.8% 91.4%;
+    --editor-comment: 215.4 16.3% 46.9%;
+    --editor-string: 142.1 76.2% 36.3%;
+    --editor-keyword: 221.2 83.2% 53.3%;
+    --editor-function: 262.1 83.3% 57.8%;
+    --editor-variable: 222.2 84% 4.9%;
+    --editor-number: 47.9 95.8% 53.1%;
+    --editor-boolean: 262.1 83.3% 57.8%;
+    --editor-operator: 222.2 84% 4.9%;
+    --editor-punctuation: 215.4 16.3% 46.9%;
+    --editor-gutter: 215.4 16.3% 46.9%;
+    --editor-active-line: 210 40% 96%;
+    --editor-bracket: 215.4 16.3% 46.9%;
+    --editor-bracket-match: 221.2 83.2% 53.3%;
+    
+    /* 侧边栏专用颜色 */
+    --sidebar: 0 0% 100%;
+    --sidebar-foreground: 222.2 84% 4.9%;
+    --sidebar-primary: 221.2 83.2% 53.3%;
+    --sidebar-primary-foreground: 210 40% 98%;
+    --sidebar-accent: 210 40% 96%;
+    --sidebar-accent-foreground: 222.2 84% 4.9%;
+    --sidebar-border: 214.3 31.8% 91.4%;
+    --sidebar-ring: 221.2 83.2% 53.3%;
+    
+    /* 图表颜色 */
+    --chart-1: 142.1 76.2% 36.3%;
+    --chart-2: 221.2 83.2% 53.3%;
+    --chart-3: 262.1 83.3% 57.8%;
+    --chart-4: 47.9 95.8% 53.1%;
+    --chart-5: 0 84.2% 60.2%;
+  }
+
+  .dark {
+    --background: 222.2 84% 4.9%;
+    --foreground: 210 40% 98%;
+    --card: 222.2 84% 4.9%;
+    --card-foreground: 210 40% 98%;
+    --popover: 222.2 84% 4.9%;
+    --popover-foreground: 210 40% 98%;
+    --primary: 217.2 91.2% 59.8%;
+    --primary-foreground: 222.2 84% 4.9%;
+    --secondary: 217.2 32.6% 17.5%;
+    --secondary-foreground: 210 40% 98%;
+    --muted: 217.2 32.6% 17.5%;
+    --muted-foreground: 215 20.2% 65.1%;
+    --accent: 217.2 32.6% 17.5%;
+    --accent-foreground: 210 40% 98%;
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 210 40% 98%;
+    --border: 217.2 32.6% 17.5%;
+    --input: 217.2 32.6% 17.5%;
+    --ring: 224.3 76.3% 94.1%;
+    
+    /* 编辑器专用颜色 - 暗色主题 */
+    --editor-background: 222.2 84% 4.9%;
+    --editor-foreground: 210 40% 98%;
+    --editor-selection: 217.2 91.2% 59.8%;
+    --editor-cursor: 210 40% 98%;
+    --editor-line: 217.2 32.6% 17.5%;
+    --editor-comment: 215 20.2% 65.1%;
+    --editor-string: 142.1 70.6% 45.3%;
+    --editor-keyword: 217.2 91.2% 59.8%;
+    --editor-function: 262.1 83.3% 57.8%;
+    --editor-variable: 210 40% 98%;
+    --editor-number: 47.9 95.8% 53.1%;
+    --editor-boolean: 262.1 83.3% 57.8%;
+    --editor-operator: 210 40% 98%;
+    --editor-punctuation: 215 20.2% 65.1%;
+    --editor-gutter: 215 20.2% 65.1%;
+    --editor-active-line: 217.2 32.6% 17.5%;
+    --editor-bracket: 215 20.2% 65.1%;
+    --editor-bracket-match: 217.2 91.2% 59.8%;
+    
+    /* 侧边栏专用颜色 - 暗色主题 */
+    --sidebar: 222.2 84% 4.9%;
+    --sidebar-foreground: 210 40% 98%;
+    --sidebar-primary: 217.2 91.2% 59.8%;
+    --sidebar-primary-foreground: 222.2 84% 4.9%;
+    --sidebar-accent: 217.2 32.6% 17.5%;
+    --sidebar-accent-foreground: 210 40% 98%;
+    --sidebar-border: 217.2 32.6% 17.5%;
+    --sidebar-ring: 224.3 76.3% 94.1%;
+    
+    /* 图表颜色 - 暗色主题 */
+    --chart-1: 142.1 70.6% 45.3%;
+    --chart-2: 217.2 91.2% 59.8%;
+    --chart-3: 262.1 83.3% 57.8%;
+    --chart-4: 47.9 95.8% 53.1%;
+    --chart-5: 0 62.8% 30.6%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
+}
+
+@layer components {
+  /* 输入框组件 */
+  .input {
+    @apply flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50;
+  }
+
+  /* 卡片组件 */
+  .card {
+    @apply rounded-lg border bg-card text-card-foreground shadow-sm;
+  }
+
+  .card-header {
+    @apply flex flex-col space-y-1.5 p-6;
+  }
+
+  .card-title {
+    @apply text-2xl font-semibold leading-none tracking-tight;
+  }
+
+  .card-description {
+    @apply text-sm text-muted-foreground;
+  }
+
+  .card-content {
+    @apply p-6 pt-0;
+  }
+
+  .card-footer {
+    @apply flex items-center p-6 pt-0;
+  }
+
+  /* 徽章组件 */
+  .badge {
+    @apply inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2;
+  }
+
+  .badge-default {
+    @apply border-transparent bg-primary text-primary-foreground hover:bg-primary/80;
+  }
+
+  .badge-secondary {
+    @apply border-transparent bg-secondary text-secondary-foreground hover:bg-secondary/80;
+  }
+
+  .badge-destructive {
+    @apply border-transparent bg-destructive text-destructive-foreground hover:bg-destructive/80;
+  }
+
+  .badge-outline {
+    @apply text-foreground;
+  }
+
+  /* 编辑器组件 */
+  .editor-container {
+    @apply w-full h-full bg-editor-background border border-border rounded-lg overflow-hidden flex flex-col;
+  }
+
+  .editor-content {
+    @apply flex-1 relative overflow-hidden;
+  }
+
+  .editor-toolbar {
+    @apply flex items-center gap-2 p-2 border-b border-border bg-card;
+  }
+
+  .editor-statusbar {
+    @apply flex items-center justify-between px-3 py-1 text-xs text-muted-foreground border-t border-border bg-card;
+  }
+
+  .editor-panel {
+    @apply bg-card border border-border rounded-lg shadow-sm;
+  }
+
+  .editor-panel-header {
+    @apply flex items-center justify-between p-3 border-b border-border;
+  }
+
+  .editor-panel-title {
+    @apply text-sm font-medium text-foreground;
+  }
+
+  .editor-panel-content {
+    @apply p-3;
+  }
+
+  /* 侧边栏组件 */
+  .sidebar {
+    @apply bg-sidebar border-r border-sidebar-border;
+  }
+
+  .sidebar-header {
+    @apply flex items-center justify-between p-3 border-b border-sidebar-border;
+  }
+
+  .sidebar-content {
+    @apply flex-1 overflow-y-auto;
+  }
+
+  .sidebar-item {
+    @apply flex items-center gap-2 px-3 py-2 text-sm text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground transition-colors;
+  }
+
+  .sidebar-item-active {
+    @apply bg-sidebar-primary text-sidebar-primary-foreground;
+  }
+
+  /* 工具栏组件 */
+  .toolbar {
+    @apply flex items-center gap-1 p-1 bg-card border border-border rounded-md shadow-sm;
+  }
+
+  .toolbar-button {
+    @apply inline-flex items-center justify-center w-8 h-8 rounded-sm text-muted-foreground hover:text-foreground hover:bg-accent transition-colors;
+  }
+
+  .toolbar-button-active {
+    @apply text-foreground bg-accent;
+  }
+
+  .toolbar-separator {
+    @apply w-px h-4 bg-border mx-1;
+  }
+
+  /* 下拉菜单组件 */
+  .dropdown-menu {
+    @apply absolute z-dropdown min-w-48 p-1 bg-popover border border-border rounded-md shadow-lg;
+  }
+
+  .dropdown-item {
+    @apply flex items-center gap-2 px-2 py-1.5 text-sm text-popover-foreground hover:bg-accent hover:text-accent-foreground rounded-sm transition-colors cursor-pointer;
+  }
+
+  .dropdown-item-disabled {
+    @apply opacity-50 cursor-not-allowed hover:bg-transparent hover:text-popover-foreground;
+  }
+
+  /* 模态框组件 */
+  .modal-overlay {
+    @apply fixed inset-0 z-modal bg-background/80 backdrop-blur-sm;
+  }
+
+  .modal-content {
+    @apply fixed left-1/2 top-1/2 z-modal w-full max-w-lg -translate-x-1/2 -translate-y-1/2 bg-background border border-border rounded-lg shadow-lg;
+  }
+
+  .modal-header {
+    @apply flex items-center justify-between p-4 border-b border-border;
+  }
+
+  .modal-title {
+    @apply text-lg font-semibold text-foreground;
+  }
+
+  .modal-body {
+    @apply p-4;
+  }
+
+  .modal-footer {
+    @apply flex items-center justify-end gap-2 p-4 border-t border-border;
+  }
+
+  /* 工具提示组件 */
+  .tooltip {
+    @apply absolute z-tooltip px-2 py-1 text-xs text-popover-foreground bg-popover border border-border rounded-md shadow-md;
+  }
+
+  /* 加载状态组件 */
+  .loading-spinner {
+    @apply w-6 h-6 border-2 border-border border-t-primary rounded-full animate-spin;
+  }
+
+  .loading-skeleton {
+    @apply bg-muted animate-pulse rounded;
+  }
+
+  /* 滚动条样式 */
+  .custom-scrollbar {
+    @apply editor-scrollbar;
+  }
+
+  /* 选择文本样式 */
+  .custom-selection {
+    @apply editor-selection;
+  }
+
+  /* 光标样式 */
+  .custom-cursor {
+    @apply editor-cursor;
+  }
+}

@@ -1,4 +1,5 @@
 import { useAppStore } from '@/stores/app-store'
+import { useTheme } from './useTheme'
 
 export type Theme = 'light' | 'dark' | 'system'
 
@@ -8,15 +9,16 @@ export type Theme = 'light' | 'dark' | 'system'
  */
 export const useAppState = () => {
   const store = useAppStore()
+  const themeHook = useTheme()
 
   return {
     // 主题相关
-    theme: store.theme || 'system',
-    setTheme: store.setTheme || (() => {}),
-    setEditorTheme: (theme: string) => store.updateEditorSettings({ theme: theme as any }),
-    currentTheme: { type: store.theme || 'system' },
-    availableThemes: ['light', 'dark', 'system'],
-    themeManager: store.themeManager,
+    theme: themeHook.theme,
+    setTheme: themeHook.setTheme,
+    setEditorTheme: themeHook.setEditorTheme,
+    currentTheme: { type: themeHook.theme },
+    availableThemes: themeHook.availableThemes,
+    themeManager: themeHook,
     
     // 侧边栏相关
     sidebarCollapsed: store.sidebarCollapsed || false,
@@ -45,43 +47,4 @@ export const useAppState = () => {
   }
 }
 
-/**
- * 主题专用hook
- */
-export const useTheme = () => {
-  const { 
-    theme, 
-    setTheme, 
-    setEditorTheme,
-    currentTheme,
-    availableThemes,
-    themeManager
-  } = useAppState()
-
-  // 获取当前实际主题（考虑system模式）
-  const getCurrentTheme = (): 'light' | 'dark' => {
-    if (theme === 'system') {
-      return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'
-    }
-    return theme
-  }
-
-  return {
-    // 基础主题
-    theme,
-    setTheme,
-    getCurrentTheme,
-    
-    // 编辑器主题
-    setEditorTheme,
-    currentTheme,
-    availableThemes,
-    themeManager,
-    
-    // 兼容旧的API
-    isDark: getCurrentTheme() === 'dark',
-    isLight: getCurrentTheme() === 'light',
-  }
-}
-
-export default useTheme 
+export default useAppState 

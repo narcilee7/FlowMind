@@ -9,121 +9,10 @@
  */
 
 import React, { useState, useEffect, useCallback } from 'react'
-import styled from 'styled-components'
 import { EditorType, SceneTemplate } from '../types/EditorType'
 import { Selection } from '../types/EditorAST'
 import { Button } from '@/components/ui/button'
-import { IconButton } from '@/components/ui/icon-button'
-
-// 样式组件
-const AIPanelContainer = styled.div<{ isVisible: boolean; isCollapsed: boolean }>`
-  position: fixed;
-  top: 80px;
-  right: ${props => props.isCollapsed ? '-300px' : '20px'};
-  width: 320px;
-  height: calc(100vh - 120px);
-  background: var(--background);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
-  display: flex;
-  flex-direction: column;
-  z-index: 1000;
-  transition: all 0.3s ease-in-out;
-  opacity: ${props => props.isVisible ? 1 : 0};
-  visibility: ${props => props.isVisible ? 'visible' : 'hidden'};
-`
-
-const PanelHeader = styled.div`
-  padding: 16px;
-  border-bottom: 1px solid var(--border);
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-`
-
-const PanelTitle = styled.h3`
-  margin: 0;
-  font-size: 14px;
-  font-weight: 600;
-  color: var(--foreground);
-`
-
-const TabContainer = styled.div`
-  display: flex;
-  border-bottom: 1px solid var(--border);
-`
-
-const TabButton = styled.button<{ isActive: boolean }>`
-  flex: 1;
-  padding: 12px 16px;
-  background: ${props => props.isActive ? 'var(--accent)' : 'transparent'};
-  color: ${props => props.isActive ? 'var(--accent-foreground)' : 'var(--muted-foreground)'};
-  border: none;
-  border-bottom: 2px solid ${props => props.isActive ? 'var(--primary)' : 'transparent'};
-  cursor: pointer;
-  font-size: 12px;
-  font-weight: 500;
-  transition: all 0.2s ease-in-out;
-  
-  &:hover {
-    background: ${props => props.isActive ? 'var(--accent)' : 'var(--accent)'};
-    color: var(--accent-foreground);
-  }
-`
-
-const PanelContent = styled.div`
-  flex: 1;
-  padding: 16px;
-  overflow-y: auto;
-`
-
-const AISuggestion = styled.div`
-  padding: 12px;
-  margin-bottom: 12px;
-  background: var(--accent);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  cursor: pointer;
-  transition: all 0.2s ease-in-out;
-  
-  &:hover {
-    background: var(--accent);
-    border-color: var(--primary);
-  }
-`
-
-const SuggestionTitle = styled.div`
-  font-size: 12px;
-  font-weight: 600;
-  color: var(--foreground);
-  margin-bottom: 4px;
-`
-
-const SuggestionContent = styled.div`
-  font-size: 12px;
-  color: var(--muted-foreground);
-  line-height: 1.4;
-`
-
-const ActionButtons = styled.div`
-  display: flex;
-  gap: 8px;
-  margin-top: 8px;
-`
-
-const CollapseButton = styled(IconButton)`
-  position: absolute;
-  left: -32px;
-  top: 50%;
-  transform: translateY(-50%);
-  background: var(--background);
-  border: 1px solid var(--border);
-  border-right: none;
-  border-radius: var(--radius) 0 0 var(--radius);
-  width: 32px;
-  height: 32px;
-`
+import { cn } from '@/utils/cn'
 
 /**
  * AI功能类型
@@ -339,17 +228,22 @@ export const AIPanel: React.FC<AIPanelProps> = ({
     const functions = getAIFunctions()
     
     return (
-      <TabContainer>
+      <div className="flex border-b border-border">
         {Object.entries(functions).map(([key, func]) => (
-          <TabButton
+          <button
             key={key}
-            isActive={activeTab === key}
+            className={cn(
+              "flex-1 px-4 py-3 text-xs font-medium transition-all duration-200 border-b-2",
+              activeTab === key
+                ? "bg-accent text-accent-foreground border-primary"
+                : "text-muted-foreground border-transparent hover:bg-accent hover:text-accent-foreground"
+            )}
             onClick={() => setActiveTab(key as AIFunctionType)}
           >
             {func.title}
-          </TabButton>
+          </button>
         ))}
-      </TabContainer>
+      </div>
     )
   }
 
@@ -368,13 +262,18 @@ export const AIPanel: React.FC<AIPanelProps> = ({
     }
     
     return filteredSuggestions.map(suggestion => (
-      <AISuggestion
+      <div
         key={suggestion.id}
+        className="p-3 mb-3 bg-accent border border-border rounded-lg cursor-pointer transition-all duration-200 hover:border-primary"
         onClick={() => handleSuggestionClick(suggestion)}
       >
-        <SuggestionTitle>{suggestion.title}</SuggestionTitle>
-        <SuggestionContent>{suggestion.content}</SuggestionContent>
-        <ActionButtons>
+        <div className="text-xs font-semibold text-foreground mb-1">
+          {suggestion.title}
+        </div>
+        <div className="text-xs text-muted-foreground leading-relaxed">
+          {suggestion.content}
+        </div>
+        <div className="flex gap-2 mt-2">
           <Button
             size="sm"
             variant="outline"
@@ -395,8 +294,8 @@ export const AIPanel: React.FC<AIPanelProps> = ({
           >
             改进
           </Button>
-        </ActionButtons>
-      </AISuggestion>
+        </div>
+      </div>
     ))
   }
 
@@ -408,11 +307,11 @@ export const AIPanel: React.FC<AIPanelProps> = ({
     const currentFunction = functions[activeTab]
     
     return (
-      <div style={{ marginBottom: 16 }}>
-        <div style={{ fontSize: 12, fontWeight: 600, marginBottom: 8 }}>
+      <div className="mb-4">
+        <div className="text-xs font-semibold mb-2">
           快速操作
         </div>
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+        <div className="flex flex-wrap gap-2">
           {currentFunction.actions.map(action => (
             <Button
               key={action}
@@ -429,26 +328,33 @@ export const AIPanel: React.FC<AIPanelProps> = ({
   }
 
   return (
-    <AIPanelContainer isVisible={isVisible} isCollapsed={isCollapsed}>
-      <CollapseButton
+    <div
+      className={cn(
+        "fixed top-20 w-80 h-[calc(100vh-120px)] bg-background border border-border rounded-lg shadow-lg flex flex-col z-[1000] transition-all duration-300",
+        isCollapsed ? "-right-80" : "right-5",
+        isVisible ? "opacity-100 visible" : "opacity-0 invisible"
+      )}
+    >
+      <Button
         size="sm"
         variant="ghost"
+        className="absolute -left-8 top-1/2 -translate-y-1/2 bg-background border border-border border-r-0 rounded-l-lg w-8 h-8"
         onClick={onToggleCollapse}
       >
         {isCollapsed ? '›' : '‹'}
-      </CollapseButton>
+      </Button>
       
-      <PanelHeader>
-        <PanelTitle>AI助手</PanelTitle>
-      </PanelHeader>
+      <div className="p-4 border-b border-border flex items-center justify-between">
+        <h3 className="m-0 text-sm font-semibold text-foreground">AI助手</h3>
+      </div>
       
       {renderTabs()}
       
-      <PanelContent>
+      <div className="flex-1 p-4 overflow-y-auto">
         {renderQuickActions()}
         {renderSuggestions()}
-      </PanelContent>
-    </AIPanelContainer>
+      </div>
+    </div>
   )
 }
 
