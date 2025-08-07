@@ -107,12 +107,8 @@ export class RichTextViewAdapter extends BaseViewAdapter implements IRichTextVie
     // 自定义AI事件回调
     private aiEventCallbacks: Map<string, Function[]> = new Map()
     
-    // 错误恢复机制
-    private errorCount = 0
     // 最大错误次数
     private readonly MAX_ERRORS = 5
-    // 上次错误时间
-    private lastErrorTime = 0
     
     // 性能优化配置
     // 更新防抖时间
@@ -492,10 +488,14 @@ export class RichTextViewAdapter extends BaseViewAdapter implements IRichTextVie
     render(ast: DocumentAST): void {
         if (!this.validateInitialized() || !this.editor) return
 
+        // 开始性能监控
+        this.startPerformanceMonitoring()
+
         // 验证AST
         const validation = ASTUtils.validateAST(ast)
         if (!validation.success) {
             this.handleError(new Error(`Invalid AST: ${validation.error}`), 'render')
+            this.endPerformanceMonitoring('render')
             return
         }
 
@@ -510,6 +510,8 @@ export class RichTextViewAdapter extends BaseViewAdapter implements IRichTextVie
             }
         } finally {
             this.isContentSyncing = false
+            // 结束性能监控
+            this.endPerformanceMonitoring('render')
         }
     }
 
@@ -1533,6 +1535,51 @@ export class RichTextViewAdapter extends BaseViewAdapter implements IRichTextVie
         } else {
             this.triggerEvent('error', error)
         }
+    }
+
+    /**
+     * 重写渲染错误恢复方法
+     */
+    protected handleRenderingError(): void {
+        // 强制重新渲染
+        if (this.currentAST && this.editor) {
+            setTimeout(() => {
+                try {
+                    this.render(this.currentAST!)
+                    console.log(`[${this.constructor.name}] Rendering error recovery successful`)
+                } catch (error) {
+                    console.error('Re-render failed:', error)
+                }
+            }, 100)
+        }
+    }
+
+    /**
+     * 重写内存错误恢复方法
+     */
+    protected handleMemoryError(): void {
+        // 清理缓存和映射
+        this.nodePositionMap?.clear()
+        this.contentUpdateQueue = []
+        this.aiSuggestions = []
+        
+        // 强制垃圾回收（如果可用）
+        if (window.gc) {
+            window.gc()
+        }
+        
+        console.log(`[${this.constructor.name}] Memory error recovery completed`)
+    }
+
+    /**
+     * 重写用户交互错误恢复方法
+     */
+    protected handleUserInteractionError(): void {
+        // 重置交互状态
+        this.isUpdating = false
+        this.isContentSyncing = false
+        
+        console.log(`[${this.constructor.name}] User interaction error recovery completed`)
     }
 
     /**

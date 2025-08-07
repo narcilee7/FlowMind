@@ -10,6 +10,7 @@ import { GraphViewAdapter } from '../adapters/GraphViewAdapter'
 import { CanvasViewAdapter } from '../adapters/CanvasViewAdapter'
 import { TableViewAdapter } from '../adapters/TableViewAdapter'
 import { TimelineViewAdapter } from '../adapters/TimelineViewAdapter'
+import { adapterMonitor } from '../utils/AdapterMonitor'
 
 /**
  * 适配器注册信息
@@ -146,6 +147,10 @@ export default class ViewAdapterFactory {
             if (options.onError) {
                 adapter.onError(options.onError)
             }
+
+            // 注册到监控系统
+            const adapterId = `adapter_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
+            adapterMonitor.registerAdapter(adapterId, adapter)
 
             return adapter
         } catch (error) {
