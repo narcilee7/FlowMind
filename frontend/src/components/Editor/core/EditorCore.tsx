@@ -10,7 +10,7 @@ import { EditorType, SceneTemplate } from '@/components/Editor/types/EditorType'
 import { DocumentAST, Selection } from '@/components/Editor/types/EditorAST'
 import { EditorTheme } from '@/components/Editor/types/EditorTheme'
 import ViewAdapterFactory from '@/components/Editor/core/ViewAdapterFactory'
-import { ASTUtils } from '@/components/Editor/utils/ASTUtils'
+import { createDocumentAST } from '@/components/Editor/utils/ASTUtils'
 import { useTheme } from '@/hooks/useAppState'
 
 const EditorContainer = styled.div`
@@ -88,7 +88,7 @@ export const EditorCore: React.FC<EditorCoreProps> = ({
 }) => {
     const containerRef = useRef<HTMLDivElement>(null)
     const adapterRef = useRef<ViewAdapter | null>(null)
-    const [ast, setAST] = useState<DocumentAST>(initialAST || ASTUtils.createDocument('无标题文档'))
+    const [ast, setAST] = useState<DocumentAST>(initialAST || createDocumentAST('无标题文档'))
     const [selection, setSelection] = useState<Selection>({ nodeIds: [], type: 'node' })
     const [isLoading, setIsLoading] = useState(false)
     

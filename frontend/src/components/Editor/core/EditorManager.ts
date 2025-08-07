@@ -6,7 +6,17 @@
 import { ViewAdapter, ViewAdapterOptions } from '../types/ViewAdapter'
 import { EditorType, SceneTemplate } from '../types/EditorType'
 import { DocumentAST, Selection, ASTOperation } from '../types/EditorAST'
-import { ASTUtils } from '../utils/ASTUtils'
+import { 
+    addNode, 
+    createDocumentAST, 
+    moveNode, 
+    updateNode, 
+    duplicateNode, 
+    serialize, 
+    deserialize, 
+    validateAST, 
+    removeNode
+} from '../utils/ASTUtils'
 import ViewAdapterFactory from './ViewAdapterFactory'
 
 /**
@@ -76,7 +86,7 @@ export class EditorManager {
         initialAST?: DocumentAST,
         config: EditorManagerConfig = {}
     ) {
-        this.ast = initialAST || ASTUtils.createDocument('新文档')
+        this.ast = initialAST || createDocumentAST('新文档')
         this.config = {
             maxHistorySize: 100,
             autoSaveInterval: 30000, // 30秒
@@ -268,7 +278,7 @@ export class EditorManager {
 
             switch (operation.type) {
                 case 'insert':
-                    const insertResult = ASTUtils.addNode(
+                    const insertResult = addNode(
                         this.ast,
                         operation.node,
                         operation.parentId,
@@ -282,7 +292,7 @@ export class EditorManager {
                     break
 
                 case 'delete':
-                    const deleteResult = ASTUtils.removeNode(this.ast, operation.nodeId)
+                    const deleteResult = removeNode(this.ast, operation.nodeId)
                     if (!deleteResult.success) {
                         this.handleError(new Error(deleteResult.error!), 'executeOperation:delete')
                         return false
@@ -291,7 +301,7 @@ export class EditorManager {
                     break
 
                 case 'update':
-                    const updateResult = ASTUtils.updateNode(
+                    const updateResult = updateNode(
                         this.ast,
                         operation.nodeId,
                         operation.updates
@@ -304,7 +314,7 @@ export class EditorManager {
                     break
 
                 case 'move':
-                    const moveResult = ASTUtils.moveNode(
+                    const moveResult = moveNode(
                         this.ast,
                         operation.nodeId,
                         operation.newParentId,
@@ -318,7 +328,7 @@ export class EditorManager {
                     break
 
                 case 'duplicate':
-                    const duplicateResult = ASTUtils.duplicateNode(
+                    const duplicateResult = duplicateNode(
                         this.ast,
                         operation.nodeId,
                         operation.newParentId
@@ -416,7 +426,7 @@ export class EditorManager {
      */
     async saveDocument(): Promise<boolean> {
         try {
-            const serialized = ASTUtils.serialize(this.ast)
+            const serialized = serialize(this.ast)
             // 这里可以添加实际的保存逻辑，比如保存到本地存储或服务器
             localStorage.setItem('editor_document', serialized)
             
@@ -433,8 +443,8 @@ export class EditorManager {
      */
     async loadDocument(data: string): Promise<boolean> {
         try {
-            const ast = ASTUtils.deserialize(data)
-            const validation = ASTUtils.validateAST(ast)
+            const ast = deserialize(data)
+            const validation = validateAST(ast)
             
             if (!validation.success) {
                 this.handleError(new Error(validation.error!), 'loadDocument')
@@ -459,13 +469,13 @@ export class EditorManager {
     exportDocument(format: 'json' | 'html' | 'markdown' = 'json'): string {
         switch (format) {
             case 'json':
-                return ASTUtils.serialize(this.ast)
+                return serialize(this.ast)
             case 'html':
                 return this.astToHtml()
             case 'markdown':
                 return this.astToMarkdown()
             default:
-                return ASTUtils.serialize(this.ast)
+                return serialize(this.ast)
         }
     }
 
@@ -659,6 +669,7 @@ export class EditorManager {
      */
     private astToHtml(): string {
         // 简化的HTML转换实现
+        // TODO: 真正实现AST转HTML
         return `<html><body><h1>${this.ast.title || '文档'}</h1></body></html>`
     }
 
@@ -667,6 +678,7 @@ export class EditorManager {
      */
     private astToMarkdown(): string {
         // 简化的Markdown转换实现
+        // TODO: 真正实现AST转Markdown
         return `# ${this.ast.title || '文档'}\n\n`
     }
 } 
