@@ -19,6 +19,10 @@ function normalizeMode(template?: string | null): EditorMode {
   if (t.includes('learning')) return 'timeline'
   if (t.includes('creative')) return 'canvas'
   if (t.includes('writing')) return 'writing'
+  if (t.includes('whiteboard')) return 'canvas'
+  if (t.includes('wireframe')) return 'canvas'
+  if (t.includes('diagram')) return 'canvas'
+  if (t.includes('table')) return 'table'
   return 'writing'
 }
 

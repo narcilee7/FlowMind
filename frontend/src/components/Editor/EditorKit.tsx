@@ -110,8 +110,8 @@ export interface EditorKitHandle {
     
     // 导出功能
     exportToJSON(): string
-    exportToHTML(): string
-    exportToMarkdown(): string
+    exportToHTML(): Promise<string>
+    exportToMarkdown(): Promise<string>
 }
 
 /**
@@ -275,13 +275,15 @@ export const EditorKit = forwardRef<EditorKitHandle, EditorKitConfig>((props, re
         // 内容变化事件
         adapterInstance.on('viewChange', (data) => {
             if (data.type === 'contentUpdate') {
-                const newContent = state.content // 这里需要从适配器获取实际内容
-                setState(prev => ({ ...prev, content: newContent }))
-                onChange?.(newContent)
-                
+                // 优先从适配器读取结构化 AST；否则回退到状态
+                const nextAST = typeof (adapterInstance as any).getAST === 'function'
+                    ? (adapterInstance as any).getAST()
+                    : state.content
+                setState(prev => ({ ...prev, content: nextAST }))
+                onChange?.(nextAST)
                 // 智能场景检测
                 if (autoDetectScene) {
-                    const detectedScene = detectScene(newContent)
+                    const detectedScene = detectScene(nextAST)
                     if (detectedScene !== state.sceneTemplate) {
                         handleSceneChange(detectedScene)
                     }
@@ -290,7 +292,7 @@ export const EditorKit = forwardRef<EditorKitHandle, EditorKitConfig>((props, re
                 // 添加快照（标记内容更新）
                 if (stateManagerRef.current) {
                     stateManagerRef.current.addSnapshot(
-                        newContent,
+                        nextAST,
                         state.selection,
                         state.currentType,
                         state.sceneTemplate,
@@ -494,13 +496,15 @@ export const EditorKit = forwardRef<EditorKitHandle, EditorKitConfig>((props, re
                         }
                     },
                     exportToJSON: () => JSON.stringify(state.content, null, 2),
-                    exportToHTML: () => {
-                        // TODO: 实现HTML导出
-                        return '<div>HTML export not implemented</div>'
+                    exportToHTML: async () => {
+                        const { ASTExporter } = await import('./utils/ASTExporter')
+                        const result = ASTExporter.exportToHTML(state.content)
+                        return result.success ? result.content : `<div>导出失败: ${result.error}</div>`
                     },
-                    exportToMarkdown: () => {
-                        // TODO: 实现Markdown导出
-                        return '# Markdown export not implemented'
+                    exportToMarkdown: async () => {
+                        const { ASTExporter } = await import('./utils/ASTExporter')
+                        const result = ASTExporter.exportToMarkdown(state.content)
+                        return result.success ? result.content : `# 导出失败: ${result.error}`
                     }
                 } as EditorKitHandle)
             })
@@ -575,8 +579,16 @@ export const EditorKit = forwardRef<EditorKitHandle, EditorKitConfig>((props, re
         undo: () => console.log('Undo operation'),
         redo: () => console.log('Redo operation'),
         exportToJSON: () => JSON.stringify(state.content, null, 2),
-        exportToHTML: () => '<div>HTML export not implemented</div>',
-        exportToMarkdown: () => '# Markdown export not implemented'
+        exportToHTML: async () => {
+            const { ASTExporter } = await import('./utils/ASTExporter')
+            const result = ASTExporter.exportToHTML(state.content)
+            return result.success ? result.content : `<div>导出失败: ${result.error}</div>`
+        },
+        exportToMarkdown: async () => {
+            const { ASTExporter } = await import('./utils/ASTExporter')
+            const result = ASTExporter.exportToMarkdown(state.content)
+            return result.success ? result.content : `# 导出失败: ${result.error}`
+        }
     } as EditorKitHandle), [adapter, state, switchEditor, performanceOptimizer])
 
     // 渲染加载状态

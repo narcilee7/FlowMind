@@ -357,9 +357,9 @@ export class PluginLoader {
             Math,
             JSON,
             // 受限的导入函数
-            require: (moduleName: string) => {
+            require: async (moduleName: string) => {
                 if (this.isModuleAllowed(moduleName)) {
-                    return require(moduleName)
+                    return (await import(moduleName)).default
                 }
                 throw new Error(`Module not allowed: ${moduleName}`)
             }
@@ -833,14 +833,278 @@ export class PluginSystem {
     }
 
     private showNotification(message: string, type: string = 'info'): void {
-        console.log(`[Plugin Notification] ${type.toUpperCase()}: ${message}`)
-        // TODO: 实现真实的通知系统
+        // 创建通知元素
+        const notification = document.createElement('div')
+        notification.style.cssText = `
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 12px 20px;
+            border-radius: 6px;
+            color: white;
+            font-size: 14px;
+            font-weight: 500;
+            z-index: 10000;
+            max-width: 400px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            animation: slideIn 0.3s ease-out;
+            background: ${this.getNotificationColor(type)};
+        `
+
+        notification.textContent = message
+
+        // 添加关闭按钮
+        const closeBtn = document.createElement('button')
+        closeBtn.innerHTML = '×'
+        closeBtn.style.cssText = `
+            background: none;
+            border: none;
+            color: white;
+            font-size: 18px;
+            font-weight: bold;
+            cursor: pointer;
+            margin-left: 10px;
+            padding: 0;
+        `
+        closeBtn.onclick = () => notification.remove()
+        notification.appendChild(closeBtn)
+
+        // 添加动画样式
+        if (!document.querySelector('#plugin-notification-styles')) {
+            const style = document.createElement('style')
+            style.id = 'plugin-notification-styles'
+            style.textContent = `
+                @keyframes slideIn {
+                    from { transform: translateX(100%); opacity: 0; }
+                    to { transform: translateX(0); opacity: 1; }
+                }
+                @keyframes slideOut {
+                    from { transform: translateX(0); opacity: 1; }
+                    to { transform: translateX(100%); opacity: 0; }
+                }
+            `
+            document.head.appendChild(style)
+        }
+
+        document.body.appendChild(notification)
+
+        // 自动移除
+        setTimeout(() => {
+            notification.style.animation = 'slideOut 0.3s ease-in forwards'
+            setTimeout(() => notification.remove(), 300)
+        }, 4000)
     }
 
     private async showDialog(options: any): Promise<any> {
-        console.log('[Plugin Dialog]', options)
-        // TODO: 实现对话框系统
-        return Promise.resolve()
+        return new Promise((resolve) => {
+            // 创建遮罩层
+            const overlay = document.createElement('div')
+            overlay.style.cssText = `
+                position: fixed;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                background: rgba(0,0,0,0.5);
+                z-index: 10001;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                animation: fadeIn 0.2s ease-out;
+            `
+
+            // 创建对话框
+            const dialog = document.createElement('div')
+            dialog.style.cssText = `
+                background: white;
+                border-radius: 8px;
+                box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+                max-width: 500px;
+                width: 90%;
+                max-height: 80vh;
+                overflow: auto;
+                animation: scaleIn 0.2s ease-out;
+            `
+
+            // 对话框头部
+            const header = document.createElement('div')
+            header.style.cssText = `
+                padding: 20px 24px 16px;
+                border-bottom: 1px solid #e9ecef;
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+            `
+
+            const title = document.createElement('h3')
+            title.textContent = options.title || '插件对话框'
+            title.style.cssText = `
+                margin: 0;
+                font-size: 18px;
+                font-weight: 600;
+                color: #212529;
+            `
+
+            const closeBtn = document.createElement('button')
+            closeBtn.innerHTML = '×'
+            closeBtn.style.cssText = `
+                background: none;
+                border: none;
+                font-size: 24px;
+                cursor: pointer;
+                color: #6c757d;
+                padding: 0;
+                width: 32px;
+                height: 32px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                border-radius: 4px;
+            `
+            closeBtn.onclick = () => {
+                overlay.remove()
+                resolve(null)
+            }
+
+            header.appendChild(title)
+            header.appendChild(closeBtn)
+
+            // 对话框内容
+            const content = document.createElement('div')
+            content.style.cssText = `
+                padding: 20px 24px;
+            `
+
+            if (options.message) {
+                const message = document.createElement('p')
+                message.textContent = options.message
+                message.style.cssText = `
+                    margin: 0 0 20px 0;
+                    color: #495057;
+                    line-height: 1.5;
+                `
+                content.appendChild(message)
+            }
+
+            // 输入框（如果需要）
+            let input: HTMLInputElement | null = null
+            if (options.input) {
+                input = document.createElement('input')
+                input.type = options.input.type || 'text'
+                input.placeholder = options.input.placeholder || ''
+                input.value = options.input.value || ''
+                input.style.cssText = `
+                    width: 100%;
+                    padding: 10px 12px;
+                    border: 1px solid #ced4da;
+                    border-radius: 4px;
+                    font-size: 14px;
+                    margin-bottom: 20px;
+                    box-sizing: border-box;
+                `
+                content.appendChild(input)
+            }
+
+            // 按钮组
+            const buttonGroup = document.createElement('div')
+            buttonGroup.style.cssText = `
+                display: flex;
+                gap: 12px;
+                justify-content: flex-end;
+            `
+
+            const buttons = options.buttons || [
+                { text: '取消', type: 'secondary' },
+                { text: '确定', type: 'primary' }
+            ]
+
+            buttons.forEach((btnConfig: any, index: number) => {
+                const btn = document.createElement('button')
+                btn.textContent = btnConfig.text
+                btn.style.cssText = `
+                    padding: 8px 16px;
+                    border: 1px solid;
+                    border-radius: 4px;
+                    font-size: 14px;
+                    cursor: pointer;
+                    transition: all 0.2s ease;
+                    ${btnConfig.type === 'primary' ? `
+                        background: #007bff;
+                        border-color: #007bff;
+                        color: white;
+                    ` : `
+                        background: white;
+                        border-color: #6c757d;
+                        color: #6c757d;
+                    `}
+                `
+
+                btn.onclick = () => {
+                    overlay.remove()
+                    resolve({
+                        buttonIndex: index,
+                        button: btnConfig,
+                        inputValue: input?.value || null
+                    })
+                }
+
+                buttonGroup.appendChild(btn)
+            })
+
+            content.appendChild(buttonGroup)
+
+            // 组装对话框
+            dialog.appendChild(header)
+            dialog.appendChild(content)
+            overlay.appendChild(dialog)
+
+            // 添加动画样式
+            if (!document.querySelector('#plugin-dialog-styles')) {
+                const style = document.createElement('style')
+                style.id = 'plugin-dialog-styles'
+                style.textContent = `
+                    @keyframes fadeIn {
+                        from { opacity: 0; }
+                        to { opacity: 1; }
+                    }
+                    @keyframes scaleIn {
+                        from { transform: scale(0.8); opacity: 0; }
+                        to { transform: scale(1); opacity: 1; }
+                    }
+                `
+                document.head.appendChild(style)
+            }
+
+            document.body.appendChild(overlay)
+
+            // 自动聚焦输入框
+            if (input) {
+                setTimeout(() => input.focus(), 100)
+            }
+
+            // ESC 键关闭
+            const handleEscape = (e: KeyboardEvent) => {
+                if (e.key === 'Escape') {
+                    overlay.remove()
+                    resolve(null)
+                    document.removeEventListener('keydown', handleEscape)
+                }
+            }
+            document.addEventListener('keydown', handleEscape)
+        })
+    }
+
+    /**
+     * 获取通知颜色
+     */
+    private getNotificationColor(type: string): string {
+        switch (type) {
+            case 'success': return '#28a745'
+            case 'error': return '#dc3545'
+            case 'warning': return '#ffc107'
+            case 'info':
+            default: return '#17a2b8'
+        }
     }
 
     private showPanel(component: any, options: any = {}): void {

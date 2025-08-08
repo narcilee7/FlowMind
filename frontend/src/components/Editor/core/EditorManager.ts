@@ -6,15 +6,15 @@
 import { ViewAdapter, ViewAdapterOptions } from '../types/ViewAdapter'
 import { EditorType, SceneTemplate } from '../types/EditorType'
 import { DocumentAST, Selection, ASTOperation } from '../types/EditorAST'
-import { 
-    addNode, 
-    createDocumentAST, 
-    moveNode, 
-    updateNode, 
-    duplicateNode, 
-    serialize, 
-    deserialize, 
-    validateAST, 
+import {
+    addNode,
+    createDocumentAST,
+    moveNode,
+    updateNode,
+    duplicateNode,
+    serialize,
+    deserialize,
+    validateAST,
     removeNode
 } from '../utils/ASTUtils'
 import ViewAdapterFactory from './ViewAdapterFactory'
@@ -108,7 +108,7 @@ export class EditorManager {
         options: Partial<ViewAdapterOptions> = {}
     ): Promise<string> {
         const editorId = `editor_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
-        
+
         try {
             // 创建适配器
             const adapter = ViewAdapterFactory.createAdapter(type, {
@@ -375,7 +375,7 @@ export class EditorManager {
 
         this.historyIndex--
         const historyItem = this.history[this.historyIndex]
-        
+
         if (historyItem.astSnapshot) {
             this.updateAST(historyItem.astSnapshot)
             this.triggerEvent('undo', { operation: historyItem.operation })
@@ -395,7 +395,7 @@ export class EditorManager {
 
         this.historyIndex++
         const historyItem = this.history[this.historyIndex]
-        
+
         if (historyItem.astSnapshot) {
             this.updateAST(historyItem.astSnapshot)
             this.triggerEvent('redo', { operation: historyItem.operation })
@@ -429,7 +429,7 @@ export class EditorManager {
             const serialized = serialize(this.ast)
             // 这里可以添加实际的保存逻辑，比如保存到本地存储或服务器
             localStorage.setItem('editor_document', serialized)
-            
+
             this.triggerEvent('documentSaved', { ast: this.ast })
             return true
         } catch (error) {
@@ -445,7 +445,7 @@ export class EditorManager {
         try {
             const ast = deserialize(data)
             const validation = validateAST(ast)
-            
+
             if (!validation.success) {
                 this.handleError(new Error(validation.error!), 'loadDocument')
                 return false
@@ -454,7 +454,7 @@ export class EditorManager {
             this.ast = ast
             this.updateAST(ast)
             this.clearHistory()
-            
+
             this.triggerEvent('documentLoaded', { ast })
             return true
         } catch (error) {
@@ -466,14 +466,14 @@ export class EditorManager {
     /**
      * 导出文档
      */
-    exportDocument(format: 'json' | 'html' | 'markdown' = 'json'): string {
+    async exportDocument(format: 'json' | 'html' | 'markdown' = 'json'): Promise<string> {
         switch (format) {
             case 'json':
                 return serialize(this.ast)
             case 'html':
-                return this.astToHtml()
+                return await this.astToHtml()
             case 'markdown':
-                return this.astToMarkdown()
+                return await this.astToMarkdown()
             default:
                 return serialize(this.ast)
         }
@@ -597,7 +597,7 @@ export class EditorManager {
     private addToHistory(item: HistoryItem): void {
         // 移除当前位置之后的历史记录
         this.history = this.history.slice(0, this.historyIndex + 1)
-        
+
         // 添加新记录
         this.history.push(item)
         this.historyIndex++
@@ -667,18 +667,27 @@ export class EditorManager {
     /**
      * AST转HTML
      */
-    private astToHtml(): string {
-        // 简化的HTML转换实现
-        // TODO: 真正实现AST转HTML
-        return `<html><body><h1>${this.ast.title || '文档'}</h1></body></html>`
+    private async astToHtml(): Promise<string> {
+        try {
+            const { ASTExporter } = await import('../utils/ASTExporter')
+            const result = ASTExporter.exportToHTML(this.ast)
+            // TODO: review看看是不是有异步问题
+            return result.success ? result.content! : `<div>导出失败: ${result.error}</div>`
+        } catch (error) {
+            return `<div>导出失败: ${error instanceof Error ? error.message : '未知错误'}</div>`
+        }
     }
 
     /**
      * AST转Markdown
      */
-    private astToMarkdown(): string {
-        // 简化的Markdown转换实现
-        // TODO: 真正实现AST转Markdown
-        return `# ${this.ast.title || '文档'}\n\n`
+    private async astToMarkdown(): Promise<string> {
+        try {
+            const { ASTExporter } = await import('../utils/ASTExporter')
+            const result = ASTExporter.exportToMarkdown(this.ast)
+            return result.success ? result.content! : `# 导出失败: ${result.error}`
+        } catch (error) {
+            return `# 导出失败: ${error instanceof Error ? error.message : '未知错误'}`
+        }
     }
 } 

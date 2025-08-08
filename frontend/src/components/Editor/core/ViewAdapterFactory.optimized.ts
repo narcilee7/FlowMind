@@ -13,6 +13,7 @@
 
 import { CoreViewAdapter, AdapterBuilder } from '../adapters/BaseViewAdapter.optimized'
 import { OptimizedRichTextViewAdapter } from '../adapters/RichTextViewAdapter.optimized'
+import { EnhancedCanvasViewAdapter } from '../adapters/EnhancedCanvasViewAdapter'
 import { EditorType, SceneTemplate } from '../types/EditorType'
 import { ViewAdapterOptions } from '../types/ViewAdapter'
 
@@ -165,20 +166,19 @@ export class OptimizedViewAdapterFactory {
 
         this.registerAdapter({
             type: EditorType.CANVAS,
-            name: '画布编辑器',
-            description: '基于Fabric.js的画布编辑器',
+            name: '增强画布编辑器',
+            description: '功能完整的画布编辑器，支持多种绘图工具、选择、撤销等',
             supportedScenes: [
                 SceneTemplate.CREATIVE,
                 SceneTemplate.PLANNING,
-                SceneTemplate.LEARNING
+                SceneTemplate.LEARNING,
+                SceneTemplate.WHITEBOARD,
+                SceneTemplate.WIREFRAME,
+                SceneTemplate.DIAGRAM
             ],
-            dependencies: ['fabric'],
-            adapterClass: null as any, // 延迟加载
-            isLazy: true,
-            loader: async () => {
-                const { CanvasViewAdapter } = await import('../adapters/CanvasViewAdapter')
-                return CanvasViewAdapter as any
-            }
+            dependencies: [],
+            adapterClass: EnhancedCanvasViewAdapter,
+            isLazy: false
         })
 
         this.registerAdapter({
@@ -680,7 +680,7 @@ export class OptimizedViewAdapterFactory {
 }
 
 // === 导出单例实例 ===
-export const optimizedAdapterFactory = OptimizedViewAdapterFactory.getInstance()
+// export const optimizedAdapterFactory = OptimizedViewAdapterFactory.getInstance()
 
 // === 便利函数 ===
 
@@ -717,5 +717,8 @@ export function checkFactoryHealth() {
         adapters: optimizedAdapterFactory.getAdapterHealth()
     }
 }
+
+// 导出工厂实例
+export const optimizedAdapterFactory = OptimizedViewAdapterFactory.getInstance()
 
 export default OptimizedViewAdapterFactory
