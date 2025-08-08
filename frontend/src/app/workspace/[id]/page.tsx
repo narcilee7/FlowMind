@@ -8,7 +8,7 @@ type PageProps = {
   searchParams?: Record<string, string | string[] | undefined>
 }
 
-export default function WorkspaceEditorPage({ params, searchParams }: PageProps) {
+export default function WorkspaceEditorPage({ params: _params, searchParams }: PageProps) {
   const modeParam = (searchParams?.mode as string) ?? 'writing'
   const mode = (Array.isArray(modeParam) ? modeParam[0] : modeParam) as EditorMode
 
