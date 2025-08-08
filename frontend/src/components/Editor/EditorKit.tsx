@@ -275,13 +275,15 @@ export const EditorKit = forwardRef<EditorKitHandle, EditorKitConfig>((props, re
         // 内容变化事件
         adapterInstance.on('viewChange', (data) => {
             if (data.type === 'contentUpdate') {
-                const newContent = state.content // 这里需要从适配器获取实际内容
-                setState(prev => ({ ...prev, content: newContent }))
-                onChange?.(newContent)
-                
+                // 优先从适配器读取结构化 AST；否则回退到状态
+                const nextAST = typeof (adapterInstance as any).getAST === 'function'
+                    ? (adapterInstance as any).getAST()
+                    : state.content
+                setState(prev => ({ ...prev, content: nextAST }))
+                onChange?.(nextAST)
                 // 智能场景检测
                 if (autoDetectScene) {
-                    const detectedScene = detectScene(newContent)
+                    const detectedScene = detectScene(nextAST)
                     if (detectedScene !== state.sceneTemplate) {
                         handleSceneChange(detectedScene)
                     }
@@ -290,7 +292,7 @@ export const EditorKit = forwardRef<EditorKitHandle, EditorKitConfig>((props, re
                 // 添加快照（标记内容更新）
                 if (stateManagerRef.current) {
                     stateManagerRef.current.addSnapshot(
-                        newContent,
+                        nextAST,
                         state.selection,
                         state.currentType,
                         state.sceneTemplate,

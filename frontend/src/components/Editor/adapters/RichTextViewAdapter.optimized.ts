@@ -18,7 +18,8 @@ import { AIMixin } from '../mixins/AIMixin'
 import { ViewAdapterOptions, Viewport, TextFormat } from '@/components/Editor/types/ViewAdapter'
 import { EditorType, SceneTemplate } from '@/components/Editor/types/EditorType'
 import { DocumentAST, ASTNode, Selection, RichTextNode } from '@/components/Editor/types/EditorAST'
-import { validateAST } from '@/components/Editor/utils/ASTUtils'
+import { validateAST, createDocumentAST } from '@/components/Editor/utils/ASTUtils'
+import { generateRandomId } from '@/components/Editor/utils/CommonUtils'
 
 /**
  * TipTap编辑器接口定义
@@ -737,8 +738,17 @@ export class OptimizedRichTextViewAdapter extends CoreViewAdapter {
 
         try {
             const content = editor.getHTML()
+            // 将 TipTap JSON 转为内部 DocumentAST（简化映射）
+            const tiptapJSON = editor.getJSON()
+            const mappedAST = this.mapTipTapToDocumentAST(tiptapJSON)
             this.updatePositionMapping()
-            this.emit('viewChange', { type: 'contentUpdate', content })
+            this.emit('viewChange', {
+                type: 'contentUpdate',
+                content,
+                ast: mappedAST,
+                astVersion: mappedAST.version,
+                updatedAt: mappedAST.metadata?.updatedAt
+            })
 
         } catch (error) {
             this.errorHandler.handleError(error as Error, 'handleContentUpdate')
@@ -951,5 +961,123 @@ export class OptimizedRichTextViewAdapter extends CoreViewAdapter {
         } catch (error) {
             this.errorHandler.handleError(error as Error, 'performPeriodicCleanup')
         }
+    }
+
+    /**
+     * 提供结构化 AST 获取
+     */
+    public getAST(): DocumentAST {
+        if (!this.editor) {
+            return createDocumentAST('Untitled')
+        }
+        const tiptapJSON = this.editor.getJSON()
+        return this.mapTipTapToDocumentAST(tiptapJSON)
+    }
+
+    /**
+     * 将 TipTap JSON 映射为内部 DocumentAST（最小可用实现）
+     */
+    private mapTipTapToDocumentAST(doc: any): DocumentAST {
+        const document = createDocumentAST('Untitled')
+        document.root = {
+            id: 'root',
+            type: 'group',
+            position: { x: 0, y: 0 },
+            children: Array.isArray(doc?.content)
+                ? doc.content.map((node: any) => this.mapTipTapNode(node)).filter(Boolean) as ASTNode[]
+                : []
+        } as ASTNode
+        if (document.metadata) {
+            document.metadata.updatedAt = new Date().toISOString()
+        }
+        return document
+    }
+
+    private mapTipTapNode(node: any): ASTNode | null {
+        if (!node || typeof node.type !== 'string') return null
+
+        const base = {
+            id: generateRandomId(),
+            position: { x: 0, y: 0 },
+            metadata: {
+                createdAt: new Date().toISOString(),
+                updatedAt: new Date().toISOString()
+            }
+        }
+
+        switch (node.type) {
+            case 'paragraph':
+                return {
+                    ...base,
+                    type: 'paragraph',
+                    children: this.mapTipTapChildren(node)
+                } as RichTextNode
+            case 'heading':
+                return {
+                    ...base,
+                    type: 'heading',
+                    attributes: { level: node.attrs?.level || 1 },
+                    children: this.mapTipTapChildren(node)
+                } as RichTextNode
+            case 'text':
+                return {
+                    ...base,
+                    type: 'text',
+                    content: node.text || ''
+                } as RichTextNode
+            case 'blockquote':
+                return {
+                    ...base,
+                    type: 'blockquote',
+                    children: this.mapTipTapChildren(node)
+                } as RichTextNode
+            case 'bulletList':
+            case 'orderedList':
+            case 'listItem':
+                return {
+                    ...base,
+                    type: node.type === 'listItem' ? 'listItem' : 'list',
+                    children: this.mapTipTapChildren(node)
+                } as RichTextNode
+            case 'codeBlock':
+                return {
+                    ...base,
+                    type: 'codeBlock',
+                    attributes: { language: node.attrs?.language },
+                    children: this.mapTipTapChildren(node)
+                } as RichTextNode
+            case 'horizontalRule':
+                return {
+                    ...base,
+                    type: 'horizontalRule'
+                } as RichTextNode
+            case 'image':
+                return {
+                    ...base,
+                    type: 'image',
+                    attributes: { src: node.attrs?.src, alt: node.attrs?.alt }
+                } as RichTextNode
+            case 'link':
+                return {
+                    ...base,
+                    type: 'link',
+                    attributes: { href: node.attrs?.href },
+                    children: this.mapTipTapChildren(node)
+                } as RichTextNode
+            default:
+                // 其他未覆盖类型以 div 包裹
+                return {
+                    ...base,
+                    type: 'paragraph',
+                    children: this.mapTipTapChildren(node)
+                } as RichTextNode
+        }
+    }
+
+    private mapTipTapChildren(node: any): ASTNode[] | undefined {
+        if (!Array.isArray(node?.content)) return undefined
+        return node.content
+            .map((child: any) => this.mapTipTapNode(child))
+            .filter(Boolean) as ASTNode[]
     }
 }
