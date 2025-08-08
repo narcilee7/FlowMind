@@ -345,7 +345,7 @@ export abstract class CoreViewAdapter {
      */
     protected emit<K extends keyof AdapterEventMap>(
         event: K,
-        data: Parameters<AdapterEventMap[K]>[0]
+        data?: Parameters<AdapterEventMap[K]>[0]
     ): void {
         const listeners = this.eventListeners.get(event) || []
         listeners.forEach(callback => {
@@ -461,31 +461,54 @@ export interface AIMixin {
  * 创建适配器构建器
  */
 export class AdapterBuilder<T extends CoreViewAdapter> {
-    private mixins: any[] = []
+    private enabledMixins: {
+        errorHandling: boolean
+        performanceMonitoring: boolean
+        ai: boolean
+    } = {
+            errorHandling: false,
+            performanceMonitoring: false,
+            ai: false
+        }
+
+    private mixinConfigs: {
+        errorHandling?: any
+        performanceMonitoring?: any
+        ai?: any
+    } = {}
 
     constructor(private BaseClass: new (sceneTemplate: SceneTemplate) => T) { }
 
     /**
      * 添加错误处理功能
      */
-    withErrorHandling(): this {
-        // 这里会添加错误处理混入
+    withErrorHandling(config?: any): this {
+        this.enabledMixins.errorHandling = true
+        if (config) {
+            this.mixinConfigs.errorHandling = config
+        }
         return this
     }
 
     /**
      * 添加性能监控功能
      */
-    withPerformanceMonitoring(): this {
-        // 这里会添加性能监控混入
+    withPerformanceMonitoring(config?: any): this {
+        this.enabledMixins.performanceMonitoring = true
+        if (config) {
+            this.mixinConfigs.performanceMonitoring = config
+        }
         return this
     }
 
     /**
      * 添加 AI 功能
      */
-    withAI(): this {
-        // 这里会添加 AI 功能混入
+    withAI(config?: any): this {
+        this.enabledMixins.ai = true
+        if (config) {
+            this.mixinConfigs.ai = config
+        }
         return this
     }
 
@@ -493,8 +516,17 @@ export class AdapterBuilder<T extends CoreViewAdapter> {
      * 构建最终的适配器类
      */
     build(): new (sceneTemplate: SceneTemplate) => T & ErrorHandlingMixin & PerformanceMonitoringMixin & AIMixin {
-        // 这里会应用所有混入并返回增强的类
-        return this.BaseClass as any
+        // 动态导入混入应用器以避免循环依赖
+        const { createEnhancedAdapter } = require('../utils/MixinApplier')
+
+        return createEnhancedAdapter(this.BaseClass, {
+            enableErrorHandling: this.enabledMixins.errorHandling,
+            enablePerformanceMonitoring: this.enabledMixins.performanceMonitoring,
+            enableAI: this.enabledMixins.ai,
+            errorHandlingConfig: this.mixinConfigs.errorHandling,
+            performanceConfig: this.mixinConfigs.performanceMonitoring,
+            aiConfig: this.mixinConfigs.ai
+        })
     }
 }
 
