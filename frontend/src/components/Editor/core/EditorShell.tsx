@@ -59,6 +59,12 @@ function mapToSceneTemplate(mode: EditorMode, templateParam?: string | null): Sc
     case 'writing':
     case 'ai-writing':
       return SceneTemplate.WRITING
+    case 'whiteboard':
+      return SceneTemplate.WHITEBOARD
+    case 'wireframe':
+      return SceneTemplate.WIREFRAME
+    case 'diagram':
+      return SceneTemplate.DIAGRAM
     default:
       break
   }
@@ -116,9 +122,7 @@ const EditorShell = React.memo(function EditorShell({ mode }: EditorShellProps) 
         enablePerformanceMonitoring
         enableErrorHandling
       />
-      <div className="pointer-events-none absolute top-0 left-0">
-        <EmptyState />
-      </div>
+      {/* 真正的编辑器现在会显示，EmptyState只在加载失败时显示 */}
     </div>
   )
 })

@@ -357,9 +357,9 @@ export class PluginLoader {
             Math,
             JSON,
             // 受限的导入函数
-            require: (moduleName: string) => {
+            require: async (moduleName: string) => {
                 if (this.isModuleAllowed(moduleName)) {
-                    return require(moduleName)
+                    return (await import(moduleName)).default
                 }
                 throw new Error(`Module not allowed: ${moduleName}`)
             }

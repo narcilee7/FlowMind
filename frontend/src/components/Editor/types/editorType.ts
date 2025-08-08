@@ -13,6 +13,7 @@ export enum EditorType {
 
 /**
  * 场景模板类型
+ * TODO: 重新设计
  */
 export enum SceneTemplate {
     RESEARCH = 'research',          // AI Research 模板
@@ -20,6 +21,9 @@ export enum SceneTemplate {
     LEARNING = 'learning',          // AI Learning 模板
     PLANNING = 'planning',          // AI Planning 模板
     CREATIVE = 'creative',          // AI Creative 模板
+    WHITEBOARD = 'whiteboard',      // 白板
+    WIREFRAME = 'wireframe',        // 线框图
+    DIAGRAM = 'diagram',            // 流程图
 }
 
 /**

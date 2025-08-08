@@ -3,7 +3,7 @@
  * 
  * 提供高效的状态管理，包括：
  * 1. 撤销/重做功能
- * 2. 协作状态同步
+ * // 2. 协作状态同步 - 暂时移除，专注个人使用
  * 3. 本地持久化
  * 4. 状态快照和恢复
  * 5. 实时状态广播
@@ -43,23 +43,23 @@ export interface StateChangeEvent {
 }
 
 /**
- * 协作状态
+ * 协作状态 - 暂时注释，专注个人使用
  */
-export interface CollaborationState {
-    users: Array<{
-        id: string
-        name: string
-        cursor?: Selection
-        color: string
-        lastSeen: number
-    }>
-    conflicts: Array<{
-        id: string
-        nodeId: string
-        users: string[]
-        timestamp: number
-    }>
-}
+// export interface CollaborationState {
+//     users: Array<{
+//         id: string
+//         name: string
+//         cursor?: Selection
+//         color: string
+//         lastSeen: number
+//     }>
+//     conflicts: Array<{
+//         id: string
+//         nodeId: string
+//         users: string[]
+//         timestamp: number
+//     }>
+// }
 
 /**
  * 状态管理配置
@@ -84,9 +84,10 @@ export class EditorStateManager {
     private autoSaveTimer: NodeJS.Timeout | null = null
     private lastSaveTime = 0
     private sessionId: string
-    private isCollaborating = false
-    private collaborationState: CollaborationState = { users: [], conflicts: [] }
-    
+    // 协作相关状态 - 暂时注释
+    // private isCollaborating = false
+    // private collaborationState: CollaborationState = { users: [], conflicts: [] }
+
     private config: StateManagerConfig = {
         maxHistorySize: 100,
         autoSaveInterval: 30000, // 30秒
@@ -100,15 +101,15 @@ export class EditorStateManager {
     constructor(config?: Partial<StateManagerConfig>) {
         this.config = { ...this.config, ...config }
         this.sessionId = this.generateSessionId()
-        
+
         if (this.config.enablePersistence) {
             this.loadFromStorage()
         }
-        
+
         if (this.config.autoSaveInterval > 0) {
             this.startAutoSave()
         }
-        
+
         // 监听页面关闭事件进行最后保存
         if (typeof window !== 'undefined') {
             window.addEventListener('beforeunload', this.handleBeforeUnload.bind(this))
@@ -172,7 +173,7 @@ export class EditorStateManager {
 
         this.currentIndex--
         const snapshot = this.history[this.currentIndex]
-        
+
         this.emitStateChange('content', snapshot, 'undo')
         return snapshot
     }
@@ -185,7 +186,7 @@ export class EditorStateManager {
 
         this.currentIndex++
         const snapshot = this.history[this.currentIndex]
-        
+
         this.emitStateChange('content', snapshot, 'redo')
         return snapshot
     }
@@ -236,7 +237,7 @@ export class EditorStateManager {
 
         this.currentIndex = index
         const snapshot = this.history[index]
-        
+
         this.emitStateChange('content', snapshot, 'jump')
         return snapshot
     }
@@ -247,7 +248,7 @@ export class EditorStateManager {
     public createBranch(name: string): string {
         const branchId = this.generateBranchId()
         const currentSnapshot = this.getCurrentSnapshot()
-        
+
         if (currentSnapshot) {
             const branchData = {
                 id: branchId,
@@ -256,11 +257,11 @@ export class EditorStateManager {
                 createdAt: Date.now(),
                 history: [...this.history]
             }
-            
+
             this.saveBranch(branchData)
             this.emit('branchCreated', { branchId, name, snapshot: currentSnapshot })
         }
-        
+
         return branchId
     }
 
@@ -273,11 +274,11 @@ export class EditorStateManager {
 
         // 保存当前分支
         this.saveCurrentBranch()
-        
+
         // 加载分支历史
         this.history = branchData.history
         this.currentIndex = this.history.length - 1
-        
+
         this.emit('branchSwitched', { branchId, snapshot: this.getCurrentSnapshot() })
         return true
     }
@@ -305,72 +306,73 @@ export class EditorStateManager {
         }
     }
 
-    /**
-     * 启动协作模式
-     */
-    public startCollaboration(config: {
-        userId: string
-        userName: string
-        websocketUrl?: string
-    }): void {
-        if (this.isCollaborating) return
+    // 协作相关方法 - 暂时注释，专注个人使用
+    // /**
+    //  * 启动协作模式
+    //  */
+    // public startCollaboration(config: {
+    //     userId: string
+    //     userName: string
+    //     websocketUrl?: string
+    // }): void {
+    //     if (this.isCollaborating) return
 
-        this.isCollaborating = true
-        this.config.enableCollaboration = true
-        
-        // TODO: 实现WebSocket连接和协作逻辑
-        console.log('[StateManager] Collaboration mode started', config)
-        
-        this.emit('collaborationStarted', config)
-    }
+    //     this.isCollaborating = true
+    //     this.config.enableCollaboration = true
 
-    /**
-     * 停止协作模式
-     */
-    public stopCollaboration(): void {
-        if (!this.isCollaborating) return
+    //     // TODO: 实现WebSocket连接和协作逻辑
+    //     console.log('[StateManager] Collaboration mode started', config)
 
-        this.isCollaborating = false
-        this.config.enableCollaboration = false
-        this.collaborationState = { users: [], conflicts: [] }
-        
-        this.emit('collaborationStopped', {})
-    }
+    //     this.emit('collaborationStarted', config)
+    // }
 
-    /**
-     * 获取协作状态
-     */
-    public getCollaborationState(): CollaborationState {
-        return { ...this.collaborationState }
-    }
+    // /**
+    //  * 停止协作模式
+    //  */
+    // public stopCollaboration(): void {
+    //     if (!this.isCollaborating) return
 
-    /**
-     * 处理协作事件
-     */
-    public handleCollaborationEvent(event: {
-        type: 'userJoin' | 'userLeave' | 'cursorMove' | 'contentChange' | 'conflict'
-        data: any
-    }): void {
-        switch (event.type) {
-            case 'userJoin':
-                this.addCollaborationUser(event.data)
-                break
-            case 'userLeave':
-                this.removeCollaborationUser(event.data.userId)
-                break
-            case 'cursorMove':
-                this.updateUserCursor(event.data.userId, event.data.selection)
-                break
-            case 'contentChange':
-                this.handleRemoteContentChange(event.data)
-                break
-            case 'conflict':
-                this.handleConflict(event.data)
-                break
-        }
-        
-        this.emit('collaborationEvent', event)
-    }
+    //     this.isCollaborating = false
+    //     this.config.enableCollaboration = false
+    //     this.collaborationState = { users: [], conflicts: [] }
+
+    //     this.emit('collaborationStopped', {})
+    // }
+
+    // /**
+    //  * 获取协作状态
+    //  */
+    // public getCollaborationState(): CollaborationState {
+    //     return { ...this.collaborationState }
+    // }
+
+    // /**
+    //  * 处理协作事件
+    //  */
+    // public handleCollaborationEvent(event: {
+    //     type: 'userJoin' | 'userLeave' | 'cursorMove' | 'contentChange' | 'conflict'
+    //     data: any
+    // }): void {
+    //     switch (event.type) {
+    //         case 'userJoin':
+    //             this.addCollaborationUser(event.data)
+    //             break
+    //         case 'userLeave':
+    //             this.removeCollaborationUser(event.data.userId)
+    //             break
+    //         case 'cursorMove':
+    //             this.updateUserCursor(event.data.userId, event.data.selection)
+    //             break
+    //         case 'contentChange':
+    //             this.handleRemoteContentChange(event.data)
+    //             break
+    //         case 'conflict':
+    //             this.handleConflict(event.data)
+    //             break
+    //     }
+
+    //     this.emit('collaborationEvent', event)
+    // }
 
     /**
      * 保存到本地存储
@@ -385,16 +387,16 @@ export class EditorStateManager {
                 sessionId: this.sessionId,
                 timestamp: Date.now()
             }
-            
-            const compressed = this.config.compressionEnabled 
+
+            const compressed = this.config.compressionEnabled
                 ? this.compressData(data)
                 : data
-                
+
             localStorage.setItem(this.config.persistenceKey, JSON.stringify(compressed))
             this.lastSaveTime = Date.now()
-            
+
             console.log('[StateManager] State saved to storage')
-            
+
         } catch (error) {
             console.error('[StateManager] Failed to save to storage:', error)
         }
@@ -411,23 +413,23 @@ export class EditorStateManager {
             if (!stored) return false
 
             const data = JSON.parse(stored)
-            const decompressed = this.config.compressionEnabled 
+            const decompressed = this.config.compressionEnabled
                 ? this.decompressData(data)
                 : data
-            
+
             this.history = decompressed.history || []
             this.currentIndex = decompressed.currentIndex ?? -1
-            
+
             // 验证历史记录
             if (!this.validateHistory()) {
                 console.warn('[StateManager] Invalid history in storage, resetting')
                 this.clearHistory()
                 return false
             }
-            
+
             console.log('[StateManager] State loaded from storage')
             return true
-            
+
         } catch (error) {
             console.error('[StateManager] Failed to load from storage:', error)
             return false
@@ -446,7 +448,7 @@ export class EditorStateManager {
             currentIndex: this.currentIndex,
             config: this.config
         }
-        
+
         return JSON.stringify(exportData, null, 2)
     }
 
@@ -456,26 +458,26 @@ export class EditorStateManager {
     public importState(data: string): boolean {
         try {
             const importData = JSON.parse(data)
-            
+
             // 验证数据格式
             if (!importData.version || !importData.history) {
                 throw new Error('Invalid import data format')
             }
-            
+
             this.history = importData.history
             this.currentIndex = importData.currentIndex ?? -1
-            
+
             if (!this.validateHistory()) {
                 throw new Error('Invalid history data')
             }
-            
-            this.emit('stateImported', { 
+
+            this.emit('stateImported', {
                 snapshot: this.getCurrentSnapshot(),
-                historySize: this.history.length 
+                historySize: this.history.length
             })
-            
+
             return true
-            
+
         } catch (error) {
             console.error('[StateManager] Failed to import state:', error)
             return false
@@ -494,12 +496,12 @@ export class EditorStateManager {
         operationCounts: Record<string, number>
     } {
         const operationCounts: Record<string, number> = {}
-        
+
         this.history.forEach(snapshot => {
             const op = snapshot.metadata.operation
             operationCounts[op] = (operationCounts[op] || 0) + 1
         })
-        
+
         return {
             historySize: this.history.length,
             currentIndex: this.currentIndex,
@@ -518,26 +520,26 @@ export class EditorStateManager {
         if (this.config.enablePersistence) {
             this.saveToStorage()
         }
-        
+
         // 清理定时器
         if (this.autoSaveTimer) {
             clearInterval(this.autoSaveTimer)
             this.autoSaveTimer = null
         }
-        
-        // 停止协作
-        if (this.isCollaborating) {
-            this.stopCollaboration()
-        }
-        
+
+        // 停止协作 - 暂时注释
+        // if (this.isCollaborating) {
+        //     this.stopCollaboration()
+        // }
+
         // 清理监听器
         this.listeners.clear()
-        
+
         // 移除浏览器事件监听
         if (typeof window !== 'undefined') {
             window.removeEventListener('beforeunload', this.handleBeforeUnload)
         }
-        
+
         console.log('[StateManager] Destroyed')
     }
 
@@ -578,7 +580,7 @@ export class EditorStateManager {
             operation,
             timestamp: Date.now()
         }
-        
+
         this.emit('stateChange', event)
     }
 
@@ -603,21 +605,21 @@ export class EditorStateManager {
         const compressed: StateSnapshot[] = []
         let lastOperation = ''
         let operationCount = 0
-        
+
         for (const snapshot of this.history) {
             const operation = snapshot.metadata.operation
-            
+
             if (operation === lastOperation && operationCount < 5) {
                 // 跳过重复操作，但保留最后一个
                 operationCount++
                 continue
             }
-            
+
             compressed.push(snapshot)
             lastOperation = operation
             operationCount = 1
         }
-        
+
         if (compressed.length < this.history.length) {
             this.history = compressed
             this.currentIndex = Math.min(this.currentIndex, this.history.length - 1)
@@ -627,21 +629,23 @@ export class EditorStateManager {
 
     private compressData(data: any): any {
         // 简化的数据压缩实现
+        // TODO: 实现数据压缩
         return data
     }
 
     private decompressData(data: any): any {
         // 简化的数据解压实现
+        // TODO: 实现数据解压
         return data
     }
 
     private validateHistory(): boolean {
         if (!Array.isArray(this.history)) return false
-        
-        return this.history.every(snapshot => 
-            snapshot.id && 
-            snapshot.timestamp && 
-            snapshot.ast && 
+
+        return this.history.every(snapshot =>
+            snapshot.id &&
+            snapshot.timestamp &&
+            snapshot.ast &&
             snapshot.selection &&
             snapshot.metadata
         )
@@ -651,36 +655,37 @@ export class EditorStateManager {
         return JSON.stringify(this.history).length * 2 // 粗略估算
     }
 
-    private addCollaborationUser(user: any): void {
-        const existingIndex = this.collaborationState.users.findIndex(u => u.id === user.id)
-        if (existingIndex >= 0) {
-            this.collaborationState.users[existingIndex] = { ...user, lastSeen: Date.now() }
-        } else {
-            this.collaborationState.users.push({ ...user, lastSeen: Date.now() })
-        }
-    }
+    // 协作辅助方法 - 暂时注释
+    // private addCollaborationUser(user: any): void {
+    //     const existingIndex = this.collaborationState.users.findIndex(u => u.id === user.id)
+    //     if (existingIndex >= 0) {
+    //         this.collaborationState.users[existingIndex] = { ...user, lastSeen: Date.now() }
+    //     } else {
+    //         this.collaborationState.users.push({ ...user, lastSeen: Date.now() })
+    //     }
+    // }
 
-    private removeCollaborationUser(userId: string): void {
-        this.collaborationState.users = this.collaborationState.users.filter(u => u.id !== userId)
-    }
+    // private removeCollaborationUser(userId: string): void {
+    //     this.collaborationState.users = this.collaborationState.users.filter(u => u.id !== userId)
+    // }
 
-    private updateUserCursor(userId: string, selection: Selection): void {
-        const user = this.collaborationState.users.find(u => u.id === userId)
-        if (user) {
-            user.cursor = selection
-            user.lastSeen = Date.now()
-        }
-    }
+    // private updateUserCursor(userId: string, selection: Selection): void {
+    //     const user = this.collaborationState.users.find(u => u.id === userId)
+    //     if (user) {
+    //         user.cursor = selection
+    //         user.lastSeen = Date.now()
+    //     }
+    // }
 
-    private handleRemoteContentChange(data: any): void {
-        // TODO: 实现远程内容变更处理
-        console.log('[StateManager] Remote content change:', data)
-    }
+    // private handleRemoteContentChange(data: any): void {
+    //     // TODO: 实现远程内容变更处理
+    //     console.log('[StateManager] Remote content change:', data)
+    // }
 
-    private handleConflict(data: any): void {
-        // TODO: 实现冲突处理
-        console.log('[StateManager] Conflict detected:', data)
-    }
+    // private handleConflict(data: any): void {
+    //     // TODO: 实现冲突处理
+    //     console.log('[StateManager] Conflict detected:', data)
+    // }
 
     private saveBranch(branchData: any): void {
         const key = `${this.config.persistenceKey}_branch_${branchData.id}`

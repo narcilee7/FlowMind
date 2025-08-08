@@ -110,8 +110,8 @@ export interface EditorKitHandle {
     
     // 导出功能
     exportToJSON(): string
-    exportToHTML(): string
-    exportToMarkdown(): string
+    exportToHTML(): Promise<string>
+    exportToMarkdown(): Promise<string>
 }
 
 /**
@@ -496,13 +496,13 @@ export const EditorKit = forwardRef<EditorKitHandle, EditorKitConfig>((props, re
                         }
                     },
                     exportToJSON: () => JSON.stringify(state.content, null, 2),
-                    exportToHTML: () => {
-                        const { ASTExporter } = require('../utils/ASTExporter')
+                    exportToHTML: async () => {
+                        const { ASTExporter } = await import('./utils/ASTExporter')
                         const result = ASTExporter.exportToHTML(state.content)
                         return result.success ? result.content : `<div>导出失败: ${result.error}</div>`
                     },
-                    exportToMarkdown: () => {
-                        const { ASTExporter } = require('../utils/ASTExporter')
+                    exportToMarkdown: async () => {
+                        const { ASTExporter } = await import('./utils/ASTExporter')
                         const result = ASTExporter.exportToMarkdown(state.content)
                         return result.success ? result.content : `# 导出失败: ${result.error}`
                     }
@@ -579,13 +579,13 @@ export const EditorKit = forwardRef<EditorKitHandle, EditorKitConfig>((props, re
         undo: () => console.log('Undo operation'),
         redo: () => console.log('Redo operation'),
         exportToJSON: () => JSON.stringify(state.content, null, 2),
-        exportToHTML: () => {
-            const { ASTExporter } = require('./utils/ASTExporter')
+        exportToHTML: async () => {
+            const { ASTExporter } = await import('./utils/ASTExporter')
             const result = ASTExporter.exportToHTML(state.content)
             return result.success ? result.content : `<div>导出失败: ${result.error}</div>`
         },
-        exportToMarkdown: () => {
-            const { ASTExporter } = require('./utils/ASTExporter')
+        exportToMarkdown: async () => {
+            const { ASTExporter } = await import('./utils/ASTExporter')
             const result = ASTExporter.exportToMarkdown(state.content)
             return result.success ? result.content : `# 导出失败: ${result.error}`
         }

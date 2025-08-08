@@ -41,7 +41,7 @@ interface TimelineGroup {
  */
 export class TimelineViewAdapter extends BaseViewAdapter implements ITimelineViewAdapter {
     public readonly type: EditorType.TIMELINE = EditorType.TIMELINE
-    
+
     private timeline: any = null // vis-timeline实例
     private items: TimelineItem[] = []
     private groups: TimelineGroup[] = []
@@ -87,13 +87,13 @@ export class TimelineViewAdapter extends BaseViewAdapter implements ITimelineVie
                 stack: false,
                 showMajorLabels: true,
                 showMinorLabels: true,
-                
+
                 // 时间配置
-                moment: (date: any) => {
-                    const moment = require('moment')
-                    return moment(date)
+                moment: async (date: any) => {
+                    const moment = await import('moment')
+                    return moment.default(date)
                 },
-                
+
                 // 交互配置
                 editable: {
                     add: true,
@@ -101,7 +101,7 @@ export class TimelineViewAdapter extends BaseViewAdapter implements ITimelineVie
                     updateGroup: true,
                     remove: true
                 },
-                
+
                 // 样式配置
                 template: (item: any) => {
                     return `<div class="timeline-item">
@@ -119,7 +119,7 @@ export class TimelineViewAdapter extends BaseViewAdapter implements ITimelineVie
 
             // 设置主题样式
             this.applyTheme(options.theme || 'auto')
-            
+
             this.isInitialized = true
             this.triggerEvent('viewChange', { type: 'initialized' })
 
@@ -322,33 +322,33 @@ export class TimelineViewAdapter extends BaseViewAdapter implements ITimelineVie
         switch (groupBy) {
             case 'day':
                 this.timeline.setOptions({
-                    moment: (date: any) => {
-                        const moment = require('moment')
-                        return moment(date).startOf('day')
+                    moment: async (date: any) => {
+                        const moment = await import('moment')
+                        return moment.default(date).startOf('day')
                     }
                 })
                 break
             case 'week':
                 this.timeline.setOptions({
-                    moment: (date: any) => {
-                        const moment = require('moment')
-                        return moment(date).startOf('week')
+                    moment: async (date: any) => {
+                        const moment = await import('moment')
+                        return moment.default(date).startOf('week')
                     }
                 })
                 break
             case 'month':
                 this.timeline.setOptions({
-                    moment: (date: any) => {
-                        const moment = require('moment')
-                        return moment(date).startOf('month')
+                    moment: async (date: any) => {
+                        const moment = await import('moment')
+                        return moment.default(date).startOf('month')
                     }
                 })
                 break
             case 'year':
                 this.timeline.setOptions({
-                    moment: (date: any) => {
-                        const moment = require('moment')
-                        return moment(date).startOf('year')
+                    moment: async (date: any) => {
+                        const moment = await import('moment')
+                        return moment.default(date).startOf('year')
                     }
                 })
                 break
@@ -370,7 +370,7 @@ export class TimelineViewAdapter extends BaseViewAdapter implements ITimelineVie
         if (!this.validateInitialized() || !this.timeline) return
 
         const items = this.timeline.itemsData.get()
-        const filteredItems = items.filter((item: any) => 
+        const filteredItems = items.filter((item: any) =>
             status.includes(item.metadata?.status || 'unknown')
         )
         this.timeline.setItems(filteredItems)
@@ -497,7 +497,7 @@ export class TimelineViewAdapter extends BaseViewAdapter implements ITimelineVie
             customEventCallbacks.set('itemClick', [])
         }
         customEventCallbacks.get('itemClick').push(callback)
-        ;(this as any).customEventCallbacks = customEventCallbacks
+            ; (this as any).customEventCallbacks = customEventCallbacks
     }
 
     /**
@@ -510,7 +510,7 @@ export class TimelineViewAdapter extends BaseViewAdapter implements ITimelineVie
             customEventCallbacks.set('dateChange', [])
         }
         customEventCallbacks.get('dateChange').push(callback)
-        ;(this as any).customEventCallbacks = customEventCallbacks
+            ; (this as any).customEventCallbacks = customEventCallbacks
     }
 
     // 私有方法
@@ -647,12 +647,12 @@ export class TimelineViewAdapter extends BaseViewAdapter implements ITimelineVie
     private astNodeToTimelineItem(node: ASTNode): TimelineItem {
         const timelineNode = node as TimelineNode
         const timelineData = timelineNode.timelineData || {}
-        
+
         return {
             id: node.id,
             content: timelineData.status || node.id,
             start: new Date(timelineData.date || Date.now()),
-            end: timelineData.duration && timelineData.date ? 
+            end: timelineData.duration && timelineData.date ?
                 new Date(new Date(timelineData.date).getTime() + timelineData.duration) : undefined,
             group: timelineData.assignee || 'default',
             type: node.type === 'milestone' ? 'point' : 'box',

@@ -466,14 +466,14 @@ export class EditorManager {
     /**
      * 导出文档
      */
-    exportDocument(format: 'json' | 'html' | 'markdown' = 'json'): string {
+    async exportDocument(format: 'json' | 'html' | 'markdown' = 'json'): Promise<string> {
         switch (format) {
             case 'json':
                 return serialize(this.ast)
             case 'html':
-                return this.astToHtml()
+                return await this.astToHtml()
             case 'markdown':
-                return this.astToMarkdown()
+                return await this.astToMarkdown()
             default:
                 return serialize(this.ast)
         }
@@ -667,11 +667,12 @@ export class EditorManager {
     /**
      * AST转HTML
      */
-    private astToHtml(): string {
+    private async astToHtml(): Promise<string> {
         try {
-            const { ASTExporter } = require('../utils/ASTExporter')
+            const { ASTExporter } = await import('../utils/ASTExporter')
             const result = ASTExporter.exportToHTML(this.ast)
-            return result.success ? result.content : `<div>导出失败: ${result.error}</div>`
+            // TODO: review看看是不是有异步问题
+            return result.success ? result.content! : `<div>导出失败: ${result.error}</div>`
         } catch (error) {
             return `<div>导出失败: ${error instanceof Error ? error.message : '未知错误'}</div>`
         }
@@ -680,11 +681,11 @@ export class EditorManager {
     /**
      * AST转Markdown
      */
-    private astToMarkdown(): string {
+    private async astToMarkdown(): Promise<string> {
         try {
-            const { ASTExporter } = require('../utils/ASTExporter')
+            const { ASTExporter } = await import('../utils/ASTExporter')
             const result = ASTExporter.exportToMarkdown(this.ast)
-            return result.success ? result.content : `# 导出失败: ${result.error}`
+            return result.success ? result.content! : `# 导出失败: ${result.error}`
         } catch (error) {
             return `# 导出失败: ${error instanceof Error ? error.message : '未知错误'}`
         }
