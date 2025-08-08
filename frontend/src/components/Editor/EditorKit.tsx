@@ -497,12 +497,14 @@ export const EditorKit = forwardRef<EditorKitHandle, EditorKitConfig>((props, re
                     },
                     exportToJSON: () => JSON.stringify(state.content, null, 2),
                     exportToHTML: () => {
-                        // TODO: 实现HTML导出
-                        return '<div>HTML export not implemented</div>'
+                        const { ASTExporter } = require('../utils/ASTExporter')
+                        const result = ASTExporter.exportToHTML(state.content)
+                        return result.success ? result.content : `<div>导出失败: ${result.error}</div>`
                     },
                     exportToMarkdown: () => {
-                        // TODO: 实现Markdown导出
-                        return '# Markdown export not implemented'
+                        const { ASTExporter } = require('../utils/ASTExporter')
+                        const result = ASTExporter.exportToMarkdown(state.content)
+                        return result.success ? result.content : `# 导出失败: ${result.error}`
                     }
                 } as EditorKitHandle)
             })
@@ -577,8 +579,16 @@ export const EditorKit = forwardRef<EditorKitHandle, EditorKitConfig>((props, re
         undo: () => console.log('Undo operation'),
         redo: () => console.log('Redo operation'),
         exportToJSON: () => JSON.stringify(state.content, null, 2),
-        exportToHTML: () => '<div>HTML export not implemented</div>',
-        exportToMarkdown: () => '# Markdown export not implemented'
+        exportToHTML: () => {
+            const { ASTExporter } = require('./utils/ASTExporter')
+            const result = ASTExporter.exportToHTML(state.content)
+            return result.success ? result.content : `<div>导出失败: ${result.error}</div>`
+        },
+        exportToMarkdown: () => {
+            const { ASTExporter } = require('./utils/ASTExporter')
+            const result = ASTExporter.exportToMarkdown(state.content)
+            return result.success ? result.content : `# 导出失败: ${result.error}`
+        }
     } as EditorKitHandle), [adapter, state, switchEditor, performanceOptimizer])
 
     // 渲染加载状态

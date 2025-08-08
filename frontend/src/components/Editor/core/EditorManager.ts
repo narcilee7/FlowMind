@@ -668,17 +668,25 @@ export class EditorManager {
      * AST转HTML
      */
     private astToHtml(): string {
-        // 简化的HTML转换实现
-        // TODO: 真正实现AST转HTML
-        return `<html><body><h1>${this.ast.title || '文档'}</h1></body></html>`
+        try {
+            const { ASTExporter } = require('../utils/ASTExporter')
+            const result = ASTExporter.exportToHTML(this.ast)
+            return result.success ? result.content : `<div>导出失败: ${result.error}</div>`
+        } catch (error) {
+            return `<div>导出失败: ${error instanceof Error ? error.message : '未知错误'}</div>`
+        }
     }
 
     /**
      * AST转Markdown
      */
     private astToMarkdown(): string {
-        // 简化的Markdown转换实现
-        // TODO: 真正实现AST转Markdown
-        return `# ${this.ast.title || '文档'}\n\n`
+        try {
+            const { ASTExporter } = require('../utils/ASTExporter')
+            const result = ASTExporter.exportToMarkdown(this.ast)
+            return result.success ? result.content : `# 导出失败: ${result.error}`
+        } catch (error) {
+            return `# 导出失败: ${error instanceof Error ? error.message : '未知错误'}`
+        }
     }
 } 
