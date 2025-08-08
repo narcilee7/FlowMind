@@ -401,6 +401,7 @@ export class PluginSystem {
     private eventBus = new Map<string, Function[]>()
     private messageHandlers = new Map<string, Function>()
     private panels = new Map<string, any>()
+    private astProvider: (() => DocumentAST | null) | null = null
 
     constructor() {
         this.setupGlobalContext()
@@ -412,6 +413,13 @@ export class PluginSystem {
     async initialize(adapter: CoreViewAdapter): Promise<void> {
         this.context = this.createPluginContext(adapter)
         console.log('[PluginSystem] Initialized')
+    }
+
+    /**
+     * 设置 AST 提供器，用于插件获取最新内容
+     */
+    public setASTProvider(provider: () => DocumentAST | null): void {
+        this.astProvider = provider
     }
 
     /**
@@ -724,7 +732,7 @@ export class PluginSystem {
     private createPluginContext(adapter: CoreViewAdapter): PluginContext {
         return {
             getAdapter: () => adapter,
-            getAST: () => null, // TODO: 实现
+            getAST: () => this.astProvider ? this.astProvider() : null,
             getSelection: () => adapter.getSelection(),
             updateContent: async (ast) => await adapter.render(ast),
             updateSelection: (selection) => adapter.setSelection(selection),

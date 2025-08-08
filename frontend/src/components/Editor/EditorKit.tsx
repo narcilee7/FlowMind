@@ -21,6 +21,8 @@ import React, {
 } from 'react'
 import { optimizedAdapterFactory } from './core/ViewAdapterFactory.optimized'
 import { CoreViewAdapter, ErrorHandlingMixin, PerformanceMonitoringMixin, AIMixin } from './adapters/BaseViewAdapter.optimized'
+import EditorStateManager from './state/EditorStateManager'
+import PluginSystem from './plugins/PluginSystem'
 import { EditorType, SceneTemplate } from './types/EditorType'
 import { DocumentAST, ASTNode, Selection } from './types/EditorAST'
 import { createDefaultOptimizationConfig, PerformanceOptimizer } from './utils/PerformanceOptimizer'
@@ -151,6 +153,8 @@ export const EditorKit = forwardRef<EditorKitHandle, EditorKitConfig>((props, re
 
     // 容器引用
     const containerRef = useRef<HTMLDivElement>(null)
+    const stateManagerRef = useRef<EditorStateManager | null>(null)
+    const pluginSystemRef = useRef<PluginSystem | null>(null)
     
     // 适配器实例
     type AdapterInstance = CoreViewAdapter & Partial<ErrorHandlingMixin & PerformanceMonitoringMixin & AIMixin> & { checkPerformanceHealth?: () => any }
@@ -282,6 +286,17 @@ export const EditorKit = forwardRef<EditorKitHandle, EditorKitConfig>((props, re
                         handleSceneChange(detectedScene)
                     }
                 }
+
+                // 添加快照（标记内容更新）
+                if (stateManagerRef.current) {
+                    stateManagerRef.current.addSnapshot(
+                        newContent,
+                        state.selection,
+                        state.currentType,
+                        state.sceneTemplate,
+                        'contentUpdate'
+                    )
+                }
             }
         })
 
@@ -289,6 +304,17 @@ export const EditorKit = forwardRef<EditorKitHandle, EditorKitConfig>((props, re
         adapterInstance.on('selectionChange', (selection) => {
             setState(prev => ({ ...prev, selection }))
             onSelectionChange?.(selection)
+
+            // 可选：对选择变化添加轻量快照（避免频繁写入，这里仅记录操作名）
+            if (stateManagerRef.current) {
+                stateManagerRef.current.addSnapshot(
+                    state.content,
+                    selection,
+                    state.currentType,
+                    state.sceneTemplate,
+                    'selectionChange'
+                )
+            }
         })
 
         // 错误事件
@@ -363,15 +389,36 @@ export const EditorKit = forwardRef<EditorKitHandle, EditorKitConfig>((props, re
     useEffect(() => {
         if (!containerRef.current) return
 
+        // 初始化状态管理器
+        stateManagerRef.current = new EditorStateManager({
+            enablePersistence: true,
+            autoSaveInterval: 30000,
+            maxHistorySize: 200
+        })
+
+        // 初始化插件系统
+        pluginSystemRef.current = new PluginSystem()
+
         createAdapter(initialType, sceneTemplate)
             .then(adapterInstance => {
                 setAdapter(adapterInstance)
+                // 初始化插件系统上下文
+                pluginSystemRef.current!.initialize(adapterInstance)
+                pluginSystemRef.current!.setASTProvider(() => state.content)
                 onReady?.({
                     getContent: () => state.content,
                     setContent: async (ast) => {
                         if (adapterInstance) {
                             await adapterInstance.render(ast)
                             setState(prev => ({ ...prev, content: ast }))
+                            // 内容设置也添加快照
+                            stateManagerRef.current?.addSnapshot(
+                                ast,
+                                state.selection,
+                                state.currentType,
+                                state.sceneTemplate,
+                                'setContent'
+                            )
                         }
                     },
                     clear: () => {
@@ -379,6 +426,13 @@ export const EditorKit = forwardRef<EditorKitHandle, EditorKitConfig>((props, re
                         if (adapterInstance) {
                             adapterInstance.render(emptyAST)
                             setState(prev => ({ ...prev, content: emptyAST }))
+                            stateManagerRef.current?.addSnapshot(
+                                emptyAST,
+                                state.selection,
+                                state.currentType,
+                                state.sceneTemplate,
+                                'clear'
+                            )
                         }
                     },
                     getSelection: () => state.selection,
@@ -426,12 +480,18 @@ export const EditorKit = forwardRef<EditorKitHandle, EditorKitConfig>((props, re
                     focus: () => adapterInstance?.focus(),
                     blur: () => adapterInstance?.blur(),
                     undo: () => {
-                        // TODO: 实现撤销功能
-                        console.log('Undo operation')
+                        const snapshot = stateManagerRef.current?.undo()
+                        if (snapshot?.ast && adapterInstance) {
+                            adapterInstance.render(snapshot.ast)
+                            setState(prev => ({ ...prev, content: snapshot.ast }))
+                        }
                     },
                     redo: () => {
-                        // TODO: 实现重做功能
-                        console.log('Redo operation')
+                        const snapshot = stateManagerRef.current?.redo()
+                        if (snapshot?.ast && adapterInstance) {
+                            adapterInstance.render(snapshot.ast)
+                            setState(prev => ({ ...prev, content: snapshot.ast }))
+                        }
                     },
                     exportToJSON: () => JSON.stringify(state.content, null, 2),
                     exportToHTML: () => {
@@ -452,6 +512,7 @@ export const EditorKit = forwardRef<EditorKitHandle, EditorKitConfig>((props, re
         return () => {
             adapter?.destroy()
             performanceOptimizer.destroy()
+            stateManagerRef.current?.destroy()
         }
     }, []) // 仅在组件挂载时执行
 
