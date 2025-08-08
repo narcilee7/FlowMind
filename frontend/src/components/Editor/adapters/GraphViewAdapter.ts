@@ -49,7 +49,8 @@ interface NetworkInstance {
     editNode(): void
     deleteSelected(): void
     fit(): void
-    getViewPosition(): { x: number; y: number; scale: number }
+    getViewPosition(): { x: number; y: number }
+    getScale(): number
     moveTo(options: { position: { x: number; y: number }; scale?: number }): void
     on(event: string, callback: Function): void
     off(event: string, callback: Function): void
@@ -105,9 +106,7 @@ export class GraphViewAdapter extends CoreViewAdapter {
                 },
                 edges: {
                     arrows: 'to',
-                    smooth: {
-                        type: 'continuous'
-                    },
+                    smooth: { enabled: true, type: 'continuous', roundness: 0.5 },
                     font: {
                         size: 12,
                         color: options.theme === 'dark' ? '#ffffff' : '#000000'
@@ -144,10 +143,10 @@ export class GraphViewAdapter extends CoreViewAdapter {
             }
 
             // 创建网络实例
-            this.network = new Network(element, {
+            this.network = new (Network as any)(element, {
                 nodes: nodesDataSet,
                 edges: edgesDataSet
-            }, networkOptions) as NetworkInstance
+            }, networkOptions) as unknown as NetworkInstance
 
             // 设置事件监听
             this.setupEventListeners()
@@ -192,9 +191,9 @@ export class GraphViewAdapter extends CoreViewAdapter {
 
     protected performUpdateNode(nodeId: string, node: ASTNode): void {
         const graphNode = this.nodes.find(n => n.id === nodeId)
-        if (graphNode && node.type === 'graph-node') {
-            const content = (node as any).content || {}
-            graphNode.label = content.label || graphNode.label
+        if (graphNode && (node as any).type === 'graphNode') {
+            const content = (node as any).graphData || {}
+            graphNode.label = (node as any).label || graphNode.label
             graphNode.color = content.color || graphNode.color
 
             if (this.network) {
@@ -213,12 +212,12 @@ export class GraphViewAdapter extends CoreViewAdapter {
         }
     }
 
-    protected performAddNode(node: ASTNode, parentId?: string, index?: number): void {
-        if (node.type === 'graph-node') {
-            const content = (node as any).content || {}
+    protected performAddNode(node: ASTNode, parentId?: string, _index?: number): void {
+        if ((node as any).type === 'graphNode') {
+            const content = (node as any).graphData || {}
             const graphNode: GraphNode = {
-                id: node.id,
-                label: content.label || '新节点',
+                id: (node as any).id,
+                label: (node as any).label || '新节点',
                 color: content.color || '#97C2FC',
                 shape: content.shape || 'circle',
                 size: content.size || 20
@@ -229,9 +228,9 @@ export class GraphViewAdapter extends CoreViewAdapter {
             // 如果有父节点，创建连接
             if (parentId) {
                 const edge: GraphEdge = {
-                    id: `edge_${parentId}_${node.id}`,
+                    id: `edge_${parentId}_${(node as any).id}`,
                     from: parentId,
-                    to: node.id,
+                    to: (node as any).id,
                     arrows: 'to'
                 }
                 this.edges.push(edge)
@@ -288,7 +287,7 @@ export class GraphViewAdapter extends CoreViewAdapter {
             y: position.y,
             width: this.container.clientWidth,
             height: this.container.clientHeight,
-            zoom: position.scale
+            zoom: this.network.getScale()
         }
     }
 
