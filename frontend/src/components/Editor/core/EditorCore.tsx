@@ -14,13 +14,14 @@
  * - 主题和配置管理
  */
 
-import React, { useEffect, useRef, useState, useCallback, useMemo } from 'react'
+import React, { useEffect, useRef, useState, useCallback, useMemo, forwardRef, useImperativeHandle } from 'react'
 import { ViewAdapter } from '@/components/Editor/types/ViewAdapter'
-import { EditorType, SceneTemplate } from '@/components/Editor/types/EditorType'
+import { EditorType, SceneTemplate } from '@/components/Editor/types/editorType'
 import { DocumentAST, Selection } from '@/components/Editor/types/EditorAST'
 import { EditorTheme } from '@/components/Editor/types/EditorTheme'
 import ViewAdapterFactory from '@/components/Editor/core/ViewAdapterFactory'
-import { createDocumentAST } from '@/components/Editor/utils/ASTUtils'
+import { createDocumentAST, createRichTextNode } from '@/components/Editor/utils/ASTUtils'
+import { EditorCommand, CommandContext } from '@/components/Editor/types/EditorCommand'
 import { useTheme } from '@/hooks/useTheme'
 import { Button } from '@/components/ui/button'
 
@@ -51,11 +52,21 @@ export interface EditorCoreProps {
     onError?: (error: Error) => void
 }
 
+// 注意：在函数定义之后导出默认值，以避免提升引起的声明前使用错误
+
+/**
+ * 对外暴露的命令接口（用于 SlashMenu / CommandPalette 动作打通）
+ */
+export interface EditorCommands {
+    // 统一命令调度入口
+    runCommand: (commandId: string, payload?: any) => Promise<void> | void
+}
+
 /**
  * 编辑器核心组件
  * 负责AST状态管理和适配器协调
  */
-export default function EditorCore({
+const EditorCore = forwardRef<EditorCommands, EditorCoreProps>(function EditorCore({
     className = '',
     style = {},
     initialAST,
@@ -66,7 +77,7 @@ export default function EditorCore({
     onSelectionChange,
     onViewChange,
     onError,
-}: EditorCoreProps) {
+}: EditorCoreProps, ref) {
     // 状态管理
     const [ast, setAST] = useState<DocumentAST>(() => initialAST || createDocumentAST())
     const [selection, setSelection] = useState<Selection>({ 
@@ -210,6 +221,96 @@ export default function EditorCore({
         }
     }, [destroyAdapter, onError])
 
+    // 命令注册中心（最小实现：内置一组富文本通用命令）
+    const commandRegistry = useRef<EditorCommand[]>([
+        {
+            id: 'insertParagraph',
+            title: '插入段落',
+            isSupported: (ctx) => ctx.editorType === EditorType.RICH_TEXT,
+            run: (ctx, text = '') => {
+                const node = createRichTextNode('paragraph', text)
+                ctx.adapter?.addNode(node)
+            },
+            priority: () => 100,
+        },
+        {
+            id: 'insertHeading',
+            title: '插入标题',
+            isSupported: (ctx) => ctx.editorType === EditorType.RICH_TEXT,
+            run: (ctx, payload: { level?: number; text?: string } = {}) => {
+                const level = payload.level ?? 1
+                const text = payload.text ?? ''
+                const node = createRichTextNode('heading', text, { level })
+                ctx.adapter?.addNode(node)
+            },
+            priority: () => 100,
+        },
+        {
+            id: 'insertQuote',
+            title: '插入引用',
+            isSupported: (ctx) => ctx.editorType === EditorType.RICH_TEXT,
+            run: (ctx, text = '') => {
+                const node = createRichTextNode('blockquote', text)
+                ctx.adapter?.addNode(node)
+            },
+            priority: () => 100,
+        },
+        {
+            id: 'insertTable',
+            title: '插入表格',
+            isSupported: (ctx) => ctx.editorType === EditorType.RICH_TEXT,
+            run: (ctx, payload: { rows?: number; cols?: number } = {}) => {
+                const rows = payload.rows ?? 2
+                const cols = payload.cols ?? 2
+                const table = createRichTextNode('table')
+                table.children = []
+                for (let r = 0; r < rows; r++) {
+                    const row = createRichTextNode('tableRow')
+                    row.children = []
+                    for (let c = 0; c < cols; c++) {
+                        row.children.push(createRichTextNode('tableCell', ''))
+                    }
+                    table.children.push(row)
+                }
+                ctx.adapter?.addNode(table)
+            },
+            priority: () => 100,
+        },
+        {
+            id: 'insertLink',
+            title: '插入链接',
+            isSupported: (ctx) => ctx.editorType === EditorType.RICH_TEXT,
+            run: (ctx, payload: { text: string; href: string }) => {
+                const link = createRichTextNode('link', payload?.text || '链接', { href: payload?.href || '#' })
+                ctx.adapter?.addNode(link)
+            },
+            priority: () => 100,
+        },
+    ])
+
+    const getCommandContext = useCallback((): CommandContext => ({
+        editorType,
+        sceneTemplate,
+        selection,
+        adapter: adapterRef.current,
+        getAST: () => ast,
+    }), [editorType, sceneTemplate, selection, ast])
+
+    const runCommand = useCallback(async (commandId: string, payload?: any) => {
+        const ctx = getCommandContext()
+        const candidates = commandRegistry.current
+            .filter(cmd => cmd.id === commandId && cmd.isSupported(ctx))
+            .sort((a, b) => (b.priority?.(ctx) || 0) - (a.priority?.(ctx) || 0))
+        const command = candidates[0]
+        if (!command) return
+        await command.run(ctx, payload)
+    }, [getCommandContext])
+
+    // 暴露统一命令入口
+    useImperativeHandle(ref, (): EditorCommands => ({
+        runCommand,
+    }), [runCommand])
+
     // 生命周期管理
     useEffect(() => {
         createAdapter()
@@ -286,4 +387,6 @@ export default function EditorCore({
             </div>
         </div>
     )
-} 
+})
+
+export default EditorCore
