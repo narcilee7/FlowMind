@@ -6,15 +6,15 @@
 import { ViewAdapter, ViewAdapterOptions } from '../types/ViewAdapter'
 import { EditorType, SceneTemplate } from '../types/EditorType'
 import { DocumentAST, Selection, ASTOperation } from '../types/EditorAST'
-import { 
-    addNode, 
-    createDocumentAST, 
-    moveNode, 
-    updateNode, 
-    duplicateNode, 
-    serialize, 
-    deserialize, 
-    validateAST, 
+import {
+    addNode,
+    createDocumentAST,
+    moveNode,
+    updateNode,
+    duplicateNode,
+    serialize,
+    deserialize,
+    validateAST,
     removeNode
 } from '../utils/ASTUtils'
 import ViewAdapterFactory from './ViewAdapterFactory'
@@ -108,7 +108,7 @@ export class EditorManager {
         options: Partial<ViewAdapterOptions> = {}
     ): Promise<string> {
         const editorId = `editor_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
-        
+
         try {
             // 创建适配器
             const adapter = ViewAdapterFactory.createAdapter(type, {
@@ -375,7 +375,7 @@ export class EditorManager {
 
         this.historyIndex--
         const historyItem = this.history[this.historyIndex]
-        
+
         if (historyItem.astSnapshot) {
             this.updateAST(historyItem.astSnapshot)
             this.triggerEvent('undo', { operation: historyItem.operation })
@@ -395,7 +395,7 @@ export class EditorManager {
 
         this.historyIndex++
         const historyItem = this.history[this.historyIndex]
-        
+
         if (historyItem.astSnapshot) {
             this.updateAST(historyItem.astSnapshot)
             this.triggerEvent('redo', { operation: historyItem.operation })
@@ -429,7 +429,7 @@ export class EditorManager {
             const serialized = serialize(this.ast)
             // 这里可以添加实际的保存逻辑，比如保存到本地存储或服务器
             localStorage.setItem('editor_document', serialized)
-            
+
             this.triggerEvent('documentSaved', { ast: this.ast })
             return true
         } catch (error) {
@@ -445,7 +445,7 @@ export class EditorManager {
         try {
             const ast = deserialize(data)
             const validation = validateAST(ast)
-            
+
             if (!validation.success) {
                 this.handleError(new Error(validation.error!), 'loadDocument')
                 return false
@@ -454,7 +454,7 @@ export class EditorManager {
             this.ast = ast
             this.updateAST(ast)
             this.clearHistory()
-            
+
             this.triggerEvent('documentLoaded', { ast })
             return true
         } catch (error) {
@@ -597,7 +597,7 @@ export class EditorManager {
     private addToHistory(item: HistoryItem): void {
         // 移除当前位置之后的历史记录
         this.history = this.history.slice(0, this.historyIndex + 1)
-        
+
         // 添加新记录
         this.history.push(item)
         this.historyIndex++

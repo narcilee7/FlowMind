@@ -1,11 +1,69 @@
 /**
- * 画布视图适配器 - 简化版本
+ * 画布视图适配器 - 功能完整版本
+ * 
+ * 支持功能：
+ * - 多种绘图工具（画笔、形状、文本）
+ * - 图层管理
+ * - 选择和移动对象
+ * - 缩放和平移
+ * - 撤销/重做
  */
 
 import { CoreViewAdapter, AdapterCapabilities } from './BaseViewAdapter.optimized'
 import { ViewAdapterOptions, Viewport } from '@/components/Editor/types/ViewAdapter'
 import { EditorType, SceneTemplate } from '@/components/Editor/types/EditorType'
 import { DocumentAST, ASTNode, Selection } from '@/components/Editor/types/EditorAST'
+
+/**
+ * 绘图工具类型
+ */
+export enum DrawingTool {
+    NONE = 'none',
+    PEN = 'pen',
+    RECTANGLE = 'rectangle',
+    CIRCLE = 'circle',
+    LINE = 'line',
+    TEXT = 'text',
+    ERASER = 'eraser',
+    SELECT = 'select'
+}
+
+/**
+ * 画布对象接口
+ */
+export interface CanvasObject {
+    id: string
+    type: 'path' | 'rectangle' | 'circle' | 'line' | 'text'
+    data: any
+    style: {
+        stroke?: string
+        fill?: string
+        strokeWidth?: number
+        fontSize?: number
+        fontFamily?: string
+    }
+    bounds: {
+        x: number
+        y: number
+        width: number
+        height: number
+    }
+    selected?: boolean
+    visible?: boolean
+}
+
+/**
+ * 绘图状态
+ */
+interface DrawingState {
+    tool: DrawingTool
+    isDrawing: boolean
+    startX: number
+    startY: number
+    currentX: number
+    currentY: number
+    currentPath: Array<{x: number, y: number}>
+}
 
 export class CanvasViewAdapter extends CoreViewAdapter {
     public readonly type: EditorType.CANVAS = EditorType.CANVAS
@@ -19,8 +77,35 @@ export class CanvasViewAdapter extends CoreViewAdapter {
         supportsAI: true
     }
 
+    // Canvas相关
     private canvas: HTMLCanvasElement | null = null
     private ctx: CanvasRenderingContext2D | null = null
+    private offscreenCanvas: HTMLCanvasElement | null = null
+    private offscreenCtx: CanvasRenderingContext2D | null = null
+
+    // 工具栏和状态
+    private toolbar: HTMLElement | null = null
+    private drawingState: DrawingState = {
+        tool: DrawingTool.PEN,
+        isDrawing: false,
+        startX: 0,
+        startY: 0,
+        currentX: 0,
+        currentY: 0,
+        currentPath: []
+    }
+
+    // 画布对象和历史
+    private objects: CanvasObject[] = []
+    private selectedObjects: string[] = []
+    private history: CanvasObject[][] = []
+    private historyIndex: number = -1
+
+    // 视图状态
+    private viewport: Viewport = { x: 0, y: 0, width: 800, height: 600, zoom: 1 }
+    private isDragging: boolean = false
+    private lastPanX: number = 0
+    private lastPanY: number = 0
 
     constructor(sceneTemplate: SceneTemplate) {
         super(sceneTemplate)

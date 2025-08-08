@@ -438,9 +438,57 @@ export class AIMixin {
      * 调用 AI 服务
      */
     private async callAIService(endpoint: string, payload: any): Promise<any> {
-        // 这里应该是实际的 AI 服务调用
-        // 目前使用模拟实现
-        return this.simulateAIService(endpoint, payload)
+        try {
+            // 使用真实的AI服务
+            const { AIServiceManager } = await import('../services/AIService')
+            const aiService = AIServiceManager.getInstance()
+            
+            switch (endpoint) {
+                case 'completion':
+                    const completionResult = await aiService.completion({
+                        context: payload.context,
+                        maxLength: 200,
+                        format: 'text'
+                    })
+                    return completionResult.success ? completionResult.data?.text : this.simulateCompletion(payload)
+                    
+                case 'rewrite':
+                    const rewriteResult = await aiService.rewrite({
+                        content: payload.content,
+                        style: payload.style as any,
+                        language: 'zh-CN'
+                    })
+                    return rewriteResult.success ? rewriteResult.data?.text : this.simulateRewrite(payload)
+                    
+                case 'research':
+                    const researchResult = await aiService.research({
+                        query: payload.query,
+                        depth: 'intermediate',
+                        includeReferences: true,
+                        language: 'zh-CN'
+                    })
+                    return rewriteResult.success ? researchResult.data : this.simulateResearch(payload)
+                    
+                case 'knowledge-extraction':
+                    const knowledgeResult = await aiService.extractKnowledge({
+                        content: payload.content,
+                        extractTypes: ['entities', 'concepts', 'relationships', 'summary', 'keywords'],
+                        language: 'zh-CN'
+                    })
+                    return knowledgeResult.success ? knowledgeResult.data : this.simulateKnowledgeExtraction(payload)
+                    
+                case 'content-analysis':
+                case 'smart-format':
+                case 'suggestions':
+                default:
+                    // 对于未实现的端点，回退到模拟
+                    return this.simulateAIService(endpoint, payload)
+            }
+        } catch (error) {
+            console.warn('[AI] Service call failed, falling back to simulation:', error)
+            // 如果AI服务调用失败，回退到模拟实现
+            return this.simulateAIService(endpoint, payload)
+        }
     }
 
     /**
