@@ -16,7 +16,7 @@
 
 import React, { useEffect, useRef, useState, useCallback, useMemo, forwardRef, useImperativeHandle } from 'react'
 import { ViewAdapter } from '@/components/Editor/types/ViewAdapter'
-import { EditorType, SceneTemplate } from '@/components/Editor/types/editorType'
+import { EditorType, SceneTemplate } from '@/components/Editor/types/EditorType'
 import { DocumentAST, Selection } from '@/components/Editor/types/EditorAST'
 import { EditorTheme } from '@/components/Editor/types/EditorTheme'
 import ViewAdapterFactory from '@/components/Editor/core/ViewAdapterFactory'
@@ -73,13 +73,13 @@ const EditorCore = forwardRef<EditorCommands, EditorCoreProps>(function EditorCo
     editorType = EditorType.RICH_TEXT,
     sceneTemplate = SceneTemplate.WRITING,
     theme = 'auto',
-    onASTChange,
+    // onASTChange, // 初版内核仅内部维护 AST，由上层场景容器统一持久化
     onSelectionChange,
     onViewChange,
     onError,
 }: EditorCoreProps, ref) {
     // 状态管理
-    const [ast, setAST] = useState<DocumentAST>(() => initialAST || createDocumentAST())
+    const [ast] = useState<DocumentAST>(() => initialAST || createDocumentAST())
     const [selection, setSelection] = useState<Selection>({ 
         nodeIds: [], 
         type: 'node' 
@@ -115,6 +115,10 @@ const EditorCore = forwardRef<EditorCommands, EditorCoreProps>(function EditorCo
                 sceneTemplate,
                 options: {
                     theme: effectiveTheme,
+                },
+                onError: (err: Error) => {
+                    setError(err)
+                    onError?.(err)
                 }
             })
 
@@ -129,16 +133,30 @@ const EditorCore = forwardRef<EditorCommands, EditorCoreProps>(function EditorCo
             })
 
             // 设置初始AST
-            adapter.render(ast)
+            try {
+                adapter.render(ast)
+            } catch (err) {
+                const error = err instanceof Error ? err : new Error('Failed to render initial AST')
+                setError(error)
+                onError?.(error)
+            }
 
             // 绑定事件
             adapter.onSelectionChange((newSelection) => {
-                setSelection(newSelection)
-                onSelectionChange?.(newSelection)
+                try {
+                    setSelection(newSelection)
+                    onSelectionChange?.(newSelection)
+                } catch (err) {
+                    console.error('Selection change handler error:', err)
+                }
             })
 
             adapter.onViewChange((viewData) => {
-                onViewChange?.(viewData)
+                try {
+                    onViewChange?.(viewData)
+                } catch (err) {
+                    console.error('View change handler error:', err)
+                }
             })
 
             adapter.onError((error) => {
@@ -168,46 +186,10 @@ const EditorCore = forwardRef<EditorCommands, EditorCoreProps>(function EditorCo
         }
     }, [])
 
-    // 更新AST
-    const updateAST = useCallback(async (newAST: DocumentAST) => {
-        setAST(newAST)
-        onASTChange?.(newAST)
-
-        if (adapterRef.current) {
-            try {
-                adapterRef.current.update(newAST)
-            } catch (err) {
-                const error = err instanceof Error ? err : new Error('Failed to update AST')
-                setError(error)
-                onError?.(error)
-            }
-        }
-    }, [onASTChange, onError])
-
-    // 更新选择状态
-    const updateSelection = useCallback(async (newSelection: Selection) => {
-        setSelection(newSelection)
-        onSelectionChange?.(newSelection)
-
-        if (adapterRef.current) {
-            try {
-                adapterRef.current.setSelection(newSelection)
-            } catch (err) {
-                const error = err instanceof Error ? err : new Error('Failed to update selection')
-                setError(error)
-                onError?.(error)
-            }
-        }
-    }, [onSelectionChange, onError])
-
-    // 切换编辑器类型
-    const switchEditorType = useCallback(async (newType: EditorType) => {
-        await destroyAdapter()
-        // 重新创建适配器会在useEffect中触发
-    }, [destroyAdapter])
+    // 仅保留 Theme 切换，类型切换由上层容器处理
 
     // 切换主题
-    const switchTheme = useCallback(async (newTheme: EditorTheme) => {
+    const switchTheme = useCallback(async (_newTheme: EditorTheme) => {
         if (adapterRef.current) {
             try {
                 // 重新创建适配器以应用新主题

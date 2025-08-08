@@ -8,7 +8,7 @@ import React, { useMemo } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { EditorMode } from '@/components/Editor/types/EditorMode'
 import { EditorType, SceneTemplate } from '@/components/Editor/types/EditorType'
-import EditorCore, { EditorCommands } from '@/components/Editor/core/EditorCore'
+import { EditorKit } from '@/components/Editor/EditorKit'
 
 interface EditorShellProps {
   mode: EditorMode
@@ -85,7 +85,7 @@ const EditorShell = React.memo(function EditorShell({ mode }: EditorShellProps) 
   const editorType = useMemo(() => mapModeToEditorType(mode), [mode])
   const sceneTemplate = useMemo(() => mapToSceneTemplate(mode, templateParam), [mode, templateParam])
 
-  const editorRef = React.useRef<EditorCommands>(null)
+  // 使用高层集成组件 EditorKit，统一适配器和AI/性能配置
 
   // 暂时的空状态占位（各模式）
   const EmptyState = () => {
@@ -108,11 +108,13 @@ const EditorShell = React.memo(function EditorShell({ mode }: EditorShellProps) 
 
   return (
     <div className="w-full h-full relative">
-      <EditorCore
-        ref={editorRef}
-        editorType={editorType}
+      <EditorKit
+        initialType={editorType}
         sceneTemplate={sceneTemplate}
         className="w-full h-full"
+        enableAI
+        enablePerformanceMonitoring
+        enableErrorHandling
       />
       <div className="pointer-events-none absolute top-0 left-0">
         <EmptyState />

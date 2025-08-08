@@ -342,7 +342,7 @@ export class PluginLoader {
         }
     }
 
-    private async executePluginCode(code: string, url: string): Promise<any> {
+    private async executePluginCode(code: string, _url: string): Promise<any> {
         // 创建沙箱环境
         const sandbox = {
             console,
@@ -447,7 +447,18 @@ export class PluginSystem {
                 throw new Error('Plugin system not initialized')
             }
 
-            const plugin = new PluginClass(metadata, this.context)
+            // 某些情况下 PluginClass 可能是抽象占位（类型或未正确导出），需防御处理
+            if (typeof PluginClass !== 'function') {
+                throw new Error('Invalid plugin class: not a constructible function')
+            }
+            // 运行时进一步校验不为抽象：尝试检查原型是否包含必要方法
+            const requiredMethods: Array<keyof BasePlugin> = ['onLoad', 'onUnload'] as any
+            for (const m of requiredMethods) {
+                if (!(m in PluginClass.prototype)) {
+                    throw new Error(`Invalid plugin class: missing method ${String(m)}`)
+                }
+            }
+            const plugin = new (PluginClass as any)(metadata, this.context)
 
             // 设置存储
             this.storage.set(metadata.id, this.createPluginStorage(metadata.id))
@@ -805,9 +816,9 @@ export class PluginSystem {
         return dependents
     }
 
-    private clearPluginEvents(pluginId: string): void {
+    private clearPluginEvents(_pluginId: string): void {
         // 清理插件相关的事件监听器
-        this.eventBus.forEach((callbacks, event) => {
+        this.eventBus.forEach((_callbacks, _event) => {
             // 这里需要更复杂的逻辑来识别插件的回调函数
             // 简化实现，实际项目中需要更好的追踪机制
         })

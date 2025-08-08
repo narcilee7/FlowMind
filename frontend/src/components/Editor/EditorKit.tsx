@@ -20,7 +20,7 @@ import React, {
     useMemo
 } from 'react'
 import { optimizedAdapterFactory } from './core/ViewAdapterFactory.optimized'
-import { CoreViewAdapter, EnhancedAdapter } from './adapters/BaseViewAdapter.optimized'
+import { CoreViewAdapter, ErrorHandlingMixin, PerformanceMonitoringMixin, AIMixin } from './adapters/BaseViewAdapter.optimized'
 import { EditorType, SceneTemplate } from './types/EditorType'
 import { DocumentAST, ASTNode, Selection } from './types/EditorAST'
 import { createDefaultOptimizationConfig, PerformanceOptimizer } from './utils/PerformanceOptimizer'
@@ -136,7 +136,7 @@ export const EditorKit = forwardRef<EditorKitHandle, EditorKitConfig>((props, re
         enableAI = true,
         enablePerformanceMonitoring = true,
         enableErrorHandling = true,
-        enableAutoSave = false,
+        enableAutoSave: _enableAutoSave = false,
         theme = 'auto',
         className = '',
         style = {},
@@ -145,7 +145,7 @@ export const EditorKit = forwardRef<EditorKitHandle, EditorKitConfig>((props, re
         onError,
         onReady,
         onSceneChange,
-        aiConfig,
+        aiConfig: _aiConfig,
         performanceConfig
     } = props
 
@@ -153,7 +153,8 @@ export const EditorKit = forwardRef<EditorKitHandle, EditorKitConfig>((props, re
     const containerRef = useRef<HTMLDivElement>(null)
     
     // 适配器实例
-    const [adapter, setAdapter] = useState<EnhancedAdapter | null>(null)
+    type AdapterInstance = CoreViewAdapter & Partial<ErrorHandlingMixin & PerformanceMonitoringMixin & AIMixin> & { checkPerformanceHealth?: () => any }
+    const [adapter, setAdapter] = useState<AdapterInstance | null>(null)
     
     // 性能优化器
     const performanceOptimizer = useMemo(() => {
@@ -214,7 +215,7 @@ export const EditorKit = forwardRef<EditorKitHandle, EditorKitConfig>((props, re
     const createAdapter = useCallback(async (
         type: EditorType,
         scene: SceneTemplate
-    ): Promise<EnhancedAdapter> => {
+    ): Promise<AdapterInstance> => {
         setState(prev => ({ ...prev, isLoading: true, error: null }))
         
         try {
@@ -230,15 +231,14 @@ export const EditorKit = forwardRef<EditorKitHandle, EditorKitConfig>((props, re
                 onProgress: (progress) => {
                     console.log('[EditorKit] Loading progress:', progress.message)
                 }
-            }) as EnhancedAdapter
+            }) as AdapterInstance
 
             // 配置适配器
             if (containerRef.current) {
                 await newAdapter.create(containerRef.current, {
                     theme: theme === 'auto' ? getSystemTheme() : theme,
-                    placeholder: getPlaceholderForScene(scene),
                     autoFocus: true
-                })
+                } as any)
             }
 
             // 设置事件监听
@@ -267,7 +267,7 @@ export const EditorKit = forwardRef<EditorKitHandle, EditorKitConfig>((props, re
     /**
      * 设置适配器事件监听
      */
-    const setupAdapterEvents = useCallback((adapterInstance: EnhancedAdapter) => {
+    const setupAdapterEvents = useCallback((adapterInstance: AdapterInstance) => {
         // 内容变化事件
         adapterInstance.on('viewChange', (data) => {
             if (data.type === 'contentUpdate') {
@@ -298,7 +298,7 @@ export const EditorKit = forwardRef<EditorKitHandle, EditorKitConfig>((props, re
         })
 
         // 性能监控
-        if (enablePerformanceMonitoring && adapterInstance.getPerformanceStats) {
+        if (enablePerformanceMonitoring && 'getPerformanceStats' in adapterInstance && adapterInstance.getPerformanceStats) {
             const stats = adapterInstance.getPerformanceStats()
             console.log('[EditorKit] Performance stats:', stats)
         }
@@ -390,21 +390,21 @@ export const EditorKit = forwardRef<EditorKitHandle, EditorKitConfig>((props, re
                     switchEditor,
                     getRecommendedEditors: () => optimizedAdapterFactory.getRecommendedTypes(state.sceneTemplate),
                     requestAICompletion: async (context) => {
-                        if (adapterInstance && adapterInstance.requestAICompletion) {
+                        if (adapterInstance && 'requestAICompletion' in adapterInstance && adapterInstance.requestAICompletion) {
                             return await adapterInstance.requestAICompletion(context || '', 0)
                         }
                         throw new Error('AI completion not available')
                     },
                     requestAIRewrite: async (style) => {
-                        if (adapterInstance && adapterInstance.requestAIRewrite) {
+                        if (adapterInstance && 'requestAIRewrite' in adapterInstance && adapterInstance.requestAIRewrite) {
                             return await adapterInstance.requestAIRewrite(extractTextContent(state.content), style || 'improve')
                         }
                         throw new Error('AI rewrite not available')
                     },
                     getAISuggestions: async () => {
-                        if (adapterInstance && adapterInstance.getAISuggestions) {
+                        if (adapterInstance && 'getAISuggestions' in adapterInstance && adapterInstance.getAISuggestions) {
                             const suggestions = await adapterInstance.getAISuggestions()
-                            return suggestions.map(s => typeof s === 'string' ? s : s.text || '')
+                            return (suggestions as any[]).map((s: any) => typeof s === 'string' ? s : s.text || '')
                         }
                         return []
                     },
@@ -412,13 +412,13 @@ export const EditorKit = forwardRef<EditorKitHandle, EditorKitConfig>((props, re
                     getAdapterType: () => state.currentType,
                     getSceneTemplate: () => state.sceneTemplate,
                     getPerformanceStats: () => {
-                        if (adapterInstance && adapterInstance.getPerformanceStats) {
+                        if (adapterInstance && 'getPerformanceStats' in adapterInstance && adapterInstance.getPerformanceStats) {
                             return adapterInstance.getPerformanceStats()
                         }
                         return performanceOptimizer.getPerformanceStats()
                     },
                     getHealthStatus: () => {
-                        if (adapterInstance && adapterInstance.checkPerformanceHealth) {
+                        if (adapterInstance && 'checkPerformanceHealth' in adapterInstance && adapterInstance.checkPerformanceHealth) {
                             return adapterInstance.checkPerformanceHealth()
                         }
                         return { isHealthy: true, issues: [] }
@@ -609,21 +609,6 @@ function getSystemTheme(): 'light' | 'dark' {
 /**
  * 根据场景获取占位符文本
  */
-function getPlaceholderForScene(scene: SceneTemplate): string {
-    switch (scene) {
-        case SceneTemplate.WRITING:
-            return '开始写作...'
-        case SceneTemplate.RESEARCH:
-            return '开始研究记录...'
-        case SceneTemplate.PLANNING:
-            return '开始规划...'
-        case SceneTemplate.LEARNING:
-            return '开始学习笔记...'
-        case SceneTemplate.CREATIVE:
-            return '发挥创意...'
-        default:
-            return '开始编辑...'
-    }
-}
+// 占位符已由具体适配器实现或主题占位，移除未使用的辅助
 
 export default EditorKit
