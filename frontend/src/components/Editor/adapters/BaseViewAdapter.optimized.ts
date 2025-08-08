@@ -11,7 +11,6 @@
 import { ViewAdapterOptions, Viewport } from '@/components/Editor/types/ViewAdapter'
 import { EditorType, SceneTemplate } from '@/components/Editor/types/EditorType'
 import { DocumentAST, ASTNode, Selection } from '@/components/Editor/types/EditorAST'
-// import { EditorTheme } from '@/components/Editor/types/EditorTheme'
 
 // === 核心接口定义 ===
 

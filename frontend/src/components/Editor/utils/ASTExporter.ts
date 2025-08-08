@@ -342,8 +342,8 @@ ${htmlOptions.customCSS || ''}
 
         switch (node.type) {
             case 'document':
-                if (node.children) {
-                    html = node.children.map(child => this.astNodeToHTML(child, depth)).join('')
+                if ('children' in node && node.children) {
+                    html = node.children.map((child: ASTNode) => this.astNodeToHTML(child, depth)).join('')
                 }
                 break
 
@@ -354,57 +354,66 @@ ${htmlOptions.customCSS || ''}
                 break
 
             case 'paragraph':
-                html = `<p>${this.escapeHTML(node.content || '')}</p>\n`
+                const content = 'content' in node ? node.content || '' : ''
+                html = `<p>${this.escapeHTML(content)}</p>\n`
                 break
 
             case 'blockquote':
-                html = `<blockquote>${this.escapeHTML(node.content || '')}</blockquote>\n`
+                const blockquoteContent = 'content' in node ? node.content || '' : ''
+                html = `<blockquote>${this.escapeHTML(blockquoteContent)}</blockquote>\n`
                 break
 
             case 'codeBlock':
-                const language = (node as RichTextNode).attributes?.language || ''
-                html = `<pre><code class="language-${language}">${this.escapeHTML(node.content || '')}</code></pre>\n`
+                const language = 'attributes' in node && node.attributes ? (node.attributes as any).language || '' : ''
+                const codeContent = 'content' in node ? node.content || '' : ''
+                html = `<pre><code class="language-${language}">${this.escapeHTML(codeContent)}</code></pre>\n`
                 break
 
             case 'list':
-                const listType = (node as RichTextNode).attributes?.ordered ? 'ol' : 'ul'
-                const listItems = node.children?.map(child => this.astNodeToHTML(child, depth + 1)).join('') || ''
+                const listType = 'attributes' in node && node.attributes && (node.attributes as any).ordered ? 'ol' : 'ul'
+                const listItems = 'children' in node && node.children ?
+                    node.children.map((child: ASTNode) => this.astNodeToHTML(child, depth + 1)).join('') : ''
                 html = `<${listType}>\n${listItems}</${listType}>\n`
                 break
 
             case 'listItem':
-                html = `<li>${this.escapeHTML(node.content || '')}</li>\n`
+                const listItemContent = 'content' in node ? node.content || '' : ''
+                html = `<li>${this.escapeHTML(listItemContent)}</li>\n`
                 break
 
             case 'table':
-                const tableContent = node.children?.map(child => this.astNodeToHTML(child, depth + 1)).join('') || ''
+                const tableContent = 'children' in node && node.children ?
+                    node.children.map((child: ASTNode) => this.astNodeToHTML(child, depth + 1)).join('') : ''
                 html = `<table>\n${tableContent}</table>\n`
                 break
 
             case 'tableRow':
-                const rowContent = node.children?.map(child => this.astNodeToHTML(child, depth + 1)).join('') || ''
+                const rowContent = 'children' in node && node.children ?
+                    node.children.map((child: ASTNode) => this.astNodeToHTML(child, depth + 1)).join('') : ''
                 html = `<tr>\n${rowContent}</tr>\n`
                 break
 
             case 'tableCell':
-                html = `<td>${this.escapeHTML(node.content || '')}</td>\n`
+                const cellContent = 'content' in node ? node.content || '' : ''
+                html = `<td>${this.escapeHTML(cellContent)}</td>\n`
                 break
 
             case 'image':
-                const src = (node as RichTextNode).attributes?.src || ''
-                const alt = (node as RichTextNode).attributes?.alt || ''
+                const src = 'attributes' in node && node.attributes ? (node.attributes as any).src || '' : ''
+                const alt = 'attributes' in node && node.attributes ? (node.attributes as any).alt || '' : ''
                 html = `<img src="${this.escapeHTML(src)}" alt="${this.escapeHTML(alt)}" />\n`
                 break
 
             case 'link':
-                const href = (node as RichTextNode).attributes?.href || '#'
-                html = `<a href="${this.escapeHTML(href)}">${this.escapeHTML(node.content || '')}</a>`
+                const href = 'attributes' in node && node.attributes ? (node.attributes as any).href || '#' : '#'
+                const linkContent = 'content' in node ? node.content || '' : ''
+                html = `<a href="${this.escapeHTML(href)}">${this.escapeHTML(linkContent)}</a>`
                 break
 
             default:
-                if (node.children) {
-                    html = node.children.map(child => this.astNodeToHTML(child, depth)).join('')
-                } else if (node.content) {
+                if ('children' in node && node.children) {
+                    html = node.children.map((child: ASTNode) => this.astNodeToHTML(child, depth)).join('')
+                } else if ('content' in node && node.content) {
                     html = this.escapeHTML(node.content)
                 }
         }
@@ -420,8 +429,8 @@ ${htmlOptions.customCSS || ''}
 
         switch (node.type) {
             case 'document':
-                if (node.children) {
-                    markdown = node.children.map(child => this.astNodeToMarkdown(child, options, depth)).join('')
+                if ('children' in node && node.children) {
+                    markdown = node.children.map((child: ASTNode) => this.astNodeToMarkdown(child, options, depth)).join('')
                 }
                 break
 
@@ -432,43 +441,48 @@ ${htmlOptions.customCSS || ''}
                 break
 
             case 'paragraph':
-                markdown = `${node.content || ''}\n\n`
+                const paraContent = 'content' in node ? node.content || '' : ''
+                markdown = `${paraContent}\n\n`
                 break
 
             case 'blockquote':
-                markdown = `> ${node.content || ''}\n\n`
+                const quoteContent = 'content' in node ? node.content || '' : ''
+                markdown = `> ${quoteContent}\n\n`
                 break
 
             case 'codeBlock':
-                const language = (node as RichTextNode).attributes?.language || ''
-                markdown = `\`\`\`${language}\n${node.content || ''}\n\`\`\`\n\n`
+                const mdLanguage = 'attributes' in node && node.attributes ? (node.attributes as any).language || '' : ''
+                const mdCodeContent = 'content' in node ? node.content || '' : ''
+                markdown = `\`\`\`${mdLanguage}\n${mdCodeContent}\n\`\`\`\n\n`
                 break
 
             case 'list':
-                const ordered = (node as RichTextNode).attributes?.ordered
-                if (node.children) {
-                    node.children.forEach((child, index) => {
+                const ordered = 'attributes' in node && node.attributes && (node.attributes as any).ordered
+                if ('children' in node && node.children) {
+                    node.children.forEach((child: ASTNode, index: number) => {
                         const prefix = ordered ? `${index + 1}. ` : '- '
-                        const content = child.content || ''
-                        markdown += `${prefix}${content}\n`
+                        const childContent = 'content' in child ? child.content || '' : ''
+                        markdown += `${prefix}${childContent}\n`
                     })
                     markdown += '\n'
                 }
                 break
 
             case 'table':
-                if (node.children && node.children.length > 0) {
+                if ('children' in node && node.children && node.children.length > 0) {
                     // 处理表格头
                     const firstRow = node.children[0]
-                    if (firstRow.children) {
-                        markdown += '| ' + firstRow.children.map(cell => cell.content || '').join(' | ') + ' |\n'
+                    if ('children' in firstRow && firstRow.children) {
+                        markdown += '| ' + firstRow.children.map((cell: ASTNode) =>
+                            'content' in cell ? cell.content || '' : '').join(' | ') + ' |\n'
                         markdown += '|' + firstRow.children.map(() => ' --- ').join('|') + '|\n'
 
                         // 处理其余行
                         for (let i = 1; i < node.children.length; i++) {
                             const row = node.children[i]
-                            if (row.children) {
-                                markdown += '| ' + row.children.map(cell => cell.content || '').join(' | ') + ' |\n'
+                            if ('children' in row && row.children) {
+                                markdown += '| ' + row.children.map((cell: ASTNode) =>
+                                    'content' in cell ? cell.content || '' : '').join(' | ') + ' |\n'
                             }
                         }
                         markdown += '\n'
@@ -477,26 +491,26 @@ ${htmlOptions.customCSS || ''}
                 break
 
             case 'image':
-                const src = (node as RichTextNode).attributes?.src || ''
-                const alt = (node as RichTextNode).attributes?.alt || ''
-                const imagePath = options.imagePathPrefix + src
-                markdown = `![${alt}](${imagePath})\n\n`
+                const mdSrc = 'attributes' in node && node.attributes ? (node.attributes as any).src || '' : ''
+                const mdAlt = 'attributes' in node && node.attributes ? (node.attributes as any).alt || '' : ''
+                const imagePath = options.imagePathPrefix + mdSrc
+                markdown = `![${mdAlt}](${imagePath})\n\n`
                 break
 
             case 'link':
-                const href = (node as RichTextNode).attributes?.href || '#'
-                const text = node.content || ''
+                const mdHref = 'attributes' in node && node.attributes ? (node.attributes as any).href || '#' : '#'
+                const linkText = 'content' in node ? node.content || '' : ''
                 if (options.linkFormat === 'html') {
-                    markdown = `<a href="${href}">${text}</a>`
+                    markdown = `<a href="${mdHref}">${linkText}</a>`
                 } else {
-                    markdown = `[${text}](${href})`
+                    markdown = `[${linkText}](${mdHref})`
                 }
                 break
 
             default:
-                if (node.children) {
-                    markdown = node.children.map(child => this.astNodeToMarkdown(child, options, depth)).join('')
-                } else if (node.content) {
+                if ('children' in node && node.children) {
+                    markdown = node.children.map((child: ASTNode) => this.astNodeToMarkdown(child, options, depth)).join('')
+                } else if ('content' in node && node.content) {
                     markdown = node.content
                 }
         }
@@ -585,7 +599,7 @@ ${htmlOptions.customCSS || ''}
     /**
      * HTML转PDF
      */
-    private static async htmlToPDF(html: string, pdfOptions: any = {}): Promise<Blob> {
+    private static async htmlToPDF(html: string, _pdfOptions: any = {}): Promise<Blob> {
         // 创建隐藏的iframe用于打印
         const iframe = document.createElement('iframe')
         iframe.style.position = 'absolute'

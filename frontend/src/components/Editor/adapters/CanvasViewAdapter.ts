@@ -62,7 +62,7 @@ interface DrawingState {
     startY: number
     currentX: number
     currentY: number
-    currentPath: Array<{x: number, y: number}>
+    currentPath: Array<{ x: number, y: number }>
 }
 
 export class CanvasViewAdapter extends CoreViewAdapter {
@@ -112,21 +112,44 @@ export class CanvasViewAdapter extends CoreViewAdapter {
     }
 
     protected async performCreate(element: HTMLElement, options: ViewAdapterOptions): Promise<void> {
+        // 创建容器
+        const container = document.createElement('div')
+        container.style.position = 'relative'
+        container.style.width = '100%'
+        container.style.height = '100%'
+        element.appendChild(container)
+
+        // 创建工具栏
+        this.createToolbar(container)
+
+        // 创建画布
         this.canvas = document.createElement('canvas')
         this.canvas.width = 800
         this.canvas.height = 600
         this.canvas.style.border = '1px solid #ccc'
         this.canvas.style.background = 'white'
+        this.canvas.style.cursor = 'crosshair'
+        this.canvas.style.display = 'block'
+        this.canvas.style.margin = '10px auto'
 
-        element.appendChild(this.canvas)
+        container.appendChild(this.canvas)
 
         this.ctx = this.canvas.getContext('2d')
         if (!this.ctx) {
             throw new Error('Failed to get canvas context')
         }
 
-        // 绘制示例内容
-        this.drawExample()
+        // 创建离屏画布用于优化
+        this.offscreenCanvas = document.createElement('canvas')
+        this.offscreenCanvas.width = 800
+        this.offscreenCanvas.height = 600
+        this.offscreenCtx = this.offscreenCanvas.getContext('2d')
+
+        // 绑定事件
+        this.bindEvents()
+
+        // 初始化画布
+        this.redraw()
     }
 
     protected performDestroy(): void {
