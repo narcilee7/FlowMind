@@ -7,8 +7,8 @@
 import React, { useMemo } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { EditorMode } from '@/components/Editor/types/EditorMode'
-import { EditorType, SceneTemplate } from '@/components/Editor/types/editorType'
-import EditorCore from './EditorCore'
+import { EditorType, SceneTemplate } from '@/components/Editor/types/EditorType'
+import EditorCore, { EditorCommands } from '@/components/Editor/core/EditorCore'
 
 interface EditorShellProps {
   mode: EditorMode
@@ -85,12 +85,39 @@ const EditorShell = React.memo(function EditorShell({ mode }: EditorShellProps) 
   const editorType = useMemo(() => mapModeToEditorType(mode), [mode])
   const sceneTemplate = useMemo(() => mapToSceneTemplate(mode, templateParam), [mode, templateParam])
 
+  const editorRef = React.useRef<EditorCommands>(null)
+
+  // 暂时的空状态占位（各模式）
+  const EmptyState = () => {
+    switch (mode) {
+      case 'writing':
+        return <div className="p-6 text-sm text-muted-foreground">开始写作，按 / 唤起命令，Cmd/Ctrl+K 打开命令面板</div>
+      case 'graph':
+        return <div className="p-6 text-sm text-muted-foreground">图谱视图：后续接入节点/关系渲染</div>
+      case 'canvas':
+        return <div className="p-6 text-sm text-muted-foreground">画布视图：后续接入画布与形状工具</div>
+      case 'table':
+        return <div className="p-6 text-sm text-muted-foreground">表格视图：后续接入数据表格</div>
+      case 'timeline':
+      case 'card':
+        return <div className="p-6 text-sm text-muted-foreground">时间线/卡片视图：后续接入任务/学习卡片</div>
+      default:
+        return null
+    }
+  }
+
   return (
-    <EditorCore
-      editorType={editorType}
-      sceneTemplate={sceneTemplate}
-      className="w-full h-full"
-    />
+    <div className="w-full h-full relative">
+      <EditorCore
+        ref={editorRef}
+        editorType={editorType}
+        sceneTemplate={sceneTemplate}
+        className="w-full h-full"
+      />
+      <div className="pointer-events-none absolute top-0 left-0">
+        <EmptyState />
+      </div>
+    </div>
   )
 })
 
