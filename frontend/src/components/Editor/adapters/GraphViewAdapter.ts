@@ -82,15 +82,15 @@ export class GraphViewAdapter extends CoreViewAdapter {
 
     protected async performCreate(element: HTMLElement, options: ViewAdapterOptions): Promise<void> {
         this.container = element
-        
+
         try {
             // 动态加载 vis-network
             const { Network, DataSet } = await import('vis-network/standalone')
-            
+
             // 初始化数据
             const nodesDataSet = new DataSet(this.nodes)
             const edgesDataSet = new DataSet(this.edges)
-            
+
             // 网络配置
             const networkOptions = {
                 nodes: {
@@ -151,7 +151,7 @@ export class GraphViewAdapter extends CoreViewAdapter {
 
             // 设置事件监听
             this.setupEventListeners()
-            
+
             // 添加默认节点（如果是新图）
             if (this.nodes.length === 0) {
                 this.addDefaultNodes()
@@ -182,6 +182,12 @@ export class GraphViewAdapter extends CoreViewAdapter {
 
         // 更新网络数据
         this.network.setData({ nodes, edges })
+        // 视图与内容变更事件（最小实现）
+        this.emit('viewChange', {
+            type: 'contentUpdate',
+            astVersion: ast.version,
+            updatedAt: ast.metadata?.updatedAt
+        })
     }
 
     protected performUpdateNode(nodeId: string, node: ASTNode): void {
@@ -190,7 +196,7 @@ export class GraphViewAdapter extends CoreViewAdapter {
             const content = (node as any).content || {}
             graphNode.label = content.label || graphNode.label
             graphNode.color = content.color || graphNode.color
-            
+
             if (this.network) {
                 this.network.setData({ nodes: this.nodes, edges: this.edges })
             }
@@ -201,7 +207,7 @@ export class GraphViewAdapter extends CoreViewAdapter {
         // 移除节点和相关边
         this.nodes = this.nodes.filter(n => n.id !== nodeId)
         this.edges = this.edges.filter(e => e.from !== nodeId && e.to !== nodeId)
-        
+
         if (this.network) {
             this.network.setData({ nodes: this.nodes, edges: this.edges })
         }
@@ -217,9 +223,9 @@ export class GraphViewAdapter extends CoreViewAdapter {
                 shape: content.shape || 'circle',
                 size: content.size || 20
             }
-            
+
             this.nodes.push(graphNode)
-            
+
             // 如果有父节点，创建连接
             if (parentId) {
                 const edge: GraphEdge = {
@@ -230,7 +236,7 @@ export class GraphViewAdapter extends CoreViewAdapter {
                 }
                 this.edges.push(edge)
             }
-            
+
             if (this.network) {
                 this.network.setData({ nodes: this.nodes, edges: this.edges })
             }
@@ -252,7 +258,7 @@ export class GraphViewAdapter extends CoreViewAdapter {
 
         const selectedNodes = this.network.getSelectedNodes()
         const selectedEdges = this.network.getSelectedEdges()
-        
+
         return {
             nodeIds: [...selectedNodes, ...selectedEdges],
             type: 'node'
@@ -311,13 +317,13 @@ export class GraphViewAdapter extends CoreViewAdapter {
             shape: 'circle',
             size: 20
         }
-        
+
         this.nodes.push(node)
-        
+
         if (this.network) {
             this.network.setData({ nodes: this.nodes, edges: this.edges })
         }
-        
+
         return nodeId
     }
 
@@ -333,13 +339,13 @@ export class GraphViewAdapter extends CoreViewAdapter {
             label,
             arrows: 'to'
         }
-        
+
         this.edges.push(edge)
-        
+
         if (this.network) {
             this.network.setData({ nodes: this.nodes, edges: this.edges })
         }
-        
+
         return edgeId
     }
 
@@ -367,7 +373,7 @@ export class GraphViewAdapter extends CoreViewAdapter {
     public importGraph(data: { nodes: GraphNode[]; edges: GraphEdge[] }): void {
         this.nodes = [...data.nodes]
         this.edges = [...data.edges]
-        
+
         if (this.network) {
             this.network.setData({ nodes: this.nodes, edges: this.edges })
         }
@@ -413,6 +419,48 @@ export class GraphViewAdapter extends CoreViewAdapter {
                 viewport: this.performGetViewport()
             })
         })
+
+        this.network.on('dragEnd', () => {
+            // 节点位置变化后，也视为内容更新（最小实现）
+            this.emit('viewChange', {
+                type: 'contentUpdate'
+            })
+        })
+    }
+
+    /**
+     * 提供结构化 AST 获取（最小实现：仅从当前 nodes/edges 生成节点集合，挂到 root.children）
+     */
+    public getAST(): DocumentAST {
+        return {
+            version: '1.0.0',
+            type: 'document',
+            id: 'graph-doc',
+            root: {
+                id: 'root',
+                type: 'group',
+                position: { x: 0, y: 0 },
+                children: [
+                    ...this.nodes.map(n => ({
+                        id: n.id,
+                        type: 'graph-node',
+                        position: { x: n.x || 0, y: n.y || 0 },
+                        metadata: { createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
+                        children: [],
+                        content: { label: n.label, color: n.color, shape: n.shape, size: n.size }
+                    } as any)),
+                    ...this.edges.map(e => ({
+                        id: e.id,
+                        type: 'graph-edge',
+                        position: { x: 0, y: 0 },
+                        metadata: { createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
+                        children: [],
+                        content: { from: e.from, to: e.to, label: e.label, color: e.color, arrows: e.arrows }
+                    } as any))
+                ] as any
+            } as any,
+            metadata: { createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() }
+        }
     }
 
     private extractGraphFromAST(ast: DocumentAST): { nodes: GraphNode[]; edges: GraphEdge[] } {
@@ -458,7 +506,7 @@ export class GraphViewAdapter extends CoreViewAdapter {
         const node1 = this.addGraphNode('想法 1', { x: -200, y: -100 })
         const node2 = this.addGraphNode('想法 2', { x: 200, y: -100 })
         const node3 = this.addGraphNode('想法 3', { x: 0, y: 200 })
-        
+
         // 连接节点
         this.connectNodes(centerNode, node1, '关联')
         this.connectNodes(centerNode, node2, '关联')
@@ -471,7 +519,7 @@ export class GraphViewAdapter extends CoreViewAdapter {
         data.label = label
         data.color = '#97C2FC'
         callback(data)
-        
+
         // 添加到内部数据
         this.nodes.push(data)
     }
@@ -480,7 +528,7 @@ export class GraphViewAdapter extends CoreViewAdapter {
         const newLabel = prompt('编辑节点标签:', data.label) || data.label
         data.label = newLabel
         callback(data)
-        
+
         // 更新内部数据
         const node = this.nodes.find(n => n.id === data.id)
         if (node) {
@@ -494,7 +542,7 @@ export class GraphViewAdapter extends CoreViewAdapter {
             data.label = label
         }
         callback(data)
-        
+
         // 添加到内部数据
         this.edges.push(data)
     }
@@ -502,7 +550,7 @@ export class GraphViewAdapter extends CoreViewAdapter {
     private handleDeleteNode(data: any, callback: Function): void {
         if (confirm('确定要删除选中的节点吗？')) {
             callback(data)
-            
+
             // 从内部数据中移除
             data.nodes.forEach((nodeId: string) => {
                 this.nodes = this.nodes.filter(n => n.id !== nodeId)
@@ -516,7 +564,7 @@ export class GraphViewAdapter extends CoreViewAdapter {
     private handleDeleteEdge(data: any, callback: Function): void {
         if (confirm('确定要删除选中的连接吗？')) {
             callback(data)
-            
+
             // 从内部数据中移除
             data.edges.forEach((edgeId: string) => {
                 this.edges = this.edges.filter(e => e.id !== edgeId)
