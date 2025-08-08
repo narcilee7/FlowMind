@@ -11,6 +11,7 @@ export enum EditorErrorType {
     USER_INTERACTION = 'user_interaction',
     NETWORK = 'network',
     MEMORY = 'memory',
+    VALIDATION = 'validation',
     UNKNOWN = 'unknown'
 }
 
@@ -32,8 +33,10 @@ export interface EditorErrorInfo {
     type: EditorErrorType
     severity: EditorErrorSeverity
     message: string
+    stack?: string
     context: string
     timestamp: number
     recoverable: boolean
     retryCount: number
+    recovered?: boolean
 }

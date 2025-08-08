@@ -34,4 +34,10 @@ export interface PerformanceConfig {
     slowOperationThreshold: number
     // 内存警告阈值
     memoryWarningThreshold: number
+    // 采样间隔
+    samplingInterval: number
+    // 是否启用内存跟踪
+    enableMemoryTracking: boolean
+    // 是否启用渲染跟踪
+    enableRenderTracking: boolean
 }
