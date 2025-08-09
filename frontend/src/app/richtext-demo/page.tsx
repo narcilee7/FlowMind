@@ -1,23 +1,30 @@
 'use client'
 
 import React, { useRef, useEffect, useState } from 'react'
-import { RichTextViewAdapter } from '@/components/Editor/adapters/RichTextViewAdapter'
-import { SceneTemplate } from '@/components/Editor/types/EditorType'
+import { EditorKit } from '@/components/Editor/EditorKit'
+import { EditorType, SceneTemplate } from '@/components/Editor/types/EditorType'
+import { EditorKitHandle } from '@/components/Editor/types/EditorKit'
+import { DocumentAST } from '@/components/Editor/types/EditorAST'
 
 /**
- * RichText 富文本编辑器演示页面
+ * 富文本编辑器演示页面 - 通过EditorKit统一入口
  * 
  * 功能展示：
+ * - 通过EditorKit统一管理编辑器实例
+ * - 支持智能场景检测和编辑器切换
  * - 完整的富文本编辑功能
  * - 格式化工具栏
  * - 表格、图片、链接等元素
  * - 实时字数统计
  * - 导出功能
+ * - AI功能集成
  */
 export default function RichTextDemoPage() {
-  const editorRef = useRef<HTMLDivElement>(null)
-  const adapterRef = useRef<RichTextViewAdapter | null>(null)
+  const editorKitRef = useRef<EditorKitHandle>(null)
   const [isReady, setIsReady] = useState(false)
+  const [currentContent, setCurrentContent] = useState<DocumentAST | null>(null)
+  const [currentEditorType, setCurrentEditorType] = useState<EditorType>(EditorType.RICH_TEXT)
+  const [currentScene, setCurrentScene] = useState<SceneTemplate>(SceneTemplate.WRITING)
   const [stats, setStats] = useState({
     characters: 0,
     words: 0,
@@ -28,185 +35,154 @@ export default function RichTextDemoPage() {
     images: 0,
     links: 0
   })
-  const [formatState, setFormatState] = useState<any>({})
 
-  // 初始化编辑器
-  useEffect(() => {
-    const initEditor = async () => {
-      if (!editorRef.current) return
+  // 计算统计信息
+  const updateStats = (content: DocumentAST) => {
+    const textContent = extractTextContent(content)
+    const words = textContent.split(/\s+/).filter(word => word.length > 0).length
+    const characters = textContent.length
 
-      try {
-        const adapter = new RichTextViewAdapter(SceneTemplate.WRITING)
+    // 这里可以添加更复杂的统计逻辑
+    setStats({
+      characters,
+      words,
+      paragraphs: Math.max(1, textContent.split('\n').length),
+      headings: (textContent.match(/^#/gm) || []).length,
+      lists: (textContent.match(/^[-*+]|^\d+\./gm) || []).length,
+      tables: (textContent.match(/\|/g) || []).length / 4, // 简化的表格统计
+      images: (textContent.match(/!\[.*?\]\(.*?\)/g) || []).length,
+      links: (textContent.match(/\[.*?\]\(.*?\)/g) || []).length
+    })
+  }
 
-        await adapter.create(editorRef.current, {
-          placeholder: '开始您的写作...',
-          enableMarkdown: true,
-          enableTables: true,
-          enableImages: true,
-          enableTaskLists: true,
-          enableTypography: true,
-          enableTextAlign: true,
-          enableTextStyle: true,
-          enableHighlight: true,
-          autoFocus: true,
-          showCharacterCount: true,
-          showWordCount: true,
-          theme: 'light'
-        })
-
-        adapterRef.current = adapter
-        setIsReady(true)
-
-        // 监听内容变化
-        adapter.on('contentChanged', () => {
-          updateStats()
-          updateFormatState()
-        })
-
-        // 设置初始内容
-        const initialHTML = `
-                    <h1>欢迎使用 FlowMind 富文本编辑器</h1>
-                    <p>这是一个功能完整的富文本编辑器，基于 TipTap 构建。支持以下功能：</p>
-                    
-                    <h2>文本格式化</h2>
-                    <p>支持 <strong>粗体</strong>、<em>斜体</em>、<u>下划线</u>、<s>删除线</s> 和 <code>行内代码</code></p>
-                    
-                    <h2>列表</h2>
-                    <ul>
-                        <li>无序列表项 1</li>
-                        <li>无序列表项 2</li>
-                        <li>无序列表项 3</li>
-                    </ul>
-                    
-                    <ol>
-                        <li>有序列表项 1</li>
-                        <li>有序列表项 2</li>
-                        <li>有序列表项 3</li>
-                    </ol>
-                    
-                    <h2>引用</h2>
-                    <blockquote>
-                        <p>这是一个引用块，用于突出显示重要内容。</p>
-                    </blockquote>
-                    
-                    <h2>代码块</h2>
-                    <pre><code>function hello() {
-    console.log("Hello, FlowMind!");
-}</code></pre>
-                    
-                    <p>您可以使用工具栏中的按钮来格式化文本、插入表格、图片等。</p>
-                `
-        adapter.setHTML(initialHTML)
-
-        console.log('[RichTextDemo] Editor initialized successfully')
-      } catch (error) {
-        console.error('[RichTextDemo] Failed to initialize editor:', error)
+  // 提取文本内容的辅助函数
+  const extractTextContent = (ast: DocumentAST): string => {
+    const extractFromNode = (node: any): string => {
+      let text = ''
+      if (node.content && typeof node.content === 'string') {
+        text += node.content
       }
-    }
-
-    initEditor()
-
-    return () => {
-      if (adapterRef.current) {
-        adapterRef.current.destroy()
+      if (node.children) {
+        text += node.children.map(extractFromNode).join(' ')
       }
+      return text
     }
-  }, [])
+    return extractFromNode(ast.root).trim()
+  }
 
-  // 更新统计信息
-  const updateStats = () => {
-    if (adapterRef.current) {
-      const newStats = adapterRef.current.getDocumentStats()
-      setStats(newStats)
+  // 格式化按钮处理函数（通过EditorKit API）
+  const handleFormat = async (action: string) => {
+    if (!editorKitRef.current || !isReady) return
+
+    try {
+      const adapterType = editorKitRef.current.getAdapterType()
+      if (adapterType === EditorType.RICH_TEXT) {
+        // 使用EditorKit的executeCommand API来执行富文本格式化命令
+        switch (action) {
+          case 'bold':
+            await editorKitRef.current.executeCommand('toggleBold')
+            break
+          case 'italic':
+            await editorKitRef.current.executeCommand('toggleItalic')
+            break
+          case 'underline':
+            await editorKitRef.current.executeCommand('toggleUnderline')
+            break
+          case 'strike':
+            await editorKitRef.current.executeCommand('toggleStrike')
+            break
+          case 'code':
+            await editorKitRef.current.executeCommand('toggleCode')
+            break
+          case 'h1':
+            await editorKitRef.current.executeCommand('setHeading', 1)
+            break
+          case 'h2':
+            await editorKitRef.current.executeCommand('setHeading', 2)
+            break
+          case 'h3':
+            await editorKitRef.current.executeCommand('setHeading', 3)
+            break
+          case 'paragraph':
+            await editorKitRef.current.executeCommand('setParagraph')
+            break
+          case 'bulletList':
+            await editorKitRef.current.executeCommand('toggleBulletList')
+            break
+          case 'orderedList':
+            await editorKitRef.current.executeCommand('toggleOrderedList')
+            break
+          case 'blockquote':
+            await editorKitRef.current.executeCommand('toggleBlockquote')
+            break
+          case 'codeBlock':
+            await editorKitRef.current.executeCommand('setCodeBlock')
+            break
+          case 'horizontalRule':
+            await editorKitRef.current.executeCommand('setHorizontalRule')
+            break
+          case 'table':
+            await editorKitRef.current.executeCommand('insertTable', 3, 3, true)
+            break
+          case 'undo':
+            editorKitRef.current.undo()
+            break
+          case 'redo':
+            editorKitRef.current.redo()
+            break
+          default:
+            console.log(`[EditorKit] Unknown format action: ${action}`)
+        }
+      }
+    } catch (error) {
+      console.error('[EditorKit] Format operation failed:', error)
     }
   }
 
-  // 更新格式状态
-  const updateFormatState = () => {
-    if (adapterRef.current) {
-      const newFormatState = adapterRef.current.getFormatState()
-      setFormatState(newFormatState)
+  // 导出功能（通过EditorKit API）
+  const handleExport = async (format: string) => {
+    if (!editorKitRef.current || !isReady) return
+
+    try {
+      let content: string
+      let filename: string
+      let mimeType: string
+
+      switch (format) {
+        case 'html':
+          content = await editorKitRef.current.exportToHTML()
+          filename = 'document.html'
+          mimeType = 'text/html'
+          break
+        case 'markdown':
+          content = await editorKitRef.current.exportToMarkdown()
+          filename = 'document.md'
+          mimeType = 'text/markdown'
+          break
+        case 'json':
+          content = editorKitRef.current.exportToJSON()
+          filename = 'document.json'
+          mimeType = 'application/json'
+          break
+        default:
+          return
+      }
+
+      downloadFile(content, filename, mimeType)
+    } catch (error) {
+      console.error('[EditorKit] Export failed:', error)
     }
   }
 
-  // 格式化按钮处理函数
-  const handleFormat = (action: string) => {
-    if (!adapterRef.current) return
+  // 切换编辑器类型
+  const switchEditorType = async (type: EditorType) => {
+    if (!editorKitRef.current || type === currentEditorType) return
 
-    switch (action) {
-      case 'bold':
-        adapterRef.current.toggleBold()
-        break
-      case 'italic':
-        adapterRef.current.toggleItalic()
-        break
-      case 'underline':
-        adapterRef.current.toggleUnderline()
-        break
-      case 'strike':
-        adapterRef.current.toggleStrike()
-        break
-      case 'code':
-        adapterRef.current.toggleCode()
-        break
-      case 'h1':
-        adapterRef.current.setHeading(1)
-        break
-      case 'h2':
-        adapterRef.current.setHeading(2)
-        break
-      case 'h3':
-        adapterRef.current.setHeading(3)
-        break
-      case 'paragraph':
-        adapterRef.current.setParagraph()
-        break
-      case 'bulletList':
-        adapterRef.current.toggleBulletList()
-        break
-      case 'orderedList':
-        adapterRef.current.toggleOrderedList()
-        break
-      case 'blockquote':
-        adapterRef.current.toggleBlockquote()
-        break
-      case 'codeBlock':
-        adapterRef.current.setCodeBlock()
-        break
-      case 'horizontalRule':
-        adapterRef.current.setHorizontalRule()
-        break
-      case 'table':
-        adapterRef.current.insertTable(3, 3, true)
-        break
-      case 'undo':
-        adapterRef.current.undo()
-        break
-      case 'redo':
-        adapterRef.current.redo()
-        break
-    }
-
-    updateFormatState()
-  }
-
-  // 导出功能
-  const handleExport = (format: string) => {
-    if (!adapterRef.current) return
-
-    switch (format) {
-      case 'html':
-        const html = adapterRef.current.exportToHTML()
-        downloadFile(html, 'document.html', 'text/html')
-        break
-      case 'markdown':
-        const markdown = adapterRef.current.exportToMarkdown()
-        downloadFile(markdown, 'document.md', 'text/markdown')
-        break
-      case 'text':
-        const text = adapterRef.current.getText()
-        downloadFile(text, 'document.txt', 'text/plain')
-        break
+    try {
+      await editorKitRef.current.switchEditor(type)
+      setCurrentEditorType(type)
+    } catch (error) {
+      console.error('[EditorKit] Switch editor failed:', error)
     }
   }
 

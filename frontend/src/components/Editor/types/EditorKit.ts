@@ -81,5 +81,9 @@ export interface EditorKitHandle {
   exportToJSON(): string
   exportToHTML(): Promise<string>
   exportToMarkdown(): Promise<string>
+
+  // 富文本格式化API（当适配器为RichText时可用）
+  executeCommand(command: string, ...args: any[]): Promise<void>
+  getFormatState(): any
 }
 
