@@ -31,19 +31,69 @@ import { TaskItem } from '@tiptap/extension-task-item'
 import { CharacterCount } from '@tiptap/extension-character-count'
 import { Typography } from '@tiptap/extension-typography'
 
+// 额外的TipTap扩展
+import { TextAlign } from '@tiptap/extension-text-align'
+import { Underline } from '@tiptap/extension-underline'
+import { Subscript } from '@tiptap/extension-subscript'
+import { Superscript } from '@tiptap/extension-superscript'
+import { Highlight } from '@tiptap/extension-highlight'
+import { TextStyle } from '@tiptap/extension-text-style'
+import { Color } from '@tiptap/extension-color'
+import { FontFamily } from '@tiptap/extension-font-family'
+import { Focus } from '@tiptap/extension-focus'
+import { Gapcursor } from '@tiptap/extension-gapcursor'
+import { HardBreak } from '@tiptap/extension-hard-break'
+import { History } from '@tiptap/extension-history'
+
 /**
  * 富文本适配器配置
  */
 export interface RichTextAdapterConfig extends ViewAdapterOptions {
+    // 基础配置
     placeholder?: string
+    autoFocus?: boolean
+    spellCheck?: boolean
+    characterLimit?: number
+
+    // 功能开关
     enableMarkdown?: boolean
     enableTables?: boolean
     enableImages?: boolean
     enableTaskLists?: boolean
     enableTypography?: boolean
-    characterLimit?: number
-    autoFocus?: boolean
-    spellCheck?: boolean
+    enableTextAlign?: boolean
+    enableTextStyle?: boolean
+    enableHighlight?: boolean
+    enableFocus?: boolean
+    enableHistory?: boolean
+
+    // 文本样式配置
+    enableUnderline?: boolean
+    enableSubscript?: boolean
+    enableSuperscript?: boolean
+    enableColor?: boolean
+    enableFontFamily?: boolean
+
+    // 表格配置
+    tableResizable?: boolean
+    tableCellSelection?: boolean
+
+    // 图片配置
+    imageUploadUrl?: string
+    imageAllowBase64?: boolean
+    imageInline?: boolean
+
+    // 链接配置
+    linkOpenOnClick?: boolean
+    linkAutolink?: boolean
+
+    // 历史配置
+    historyDepth?: number
+    historyNewGroupDelay?: number
+
+    // 字符统计配置
+    showCharacterCount?: boolean
+    showWordCount?: boolean
 }
 
 /**
@@ -69,6 +119,7 @@ export class RichTextViewAdapter extends CoreViewAdapter {
     // === 状态追踪 ===
     private isInitializing = false
     private lastSelection: Selection = { nodeIds: [], type: 'node' }
+    private nodeMap: Map<string, any> = new Map() // AST nodeId 到 ProseMirror 位置的映射
 
     constructor(sceneTemplate: SceneTemplate) {
         super(sceneTemplate)
@@ -170,14 +221,28 @@ export class RichTextViewAdapter extends CoreViewAdapter {
 
     // === 节点操作方法 ===
 
-    protected performUpdateNode(nodeId: string, _node: ASTNode): void {
+    protected performUpdateNode(nodeId: string, node: ASTNode): void {
         if (!this.editor) return
 
         try {
-            // 查找并更新节点
-            // 简化的节点更新实现
-            // 实际项目中需要根据具体需求实现节点查找和更新逻辑
-            console.debug('[RichTextAdapter] Node update requested for:', nodeId)
+            // 查找节点在文档中的位置
+            const nodePos = this.findNodePositionByASTId(nodeId)
+            if (nodePos === null) {
+                console.warn('[RichTextAdapter] Node not found:', nodeId)
+                return
+            }
+
+            // 将AST节点转换为TipTap格式
+            const tipTapContent = this.astNodeToTipTapContent(node)
+
+            // 替换节点内容
+            this.editor.commands.deleteRange({ from: nodePos.from, to: nodePos.to })
+            this.editor.commands.insertContentAt(nodePos.from, tipTapContent)
+
+            // 更新节点映射
+            this.updateNodeMapping(nodeId, nodePos.from)
+
+            console.debug('[RichTextAdapter] Updated node:', nodeId)
         } catch (error) {
             console.error('[RichTextAdapter] Update node failed:', error)
             throw error
@@ -188,31 +253,49 @@ export class RichTextViewAdapter extends CoreViewAdapter {
         if (!this.editor) return
 
         try {
-            const position = this.findNodePosition(nodeId)
-            if (position !== null) {
-                this.editor.commands.deleteRange({ from: position, to: position + 1 })
+            const nodePos = this.findNodePositionByASTId(nodeId)
+            if (nodePos === null) {
+                console.warn('[RichTextAdapter] Node not found for removal:', nodeId)
+                return
             }
+
+            // 删除节点
+            this.editor.commands.deleteRange({ from: nodePos.from, to: nodePos.to })
+
+            // 从映射中移除
+            this.nodeMap.delete(nodeId)
+
+            console.debug('[RichTextAdapter] Removed node:', nodeId)
         } catch (error) {
             console.error('[RichTextAdapter] Remove node failed:', error)
             throw error
         }
     }
 
-    protected performAddNode(node: ASTNode, parentId?: string, _index?: number): void {
+    protected performAddNode(node: ASTNode, parentId?: string, index?: number): void {
         if (!this.editor) return
 
         try {
-            const tipTapNode = this.astNodeToTipTap(node)
+            const tipTapContent = this.astNodeToTipTapContent(node)
+            let insertPos = this.editor.state.selection.from
 
             if (parentId) {
-                const parentPosition = this.findNodePosition(parentId)
-                if (parentPosition !== null) {
-                    this.editor.commands.insertContentAt(parentPosition, tipTapNode)
+                const parentPos = this.findNodePositionByASTId(parentId)
+                if (parentPos) {
+                    // 在父节点内部的指定位置插入
+                    insertPos = index !== undefined
+                        ? parentPos.from + Math.min(index, parentPos.to - parentPos.from)
+                        : parentPos.to - 1
                 }
-            } else {
-                // 在当前位置插入
-                this.editor.commands.insertContent(tipTapNode)
             }
+
+            // 插入内容
+            this.editor.commands.insertContentAt(insertPos, tipTapContent)
+
+            // 更新节点映射
+            this.updateNodeMapping(node.id, insertPos)
+
+            console.debug('[RichTextAdapter] Added node:', node.id)
         } catch (error) {
             console.error('[RichTextAdapter] Add node failed:', error)
             throw error
@@ -300,16 +383,51 @@ export class RichTextViewAdapter extends CoreViewAdapter {
      */
     private getDefaultConfig(): Partial<RichTextAdapterConfig> {
         return {
+            // 基础配置
             placeholder: '开始输入...',
+            autoFocus: false,
+            spellCheck: true,
+            characterLimit: undefined,
+            theme: 'auto',
+
+            // 功能开关
             enableMarkdown: true,
             enableTables: true,
             enableImages: true,
             enableTaskLists: true,
             enableTypography: true,
-            characterLimit: undefined,
-            autoFocus: false,
-            spellCheck: true,
-            theme: 'auto'
+            enableTextAlign: true,
+            enableTextStyle: true,
+            enableHighlight: true,
+            enableFocus: true,
+            enableHistory: true,
+
+            // 文本样式配置
+            enableUnderline: true,
+            enableSubscript: true,
+            enableSuperscript: true,
+            enableColor: true,
+            enableFontFamily: true,
+
+            // 表格配置
+            tableResizable: true,
+            tableCellSelection: true,
+
+            // 图片配置
+            imageAllowBase64: true,
+            imageInline: true,
+
+            // 链接配置
+            linkOpenOnClick: false,
+            linkAutolink: true,
+
+            // 历史配置
+            historyDepth: 100,
+            historyNewGroupDelay: 500,
+
+            // 字符统计配置
+            showCharacterCount: true,
+            showWordCount: true
         }
     }
 
@@ -335,11 +453,24 @@ export class RichTextViewAdapter extends CoreViewAdapter {
      * 创建 TipTap 扩展
      */
     private createExtensions() {
-        const extensions: any[] = [
+        const extensions: any[] = []
+
+        // 基础扩展包 - 但我们需要单独配置历史
+        extensions.push(
             StarterKit.configure({
-                // 移除了不支持的配置项
-            }),
-        ]
+                // StarterKit 的默认配置
+            })
+        )
+
+        // 添加历史扩展
+        if (this.config.enableHistory) {
+            extensions.push(
+                History.configure({
+                    depth: this.config.historyDepth || 100,
+                    newGroupDelay: this.config.historyNewGroupDelay || 500,
+                })
+            )
+        }
 
         // 添加占位符
         if (this.config.placeholder) {
@@ -350,15 +481,82 @@ export class RichTextViewAdapter extends CoreViewAdapter {
             )
         }
 
+        // 添加文本样式扩展
+        if (this.config.enableTextStyle) {
+            extensions.push(TextStyle)
+        }
+
+        // 添加下划线支持
+        if (this.config.enableUnderline) {
+            extensions.push(Underline)
+        }
+
+        // 添加上标下标支持
+        if (this.config.enableSubscript) {
+            extensions.push(Subscript)
+        }
+        if (this.config.enableSuperscript) {
+            extensions.push(Superscript)
+        }
+
+        // 添加高亮支持
+        if (this.config.enableHighlight) {
+            extensions.push(
+                Highlight.configure({
+                    multicolor: true,
+                })
+            )
+        }
+
+        // 添加颜色支持
+        if (this.config.enableColor) {
+            extensions.push(Color)
+        }
+
+        // 添加字体支持
+        if (this.config.enableFontFamily) {
+            extensions.push(
+                FontFamily.configure({
+                    types: ['textStyle'],
+                })
+            )
+        }
+
+        // 添加文本对齐支持
+        if (this.config.enableTextAlign) {
+            extensions.push(
+                TextAlign.configure({
+                    types: ['heading', 'paragraph'],
+                    alignments: ['left', 'center', 'right', 'justify'],
+                    defaultAlignment: 'left',
+                })
+            )
+        }
+
         // 添加表格支持
         if (this.config.enableTables) {
             extensions.push(
                 Table.configure({
-                    resizable: true,
+                    resizable: this.config.tableResizable !== false,
+                    HTMLAttributes: {
+                        class: 'editor-table',
+                    },
                 }),
-                TableRow,
-                TableHeader,
-                TableCell,
+                TableRow.configure({
+                    HTMLAttributes: {
+                        class: 'editor-table-row',
+                    },
+                }),
+                TableHeader.configure({
+                    HTMLAttributes: {
+                        class: 'editor-table-header',
+                    },
+                }),
+                TableCell.configure({
+                    HTMLAttributes: {
+                        class: 'editor-table-cell',
+                    },
+                })
             )
         }
 
@@ -366,8 +564,11 @@ export class RichTextViewAdapter extends CoreViewAdapter {
         if (this.config.enableImages) {
             extensions.push(
                 Image.configure({
-                    inline: true,
-                    allowBase64: true,
+                    inline: this.config.imageInline !== false,
+                    allowBase64: this.config.imageAllowBase64 !== false,
+                    HTMLAttributes: {
+                        class: 'editor-image',
+                    },
                 })
             )
         }
@@ -375,9 +576,12 @@ export class RichTextViewAdapter extends CoreViewAdapter {
         // 添加链接支持
         extensions.push(
             Link.configure({
-                openOnClick: false,
+                openOnClick: this.config.linkOpenOnClick === true,
+                autolink: this.config.linkAutolink !== false,
                 HTMLAttributes: {
-                    class: 'text-blue-600 hover:text-blue-800 underline',
+                    class: 'editor-link',
+                    rel: 'noopener noreferrer',
+                    target: '_blank',
                 },
             })
         )
@@ -385,15 +589,22 @@ export class RichTextViewAdapter extends CoreViewAdapter {
         // 添加任务列表支持
         if (this.config.enableTaskLists) {
             extensions.push(
-                TaskList,
+                TaskList.configure({
+                    HTMLAttributes: {
+                        class: 'editor-task-list',
+                    },
+                }),
                 TaskItem.configure({
                     nested: true,
-                }),
+                    HTMLAttributes: {
+                        class: 'editor-task-item',
+                    },
+                })
             )
         }
 
         // 添加字符统计
-        if (this.config.characterLimit) {
+        if (this.config.characterLimit || this.config.showCharacterCount || this.config.showWordCount) {
             extensions.push(
                 CharacterCount.configure({
                     limit: this.config.characterLimit,
@@ -405,6 +616,22 @@ export class RichTextViewAdapter extends CoreViewAdapter {
         if (this.config.enableTypography) {
             extensions.push(Typography)
         }
+
+        // 添加焦点支持
+        if (this.config.enableFocus) {
+            extensions.push(
+                Focus.configure({
+                    className: 'editor-focus',
+                    mode: 'all',
+                })
+            )
+        }
+
+        // 添加其他实用扩展
+        extensions.push(
+            Gapcursor, // 光标位置优化
+            HardBreak  // 硬换行支持
+        )
 
         return extensions
     }
@@ -514,8 +741,6 @@ export class RichTextViewAdapter extends CoreViewAdapter {
      * 将 AST 转换为 TipTap 内容
      */
     private astToTipTapContent(ast: DocumentAST): any {
-        // 简化实现：直接返回基本结构
-        // 实际实现需要递归处理 AST 节点
         return {
             type: 'doc',
             content: this.astNodeToTipTapContent(ast.root)
@@ -525,78 +750,228 @@ export class RichTextViewAdapter extends CoreViewAdapter {
     /**
      * 将 AST 节点转换为 TipTap 内容
      */
-    private astNodeToTipTapContent(node: ASTNode): any[] {
-        // 简化实现：处理基本的富文本节点
-        if (node.type === 'paragraph') {
-            return [{
-                type: 'paragraph',
-                content: node.children?.map(child => this.astNodeToTipTap(child)) || []
-            }]
-        }
+    private astNodeToTipTapContent(node: ASTNode): any {
+        const richTextNode = node as RichTextNode
 
-        if (node.type === 'heading') {
-            const richTextNode = node as RichTextNode
-            return [{
-                type: 'heading',
-                attrs: {
-                    level: richTextNode.attributes?.level || 1
-                },
-                content: node.children?.map(child => this.astNodeToTipTap(child)) || []
-            }]
-        }
+        // 处理不同类型的节点
+        switch (richTextNode.type) {
+            case 'paragraph':
+                return {
+                    type: 'paragraph',
+                    attrs: this.extractAttributes(richTextNode),
+                    content: this.processChildren(richTextNode)
+                }
 
-        if (node.type === 'text') {
-            const richTextNode = node as RichTextNode
-            return [{
-                type: 'text',
-                text: richTextNode.content || '',
-                marks: richTextNode.marks || []
-            }]
-        }
+            case 'heading':
+                return {
+                    type: 'heading',
+                    attrs: {
+                        level: richTextNode.attributes?.level || 1,
+                        textAlign: richTextNode.attributes?.textAlign || 'left'
+                    },
+                    content: this.processChildren(richTextNode)
+                }
 
-        // 默认处理
-        return [{
-            type: 'paragraph',
-            content: [{
-                type: 'text',
-                text: (node as RichTextNode).content || ''
-            }]
-        }]
+            case 'text':
+                return {
+                    type: 'text',
+                    text: richTextNode.content || '',
+                    marks: this.convertMarks(richTextNode.marks || [])
+                }
+
+            case 'bold':
+                return {
+                    type: 'text',
+                    text: richTextNode.content || '',
+                    marks: [{ type: 'bold' }]
+                }
+
+            case 'italic':
+                return {
+                    type: 'text',
+                    text: richTextNode.content || '',
+                    marks: [{ type: 'italic' }]
+                }
+
+            case 'underline':
+                return {
+                    type: 'text',
+                    text: richTextNode.content || '',
+                    marks: [{ type: 'underline' }]
+                }
+
+            case 'strikethrough':
+                return {
+                    type: 'text',
+                    text: richTextNode.content || '',
+                    marks: [{ type: 'strike' }]
+                }
+
+            case 'code':
+                return {
+                    type: 'text',
+                    text: richTextNode.content || '',
+                    marks: [{ type: 'code' }]
+                }
+
+            case 'codeBlock':
+                return {
+                    type: 'codeBlock',
+                    attrs: {
+                        language: richTextNode.attributes?.language || null
+                    },
+                    content: [{
+                        type: 'text',
+                        text: richTextNode.content || ''
+                    }]
+                }
+
+            case 'link':
+                return {
+                    type: 'text',
+                    text: richTextNode.content || '',
+                    marks: [{
+                        type: 'link',
+                        attrs: {
+                            href: richTextNode.attributes?.href || '#',
+                            target: richTextNode.attributes?.target || '_blank'
+                        }
+                    }]
+                }
+
+            case 'image':
+                return {
+                    type: 'image',
+                    attrs: {
+                        src: richTextNode.attributes?.src || '',
+                        alt: richTextNode.attributes?.alt || '',
+                        title: richTextNode.attributes?.title || ''
+                    }
+                }
+
+            case 'list':
+                return {
+                    type: richTextNode.attributes?.ordered ? 'orderedList' : 'bulletList',
+                    content: this.processChildren(richTextNode)
+                }
+
+            case 'listItem':
+                return {
+                    type: 'listItem',
+                    content: this.processChildren(richTextNode)
+                }
+
+            case 'blockquote':
+                return {
+                    type: 'blockquote',
+                    content: this.processChildren(richTextNode)
+                }
+
+            case 'table':
+                return {
+                    type: 'table',
+                    content: this.processChildren(richTextNode)
+                }
+
+            case 'tableRow':
+                return {
+                    type: 'tableRow',
+                    content: this.processChildren(richTextNode)
+                }
+
+            case 'tableCell':
+                return {
+                    type: 'tableCell',
+                    attrs: {
+                        colspan: richTextNode.attributes?.colspan || 1,
+                        rowspan: richTextNode.attributes?.rowspan || 1,
+                        colwidth: richTextNode.attributes?.colwidth || null
+                    },
+                    content: this.processChildren(richTextNode)
+                }
+
+            case 'horizontalRule':
+                return {
+                    type: 'horizontalRule'
+                }
+
+            default:
+                // 对于未知类型，创建段落
+                return {
+                    type: 'paragraph',
+                    content: richTextNode.content ? [{
+                        type: 'text',
+                        text: richTextNode.content
+                    }] : this.processChildren(richTextNode)
+                }
+        }
     }
 
     /**
-     * 将 AST 节点转换为 TipTap 节点
+     * 处理子节点
      */
-    private astNodeToTipTap(node: ASTNode): any {
-        const richTextNode = node as RichTextNode
-        return {
-            type: richTextNode.type,
-            attrs: richTextNode.attributes || {},
-            content: richTextNode.content || '',
-            marks: richTextNode.marks || []
+    private processChildren(node: ASTNode): any[] {
+        if (!node.children || node.children.length === 0) {
+            const richTextNode = node as RichTextNode
+            if (richTextNode.content) {
+                return [{
+                    type: 'text',
+                    text: richTextNode.content
+                }]
+            }
+            return []
         }
+
+        return node.children.map(child => this.astNodeToTipTapContent(child))
+    }
+
+    /**
+     * 提取节点属性
+     */
+    private extractAttributes(node: RichTextNode): any {
+        const attrs: any = {}
+
+        if (node.attributes) {
+            // 文本对齐
+            if (node.attributes.textAlign) {
+                attrs.textAlign = node.attributes.textAlign
+            }
+
+            // 其他属性
+            Object.keys(node.attributes).forEach(key => {
+                if (key !== 'textAlign') {
+                    attrs[key] = node.attributes![key]
+                }
+            })
+        }
+
+        return Object.keys(attrs).length > 0 ? attrs : undefined
+    }
+
+    /**
+     * 转换标记
+     */
+    private convertMarks(marks: any[]): any[] {
+        return marks.map(mark => {
+            if (typeof mark === 'string') {
+                return { type: mark }
+            }
+            return mark
+        })
     }
 
     /**
      * 将 TipTap 内容转换为 AST
      */
     private tipTapContentToAST(content: any): DocumentAST {
-        // 简化实现：创建基本的文档 AST
+        const rootNode = this.tipTapNodeToAST(content, 'root')
+
         return {
             version: '1.0.0',
             type: 'document',
             id: `doc_${Date.now()}`,
-            root: {
-                id: 'root',
-                type: 'paragraph',
-                position: { x: 0, y: 0 },
-                content: content.content?.[0]?.content?.[0]?.text || '',
-                metadata: {
-                    createdAt: new Date().toISOString(),
-                    updatedAt: new Date().toISOString()
-                },
-                children: []
-            },
+            title: this.extractDocumentTitle(content),
+            root: rootNode,
             metadata: {
                 createdAt: new Date().toISOString(),
                 updatedAt: new Date().toISOString(),
@@ -606,15 +981,196 @@ export class RichTextViewAdapter extends CoreViewAdapter {
     }
 
     /**
-     * 查找节点位置
+     * 将 TipTap 节点转换为 AST 节点
      */
-    private findNodePosition(_nodeId: string): number | null {
-        // 简化实现：返回当前选择位置
-        if (this.editor) {
-            return this.editor.state.selection.from
+    private tipTapNodeToAST(node: any, nodeId?: string): ASTNode {
+        const id = nodeId || `node_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
+
+        // 基础节点结构
+        const baseNode: ASTNode = {
+            id,
+            type: node.type || 'paragraph',
+            position: { x: 0, y: 0 },
+            metadata: {
+                createdAt: new Date().toISOString(),
+                updatedAt: new Date().toISOString()
+            }
         }
+
+        // 处理不同类型的TipTap节点
+        switch (node.type) {
+            case 'doc':
+                return {
+                    ...baseNode,
+                    type: 'paragraph', // 使用有效的AST节点类型
+                    children: node.content ? node.content.map((child: any) => this.tipTapNodeToAST(child)) : []
+                }
+
+            case 'paragraph':
+                return {
+                    ...baseNode,
+                    type: 'paragraph',
+                    attributes: node.attrs,
+                    children: node.content ? node.content.map((child: any) => this.tipTapNodeToAST(child)) : []
+                } as RichTextNode
+
+            case 'heading':
+                return {
+                    ...baseNode,
+                    type: 'heading',
+                    attributes: {
+                        level: node.attrs?.level || 1,
+                        textAlign: node.attrs?.textAlign
+                    },
+                    children: node.content ? node.content.map((child: any) => this.tipTapNodeToAST(child)) : []
+                } as RichTextNode
+
+            case 'text':
+                const marks = node.marks ? node.marks.map((mark: any) => ({
+                    type: mark.type,
+                    attributes: mark.attrs || {}
+                })) : []
+
+                return {
+                    ...baseNode,
+                    type: 'text',
+                    content: node.text || '',
+                    marks
+                } as RichTextNode
+
+            case 'codeBlock':
+                return {
+                    ...baseNode,
+                    type: 'codeBlock',
+                    content: node.content?.[0]?.text || '',
+                    attributes: {
+                        language: node.attrs?.language
+                    }
+                } as RichTextNode
+
+            case 'image':
+                return {
+                    ...baseNode,
+                    type: 'image',
+                    attributes: {
+                        src: node.attrs?.src,
+                        alt: node.attrs?.alt,
+                        title: node.attrs?.title
+                    }
+                } as RichTextNode
+
+            case 'bulletList':
+            case 'orderedList':
+                return {
+                    ...baseNode,
+                    type: 'list',
+                    attributes: {
+                        ordered: node.type === 'orderedList'
+                    },
+                    children: node.content ? node.content.map((child: any) => this.tipTapNodeToAST(child)) : []
+                } as RichTextNode
+
+            case 'listItem':
+                return {
+                    ...baseNode,
+                    type: 'listItem',
+                    children: node.content ? node.content.map((child: any) => this.tipTapNodeToAST(child)) : []
+                } as RichTextNode
+
+            case 'blockquote':
+                return {
+                    ...baseNode,
+                    type: 'blockquote',
+                    children: node.content ? node.content.map((child: any) => this.tipTapNodeToAST(child)) : []
+                } as RichTextNode
+
+            case 'table':
+                return {
+                    ...baseNode,
+                    type: 'table',
+                    children: node.content ? node.content.map((child: any) => this.tipTapNodeToAST(child)) : []
+                } as RichTextNode
+
+            case 'tableRow':
+                return {
+                    ...baseNode,
+                    type: 'tableRow',
+                    children: node.content ? node.content.map((child: any) => this.tipTapNodeToAST(child)) : []
+                } as RichTextNode
+
+            case 'tableCell':
+            case 'tableHeader':
+                return {
+                    ...baseNode,
+                    type: 'tableCell',
+                    attributes: {
+                        colspan: node.attrs?.colspan,
+                        rowspan: node.attrs?.rowspan,
+                        colwidth: node.attrs?.colwidth,
+                        isHeader: node.type === 'tableHeader'
+                    },
+                    children: node.content ? node.content.map((child: any) => this.tipTapNodeToAST(child)) : []
+                } as RichTextNode
+
+            case 'horizontalRule':
+                return {
+                    ...baseNode,
+                    type: 'horizontalRule'
+                } as RichTextNode
+
+            default:
+                return {
+                    ...baseNode,
+                    type: 'paragraph',
+                    content: node.text || '',
+                    children: node.content ? node.content.map((child: any) => this.tipTapNodeToAST(child)) : []
+                } as RichTextNode
+        }
+    }
+
+    /**
+     * 提取文档标题
+     */
+    private extractDocumentTitle(content: any): string {
+        if (content.content && content.content.length > 0) {
+            const firstNode = content.content[0]
+            if (firstNode.type === 'heading' && firstNode.content) {
+                return firstNode.content.map((child: any) => child.text || '').join('')
+            }
+        }
+        return '无标题文档'
+    }
+
+    /**
+     * 查找节点位置（通过AST ID）
+     */
+    private findNodePositionByASTId(nodeId: string): { from: number; to: number } | null {
+        if (!this.editor) return null
+
+        // 从映射中查找
+        const position = this.nodeMap.get(nodeId)
+        if (position) {
+            return position
+        }
+
+        // TODO: 实现更复杂的位置查找逻辑
+        // 这里可以通过遍历ProseMirror文档来查找包含特定AST ID的节点
         return null
     }
+
+    /**
+     * 更新节点映射
+     */
+    private updateNodeMapping(nodeId: string, position: number): void {
+        this.nodeMap.set(nodeId, {
+            from: position,
+            to: position + 1 // 简化实现，实际应该计算节点的实际长度
+        })
+    }
+
+
+
+
 
     // === 公开的便利方法 ===
 
@@ -710,5 +1266,448 @@ export class RichTextViewAdapter extends CoreViewAdapter {
      */
     public redo(): void {
         this.editor?.commands.redo()
+    }
+
+    // === 富文本格式化方法 ===
+
+    /**
+     * 切换粗体
+     */
+    public toggleBold(): void {
+        this.editor?.commands.toggleBold()
+    }
+
+    /**
+     * 切换斜体
+     */
+    public toggleItalic(): void {
+        this.editor?.commands.toggleItalic()
+    }
+
+    /**
+     * 切换下划线
+     */
+    public toggleUnderline(): void {
+        this.editor?.commands.toggleUnderline()
+    }
+
+    /**
+     * 切换删除线
+     */
+    public toggleStrike(): void {
+        this.editor?.commands.toggleStrike()
+    }
+
+    /**
+     * 切换代码
+     */
+    public toggleCode(): void {
+        this.editor?.commands.toggleCode()
+    }
+
+    /**
+     * 设置标题级别
+     */
+    public setHeading(level: 1 | 2 | 3 | 4 | 5 | 6): void {
+        this.editor?.commands.setHeading({ level })
+    }
+
+    /**
+     * 设置段落
+     */
+    public setParagraph(): void {
+        this.editor?.commands.setParagraph()
+    }
+
+    /**
+     * 切换项目符号列表
+     */
+    public toggleBulletList(): void {
+        this.editor?.commands.toggleBulletList()
+    }
+
+    /**
+     * 切换有序列表
+     */
+    public toggleOrderedList(): void {
+        this.editor?.commands.toggleOrderedList()
+    }
+
+    /**
+     * 切换任务列表
+     */
+    public toggleTaskList(): void {
+        this.editor?.commands.toggleTaskList()
+    }
+
+    /**
+     * 切换引用
+     */
+    public toggleBlockquote(): void {
+        this.editor?.commands.toggleBlockquote()
+    }
+
+    /**
+     * 设置代码块
+     */
+    public setCodeBlock(language?: string): void {
+        if (language) {
+            this.editor?.commands.setCodeBlock({ language })
+        } else {
+            this.editor?.commands.setCodeBlock()
+        }
+    }
+
+    /**
+     * 插入水平分割线
+     */
+    public setHorizontalRule(): void {
+        this.editor?.commands.setHorizontalRule()
+    }
+
+    /**
+     * 设置文本对齐
+     */
+    public setTextAlign(alignment: 'left' | 'center' | 'right' | 'justify'): void {
+        this.editor?.commands.setTextAlign(alignment)
+    }
+
+    /**
+     * 设置文本颜色
+     */
+    public setColor(color: string): void {
+        this.editor?.commands.setColor(color)
+    }
+
+    /**
+     * 设置高亮颜色
+     */
+    public setHighlight(color?: string): void {
+        if (color) {
+            this.editor?.commands.setHighlight({ color })
+        } else {
+            this.editor?.commands.toggleHighlight()
+        }
+    }
+
+    /**
+     * 切换上标
+     */
+    public toggleSuperscript(): void {
+        this.editor?.commands.toggleSuperscript()
+    }
+
+    /**
+     * 切换下标
+     */
+    public toggleSubscript(): void {
+        this.editor?.commands.toggleSubscript()
+    }
+
+    /**
+     * 设置字体
+     */
+    public setFontFamily(fontFamily: string): void {
+        this.editor?.commands.setFontFamily(fontFamily)
+    }
+
+    // === 表格操作方法 ===
+
+    /**
+     * 插入表格
+     */
+    public insertTable(rows = 3, cols = 3, withHeaderRow = true): void {
+        this.editor?.commands.insertTable({
+            rows,
+            cols,
+            withHeaderRow
+        })
+    }
+
+    /**
+     * 删除表格
+     */
+    public deleteTable(): void {
+        this.editor?.commands.deleteTable()
+    }
+
+    /**
+     * 添加行（在下方）
+     */
+    public addRowAfter(): void {
+        this.editor?.commands.addRowAfter()
+    }
+
+    /**
+     * 添加行（在上方）
+     */
+    public addRowBefore(): void {
+        this.editor?.commands.addRowBefore()
+    }
+
+    /**
+     * 删除行
+     */
+    public deleteRow(): void {
+        this.editor?.commands.deleteRow()
+    }
+
+    /**
+     * 添加列（在右侧）
+     */
+    public addColumnAfter(): void {
+        this.editor?.commands.addColumnAfter()
+    }
+
+    /**
+     * 添加列（在左侧）
+     */
+    public addColumnBefore(): void {
+        this.editor?.commands.addColumnBefore()
+    }
+
+    /**
+     * 删除列
+     */
+    public deleteColumn(): void {
+        this.editor?.commands.deleteColumn()
+    }
+
+    /**
+     * 合并单元格
+     */
+    public mergeCells(): void {
+        this.editor?.commands.mergeCells()
+    }
+
+    /**
+     * 拆分单元格
+     */
+    public splitCell(): void {
+        this.editor?.commands.splitCell()
+    }
+
+    /**
+     * 切换表头行
+     */
+    public toggleHeaderRow(): void {
+        this.editor?.commands.toggleHeaderRow()
+    }
+
+    /**
+     * 切换表头列
+     */
+    public toggleHeaderColumn(): void {
+        this.editor?.commands.toggleHeaderColumn()
+    }
+
+    // === 链接和图片操作方法 ===
+
+    /**
+     * 设置链接
+     */
+    public setLink(href: string, target?: string): void {
+        this.editor?.commands.setLink({ href, target })
+    }
+
+    /**
+     * 取消链接
+     */
+    public unsetLink(): void {
+        this.editor?.commands.unsetLink()
+    }
+
+    /**
+     * 插入图片
+     */
+    public insertImage(src: string, alt?: string, title?: string): void {
+        this.editor?.commands.setImage({ src, alt, title })
+    }
+
+    // === 内容操作方法 ===
+
+    /**
+     * 全选
+     */
+    public selectAll(): void {
+        this.editor?.commands.selectAll()
+    }
+
+    /**
+     * 删除选中内容
+     */
+    public deleteSelection(): void {
+        this.editor?.commands.deleteSelection()
+    }
+
+    /**
+     * 在当前位置插入换行
+     */
+    public insertHardBreak(): void {
+        this.editor?.commands.setHardBreak()
+    }
+
+    /**
+     * 清除格式
+     */
+    public clearFormat(): void {
+        this.editor?.commands.unsetAllMarks()
+    }
+
+    /**
+     * 获取当前格式状态
+     */
+    public getFormatState(): any {
+        if (!this.editor) return {}
+
+        return {
+            isBold: this.editor.isActive('bold'),
+            isItalic: this.editor.isActive('italic'),
+            isUnderline: this.editor.isActive('underline'),
+            isStrike: this.editor.isActive('strike'),
+            isCode: this.editor.isActive('code'),
+            isCodeBlock: this.editor.isActive('codeBlock'),
+            isBulletList: this.editor.isActive('bulletList'),
+            isOrderedList: this.editor.isActive('orderedList'),
+            isTaskList: this.editor.isActive('taskList'),
+            isBlockquote: this.editor.isActive('blockquote'),
+            heading: this.editor.isActive('heading') ? this.editor.getAttributes('heading').level : null,
+            textAlign: this.editor.getAttributes('paragraph').textAlign || 'left',
+            color: this.editor.getAttributes('textStyle').color,
+            highlight: this.editor.getAttributes('highlight').color,
+            fontFamily: this.editor.getAttributes('textStyle').fontFamily,
+            isSubscript: this.editor.isActive('subscript'),
+            isSuperscript: this.editor.isActive('superscript'),
+            isLink: this.editor.isActive('link'),
+            linkHref: this.editor.getAttributes('link').href
+        }
+    }
+
+    // === 搜索和替换方法 ===
+
+    /**
+     * 查找文本
+     */
+    public findText(searchTerm: string): boolean {
+        if (!this.editor || !searchTerm) return false
+
+        const doc = this.editor.state.doc
+        const text = doc.textContent.toLowerCase()
+        const searchText = searchTerm.toLowerCase()
+
+        return text.includes(searchText)
+    }
+
+    /**
+     * 替换文本
+     */
+    public replaceText(searchTerm: string, replacement: string): boolean {
+        if (!this.editor || !searchTerm) return false
+
+        const content = this.editor.getHTML()
+        if (content.includes(searchTerm)) {
+            const newContent = content.replace(new RegExp(searchTerm, 'g'), replacement)
+            this.editor.commands.setContent(newContent)
+            return true
+        }
+
+        return false
+    }
+
+    // === 导出方法 ===
+
+    /**
+     * 导出为 Markdown
+     */
+    public exportToMarkdown(): string {
+        // TODO: 实现更完整的Markdown导出
+        // 这里需要一个TipTap到Markdown的转换器
+        const content = this.getText()
+        return content
+    }
+
+    /**
+     * 导出为纯HTML
+     */
+    public exportToHTML(): string {
+        return this.getHTML()
+    }
+
+    /**
+     * 导出统计信息
+     */
+    public getDocumentStats(): {
+        characters: number
+        words: number
+        paragraphs: number
+        headings: number
+        lists: number
+        tables: number
+        images: number
+        links: number
+    } {
+        if (!this.editor) {
+            return {
+                characters: 0,
+                words: 0,
+                paragraphs: 0,
+                headings: 0,
+                lists: 0,
+                tables: 0,
+                images: 0,
+                links: 0
+            }
+        }
+
+        const { characters, words } = this.getCharacterCount()
+        const doc = this.editor.state.doc
+
+        let paragraphs = 0
+        let headings = 0
+        let lists = 0
+        let tables = 0
+        let images = 0
+        let links = 0
+
+        // 遍历文档统计不同类型的节点
+        doc.descendants((node) => {
+            switch (node.type.name) {
+                case 'paragraph':
+                    paragraphs++
+                    break
+                case 'heading':
+                    headings++
+                    break
+                case 'bulletList':
+                case 'orderedList':
+                case 'taskList':
+                    lists++
+                    break
+                case 'table':
+                    tables++
+                    break
+                case 'image':
+                    images++
+                    break
+            }
+
+            // 统计链接标记
+            node.marks.forEach(mark => {
+                if (mark.type.name === 'link') {
+                    links++
+                }
+            })
+        })
+
+        return {
+            characters,
+            words,
+            paragraphs,
+            headings,
+            lists,
+            tables,
+            images,
+            links
+        }
     }
 }
