@@ -11,7 +11,7 @@
  * 5. 更好的内存管理和资源清理
  */
 
-import { CoreViewAdapter, AdapterCapabilities } from './BaseViewAdapter.optimized'
+import { CoreViewAdapter } from './BaseViewAdapter.optimized'
 import { ErrorHandlingMixin } from '../mixins/ErrorHandlingMixin'
 import { PerformanceMonitoringMixin } from '../mixins/PerformanceMonitoringMixin'
 import { AIMixin } from '../mixins/AIMixin'
@@ -19,59 +19,15 @@ import { ViewAdapterOptions, Viewport, TextFormat } from '@/components/Editor/ty
 import { EditorType, SceneTemplate } from '@/components/Editor/types/EditorType'
 import { DocumentAST, ASTNode, Selection, RichTextNode } from '@/components/Editor/types/EditorAST'
 import { validateAST, createDocumentAST } from '@/components/Editor/utils/ASTUtils'
-import { generateRandomId } from '@/components/Editor/utils/CommonUtils'
-
-/**
- * TipTap编辑器接口定义
- */
-export interface TipTapEditor {
-    commands: {
-        setContent: (content: any, options?: any) => boolean
-        focus: () => void
-        blur: () => void
-        setTextSelection: (position: number | { from: number; to: number }) => void
-        insertContent: (content: any) => void
-        deleteSelection: () => void
-        toggleBold: () => void
-        toggleItalic: () => void
-        toggleUnderline: () => void
-        toggleStrike: () => void
-        setColor: (color: string) => void
-        setMark: (mark: string, attributes: Record<string, any>) => void
-        setTextAlign: (align: 'left' | 'center' | 'right' | 'justify') => void
-    }
-    state: {
-        selection: {
-            from: number
-            to: number
-        }
-        doc: {
-            content: any[]
-        }
-    }
-    isFocused: boolean
-    getHTML: () => string
-    getJSON: () => any
-    destroy: () => void
-    on: (event: string, callback: Function) => void
-    off: (event: string, callback: Function) => void
-}
-
-/**
- * 节点位置映射信息
- */
-export interface NodePositionMapping {
-    nodeId: string
-    start: number
-    end: number
-    path: number[]
-    element?: HTMLElement
-}
+import { debounce, generateRandomId } from '@/components/Editor/utils/CommonUtils'
+import { AdapterCapabilities } from '../types/OptimizedViewAdapter'
+import { RichTextAdapter, NodePositionMapping } from '../types/RichText'
 
 /**
  * 优化后的富文本适配器类
  */
 export class OptimizedRichTextViewAdapter extends CoreViewAdapter {
+
     public readonly type: EditorType.RICH_TEXT = EditorType.RICH_TEXT
     public readonly capabilities: AdapterCapabilities = {
         canEdit: true,
@@ -89,20 +45,25 @@ export class OptimizedRichTextViewAdapter extends CoreViewAdapter {
     private aiManager: AIMixin
 
     // === 核心编辑器 ===
-    private editor: TipTapEditor | null = null
+    private editor: RichTextAdapter | null = null
     private nodePositionMap: Map<string, NodePositionMapping> = new Map()
     // private currentAST: DocumentAST | null = null
 
     // === 缓存和状态 ===
+    // 是否正在同步内容
     private isContentSyncing = false
+    // 防抖更新函数
     private debouncedUpdate: Function | null = null
 
     // === 配置常量 ===
     private readonly UPDATE_DEBOUNCE_MS = 100
+    // 最大缓存大小
     private readonly MAX_CACHE_SIZE = 1000
+    // 清理间隔时间
     private readonly CLEANUP_INTERVAL_MS = 30000
 
     // === 清理定时器 ===
+    // 清理定时器
     private cleanupTimer: NodeJS.Timeout | null = null
 
     constructor(sceneTemplate: SceneTemplate) {
@@ -162,7 +123,10 @@ export class OptimizedRichTextViewAdapter extends CoreViewAdapter {
     /**
      * 创建适配器实现
      */
-    protected async performCreate(element: HTMLElement, _options: ViewAdapterOptions): Promise<void> {
+    protected async performCreate(
+        element: HTMLElement,
+        _options: ViewAdapterOptions
+    ): Promise<void> {
         const operationId = this.perfMonitor.startOperation('createAdapter')
 
         try {
@@ -190,7 +154,7 @@ export class OptimizedRichTextViewAdapter extends CoreViewAdapter {
             this.startCleanupTimer()
 
             // 创建防抖更新函数
-            this.debouncedUpdate = this.debounce(
+            this.debouncedUpdate = debounce(
                 this.handleContentUpdate.bind(this),
                 this.UPDATE_DEBOUNCE_MS
             )
@@ -253,7 +217,7 @@ export class OptimizedRichTextViewAdapter extends CoreViewAdapter {
             // 记录渲染性能
             const nodeCount = this.countNodes(ast)
             const startTime = performance.now()
-
+            // 设置标志位为：正在同步内容
             this.isContentSyncing = true
 
             // 转换AST为HTML内容
@@ -338,13 +302,19 @@ export class OptimizedRichTextViewAdapter extends CoreViewAdapter {
     /**
      * 添加节点实现
      */
-    protected performAddNode(node: ASTNode, parentId?: string, _index?: number): void {
+    protected performAddNode(
+        node: ASTNode,
+        parentId?: string,
+        _index?: number
+    ): void {
         const operationId = this.perfMonitor.startOperation('addNode')
 
         try {
+            // 转换节点为HTML内容
             const content = this.nodeToHtml(node)
             if (!content || !this.editor) return
 
+            // 如果存在父节点，则添加到父节点之后
             if (parentId) {
                 const parentMapping = this.nodePositionMap.get(parentId)
                 if (parentMapping) {
@@ -352,12 +322,13 @@ export class OptimizedRichTextViewAdapter extends CoreViewAdapter {
                     this.editor.commands.insertContent(content)
                 }
             } else {
-                // 添加到文档末尾
+                // 否则添加到文档末尾
                 const docLength = this.editor.getHTML().length
                 this.editor.commands.setTextSelection(docLength)
                 this.editor.commands.insertContent(content)
             }
 
+            // 更新位置映射
             this.updatePositionMapping()
             this.perfMonitor.endOperation(operationId, true)
 
@@ -374,16 +345,37 @@ export class OptimizedRichTextViewAdapter extends CoreViewAdapter {
     protected performSetSelection(selection: Selection): void {
         try {
             if (!this.editor) return
-
-            if (selection.type === 'text' && selection.range) {
-                const { start, end } = selection.range
-                this.editor.commands.setTextSelection({ from: start, to: end })
-            } else if (selection.type === 'node' && selection.nodeIds.length > 0) {
-                const nodeId = selection.nodeIds[0]
-                const mapping = this.nodePositionMap.get(nodeId)
-                if (mapping) {
-                    this.editor.commands.setTextSelection({ from: mapping.start, to: mapping.end })
-                }
+            switch (selection.type) {
+                case 'text':
+                    if (selection.range) {
+                        this.editor.commands.setTextSelection(
+                            {
+                                from: selection.range.start,
+                                to: selection.range.end
+                            }
+                        )
+                    }
+                    break;
+                case 'node':
+                    // 设置节点选择
+                    if (selection.nodeIds.length > 0) {
+                        // 获取第一个节点ID
+                        const nodeId = selection.nodeIds[0]
+                        // 获取节点位置映射
+                        const mapping = this.nodePositionMap.get(nodeId)
+                        if (mapping) {
+                            this.editor.commands.setTextSelection(
+                                {
+                                    from: mapping.start,
+                                    to: mapping.end
+                                }
+                            )
+                        }
+                    }
+                    break;
+                // TODO: 处理混合选择
+                default:
+                    break;
             }
 
         } catch (error) {
@@ -400,7 +392,7 @@ export class OptimizedRichTextViewAdapter extends CoreViewAdapter {
                 return { nodeIds: [], type: 'node' }
             }
 
-            const { from, to } = this.editor.state.selection
+            const { from, to } = this.editor.state.selection || { from: 0, to: 0 }
             if (from === to) {
                 // 光标位置
                 const nodeId = this.findNodeIdAtPosition(from)
@@ -460,7 +452,13 @@ export class OptimizedRichTextViewAdapter extends CoreViewAdapter {
     protected performGetViewport(): Viewport {
         try {
             if (!this.element) {
-                return { x: 0, y: 0, width: 0, height: 0, zoom: 1 }
+                return {
+                    x: 0,
+                    y: 0,
+                    width: 0,
+                    height: 0,
+                    zoom: 1
+                }
             }
 
             return {
@@ -473,7 +471,13 @@ export class OptimizedRichTextViewAdapter extends CoreViewAdapter {
 
         } catch (error) {
             this.errorHandler.handleError(error as Error, 'performGetViewport')
-            return { x: 0, y: 0, width: 0, height: 0, zoom: 1 }
+            return {
+                x: 0,
+                y: 0,
+                width: 0,
+                height: 0,
+                zoom: 1
+            }
         }
     }
 
@@ -482,7 +486,7 @@ export class OptimizedRichTextViewAdapter extends CoreViewAdapter {
      */
     protected performSetViewport(viewport: Viewport): void {
         try {
-            if (!this.element) return
+            if (!this.editor || !this.element) return
 
             if (viewport.zoom) {
                 this.element.style.zoom = `${viewport.zoom}`
@@ -557,12 +561,25 @@ export class OptimizedRichTextViewAdapter extends CoreViewAdapter {
 
             this.editor.commands.setTextSelection({ from: start, to: end })
 
-            // 应用格式
-            if (format.bold) this.editor.commands.toggleBold()
-            if (format.italic) this.editor.commands.toggleItalic()
-            if (format.underline) this.editor.commands.toggleUnderline()
-            if (format.strikethrough) this.editor.commands.toggleStrike()
-            if (format.color) this.editor.commands.setColor(format.color)
+            // 调用格式化command
+            if (format.bold) {
+                this.editor.commands.toggleBold()
+            }
+            if (format.italic) {
+                this.editor.commands.toggleItalic()
+            }
+            if (format.italic) {
+                this.editor.commands.toggleItalic()
+            }
+            if (format.underline) {
+                this.editor.commands.toggleUnderline()
+            }
+            if (format.strikethrough) {
+                this.editor.commands.toggleStrike()
+            }
+            if (format.color) {
+                this.editor.commands.setColor(format.color)
+            }
             if (format.alignment) {
                 this.editor.commands.setTextAlign(format.alignment)
             }
@@ -582,7 +599,9 @@ export class OptimizedRichTextViewAdapter extends CoreViewAdapter {
             if (position !== undefined) {
                 this.editor.commands.setTextSelection(position)
             }
-            this.editor.commands.insertContent(text)
+            if (text.length > 0) {
+                this.editor.commands.insertContent(text)
+            }
 
         } catch (error) {
             this.errorHandler.handleError(error as Error, 'insertText')
@@ -654,7 +673,16 @@ export class OptimizedRichTextViewAdapter extends CoreViewAdapter {
                 import('@tiptap/extension-image')
             ])
 
-            return { Editor, StarterKit, Underline, TextAlign, Color, TextStyle, Link, Image }
+            return {
+                Editor,
+                StarterKit,
+                Underline,
+                TextAlign,
+                Color,
+                TextStyle,
+                Link,
+                Image
+            }
 
         } catch (error) {
             throw new Error(`Failed to load TipTap modules: ${error}`)
@@ -664,8 +692,8 @@ export class OptimizedRichTextViewAdapter extends CoreViewAdapter {
     /**
      * 创建TipTap编辑器
      */
-    private createTipTapEditor(element: HTMLElement, modules: any): TipTapEditor {
-        return new modules.Editor({
+    private createTipTapEditor(element: HTMLElement, modules: any): RichTextAdapter {
+        const editor = new modules.Editor({
             element,
             extensions: [
                 modules.StarterKit,
@@ -702,7 +730,23 @@ export class OptimizedRichTextViewAdapter extends CoreViewAdapter {
             onBlur: () => {
                 this.emit('blur')
             },
-        }) as TipTapEditor
+        })
+        editor.commands.setTextSelection({ from: 0, to: 0 })
+        editor.on('update', ({ editor }: any) => {
+            if (this.debouncedUpdate) {
+                this.debouncedUpdate(editor)
+            }
+        })
+        editor.on('selectionUpdate', () => {
+            this.handleSelectionUpdate()
+        })
+        editor.on('focus', () => {
+            this.emit('focus')
+        })
+        editor.on('blur', () => {
+            this.emit('blur')
+        })
+        return editor
     }
 
     /**
@@ -733,7 +777,7 @@ export class OptimizedRichTextViewAdapter extends CoreViewAdapter {
     /**
      * 处理内容更新
      */
-    private handleContentUpdate(editor: TipTapEditor): void {
+    private handleContentUpdate(editor: RichTextAdapter): void {
         if (this.isContentSyncing) return
 
         try {
@@ -763,7 +807,7 @@ export class OptimizedRichTextViewAdapter extends CoreViewAdapter {
 
         try {
             const selection = this.performGetSelection()
-            this.emit('selectionChange', selection)
+            this.emit('selectionChange', selection as any)
 
         } catch (error) {
             this.errorHandler.handleError(error as Error, 'handleSelectionUpdate')
@@ -824,6 +868,7 @@ export class OptimizedRichTextViewAdapter extends CoreViewAdapter {
                         event.preventDefault()
                         this.editor?.commands.toggleUnderline()
                         break
+                    // TODO: 添加其他快捷键处理，完善更多功能
                 }
             }
 
@@ -862,6 +907,7 @@ export class OptimizedRichTextViewAdapter extends CoreViewAdapter {
     private updatePositionMapping(): void {
         // 实现位置映射更新逻辑
         // 这里简化实现，实际项目中需要更复杂的DOM遍历
+        // TODO：实现位置映射更新逻辑
         this.nodePositionMap.clear()
     }
 
@@ -882,6 +928,7 @@ export class OptimizedRichTextViewAdapter extends CoreViewAdapter {
         if (!node) return ''
 
         // 简化实现，实际项目中需要完整的AST到HTML转换
+        // TODO：实现完整的AST到HTML转换
         switch (node.type) {
             case 'paragraph':
                 return `<p data-node-id="${node.id}">${this.getNodeContent(node)}</p>`
@@ -918,14 +965,6 @@ export class OptimizedRichTextViewAdapter extends CoreViewAdapter {
     }
 
     // === 工具方法 ===
-
-    private debounce(func: Function, wait: number): Function {
-        let timeout: NodeJS.Timeout
-        return (...args: any[]) => {
-            clearTimeout(timeout)
-            timeout = setTimeout(() => func.apply(this, args), wait)
-        }
-    }
 
     private startCleanupTimer(): void {
         if (this.cleanupTimer) {
@@ -977,22 +1016,29 @@ export class OptimizedRichTextViewAdapter extends CoreViewAdapter {
     /**
      * 将 TipTap JSON 映射为内部 DocumentAST（最小可用实现）
      */
-    private mapTipTapToDocumentAST(doc: any): DocumentAST {
-        const document = createDocumentAST('Untitled')
+    private mapTipTapToDocumentAST(doc: any, documentTitle?: string): DocumentAST {
+        const document = createDocumentAST(documentTitle || 'Untitled')
         document.root = {
             id: 'root',
             type: 'group',
             position: { x: 0, y: 0 },
+            // 递归处理TipTap节点
             children: Array.isArray(doc?.content)
                 ? doc.content.map((node: any) => this.mapTipTapNode(node)).filter(Boolean) as ASTNode[]
                 : []
         } as ASTNode
+        // 更新文档元数据
         if (document.metadata) {
             document.metadata.updatedAt = new Date().toISOString()
         }
         return document
     }
 
+    /**
+     * 映射TipTap节点
+     * @param node - TipTap节点
+     * @returns 映射后的节点
+     */
     private mapTipTapNode(node: any): ASTNode | null {
         if (!node || typeof node.type !== 'string') return null
 
@@ -1073,7 +1119,11 @@ export class OptimizedRichTextViewAdapter extends CoreViewAdapter {
                 } as RichTextNode
         }
     }
-
+    /**
+     * 映射TipTap子节点
+     * @param node - TipTap节点
+     * @returns 映射后的子节点数组
+     */
     private mapTipTapChildren(node: any): ASTNode[] | undefined {
         if (!Array.isArray(node?.content)) return undefined
         return node.content

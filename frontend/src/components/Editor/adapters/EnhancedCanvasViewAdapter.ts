@@ -9,10 +9,11 @@
  * - 工具栏界面
  */
 
-import { CoreViewAdapter, AdapterCapabilities } from './BaseViewAdapter.optimized'
+import { CoreViewAdapter } from './BaseViewAdapter.optimized'
 import { ViewAdapterOptions, Viewport } from '@/components/Editor/types/ViewAdapter'
 import { EditorType, SceneTemplate } from '@/components/Editor/types/EditorType'
 import { DocumentAST, ASTNode, Selection } from '@/components/Editor/types/EditorAST'
+import { AdapterCapabilities } from '../types/OptimizedViewAdapter'
 
 /**
  * 绘图工具类型
@@ -52,6 +53,7 @@ export interface CanvasObject {
 }
 
 export class EnhancedCanvasViewAdapter extends CoreViewAdapter {
+
     public readonly type: EditorType.CANVAS = EditorType.CANVAS
     public readonly capabilities: AdapterCapabilities = {
         canEdit: true,
@@ -95,7 +97,7 @@ export class EnhancedCanvasViewAdapter extends CoreViewAdapter {
             position: relative;
             width: 100%;
             height: 100%;
-            background: #f8f9fa;
+            background: var(--editor-background);
         `
         element.appendChild(container)
 
@@ -107,8 +109,8 @@ export class EnhancedCanvasViewAdapter extends CoreViewAdapter {
         this.canvas.width = 800
         this.canvas.height = 600
         this.canvas.style.cssText = `
-            border: 2px solid #dee2e6;
-            background: white;
+            border: 2px solid var(--editor-line);
+            background: var(--editor-background);
             display: block;
             margin: 10px auto;
             cursor: crosshair;
@@ -213,7 +215,7 @@ export class EnhancedCanvasViewAdapter extends CoreViewAdapter {
             display: flex;
             gap: 8px;
             padding: 12px;
-            background: white;
+            background: var(--editor-background);
             border-radius: 8px;
             margin-bottom: 10px;
             box-shadow: 0 1px 3px rgba(0,0,0,0.1);
@@ -238,8 +240,8 @@ export class EnhancedCanvasViewAdapter extends CoreViewAdapter {
             button.style.cssText = `
                 padding: 10px 12px;
                 border: 2px solid #dee2e6;
-                background: ${this.currentTool === tool ? '#007bff' : 'white'};
-                color: ${this.currentTool === tool ? 'white' : '#495057'};
+                background: ${this.currentTool === tool ? '#007bff' : 'var(--editor-background)'};
+                color: ${this.currentTool === tool ? 'var(--editor-foreground)' : 'var(--editor-comment)'};
                 border-radius: 6px;
                 cursor: pointer;
                 font-size: 16px;
@@ -255,14 +257,14 @@ export class EnhancedCanvasViewAdapter extends CoreViewAdapter {
             button.addEventListener('mouseenter', () => {
                 if (this.currentTool !== tool) {
                     button.style.borderColor = '#007bff'
-                    button.style.background = '#f8f9fa'
+                    button.style.background = 'var(--editor-background)'
                 }
             })
 
             button.addEventListener('mouseleave', () => {
                 if (this.currentTool !== tool) {
                     button.style.borderColor = '#dee2e6'
-                    button.style.background = 'white'
+                    button.style.background = 'var(--editor-background)'
                 }
             })
 
@@ -274,7 +276,7 @@ export class EnhancedCanvasViewAdapter extends CoreViewAdapter {
         separator.style.cssText = `
             width: 1px;
             height: 30px;
-            background: #dee2e6;
+            background: var(--editor-line);
             margin: 0 8px;
         `
         this.toolbar.appendChild(separator)
@@ -292,7 +294,7 @@ export class EnhancedCanvasViewAdapter extends CoreViewAdapter {
             button.style.cssText = `
                 padding: 8px 16px;
                 border: 1px solid ${color};
-                background: white;
+                background: var(--editor-background);
                 color: ${color};
                 border-radius: 4px;
                 cursor: pointer;
@@ -303,11 +305,11 @@ export class EnhancedCanvasViewAdapter extends CoreViewAdapter {
             button.addEventListener('click', action)
             button.addEventListener('mouseenter', () => {
                 button.style.background = color
-                button.style.color = 'white'
+                button.style.color = 'var(--editor-foreground)'
             })
             button.addEventListener('mouseleave', () => {
-                button.style.background = 'white'
-                button.style.color = color
+                button.style.background = 'var(--editor-background)'
+                button.style.color = 'var(--editor-comment)'
             })
 
             this.toolbar!.appendChild(button)
@@ -324,8 +326,8 @@ export class EnhancedCanvasViewAdapter extends CoreViewAdapter {
             if (index < 7) { // 工具按钮
                 const tools = Object.values(DrawingTool)
                 const isActive = tools[index] === this.currentTool
-                button.style.background = isActive ? '#007bff' : 'white'
-                button.style.color = isActive ? 'white' : '#495057'
+                button.style.background = isActive ? '#007bff' : 'var(--editor-background)'
+                button.style.color = isActive ? 'var(--editor-foreground)' : 'var(--editor-comment)'
                 button.style.borderColor = isActive ? '#007bff' : '#dee2e6'
             }
         })

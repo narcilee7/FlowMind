@@ -10,11 +10,11 @@
  * 6. AI Native Editor 开箱即用
  */
 
-import React, { 
-    useEffect, 
-    useRef, 
-    useState, 
-    useImperativeHandle, 
+import React, {
+    useEffect,
+    useRef,
+    useState,
+    useImperativeHandle,
     forwardRef,
     useCallback,
     useMemo
@@ -27,93 +27,7 @@ import { EditorType, SceneTemplate } from './types/EditorType'
 import { DocumentAST, ASTNode, Selection } from './types/EditorAST'
 import { createDefaultOptimizationConfig, PerformanceOptimizer } from './utils/PerformanceOptimizer'
 import { createDocumentAST } from './utils/ASTUtils'
-
-/**
- * 编辑器配置接口
- */
-export interface EditorKitConfig {
-    // 基础配置
-    initialType?: EditorType
-    sceneTemplate?: SceneTemplate
-    autoDetectScene?: boolean
-    
-    // 功能开关
-    enableAI?: boolean
-    enablePerformanceMonitoring?: boolean
-    enableErrorHandling?: boolean
-    enableAutoSave?: boolean
-    
-    // AI 配置
-    aiConfig?: {
-        apiKey?: string
-        model?: string
-        temperature?: number
-        maxTokens?: number
-    }
-    
-    // 性能配置
-    performanceConfig?: {
-        enableVirtualScrolling?: boolean
-        virtualScrollThreshold?: number
-        batchUpdateDelay?: number
-    }
-    
-    // 样式配置
-    theme?: 'light' | 'dark' | 'auto'
-    className?: string
-    style?: React.CSSProperties
-    
-    // 事件回调
-    onChange?: (ast: DocumentAST) => void
-    onSelectionChange?: (selection: Selection) => void
-    onError?: (error: Error) => void
-    onReady?: (editor: EditorKitHandle) => void
-    onSceneChange?: (newScene: SceneTemplate, oldScene: SceneTemplate) => void
-}
-
-/**
- * 编辑器句柄接口
- */
-export interface EditorKitHandle {
-    // 内容操作
-    getContent(): DocumentAST
-    setContent(ast: DocumentAST): void
-    clear(): void
-    
-    // 选择操作
-    getSelection(): Selection
-    setSelection(selection: Selection): void
-    
-    // 编辑器切换
-    switchEditor(type: EditorType): Promise<void>
-    getRecommendedEditors(): Array<{ type: EditorType; confidence: number; reason: string }>
-    
-    // AI 功能
-    requestAICompletion(context?: string): Promise<string>
-    requestAIRewrite(style?: string): Promise<string>
-    getAISuggestions(): Promise<string[]>
-    
-    // 状态查询
-    isReady(): boolean
-    getAdapterType(): EditorType
-    getSceneTemplate(): SceneTemplate
-    
-    // 性能相关
-    getPerformanceStats(): any
-    getHealthStatus(): any
-    
-    // 工具功能
-    focus(): void
-    blur(): void
-    undo(): void
-    redo(): void
-    
-    // 导出功能
-    exportToJSON(): string
-    exportToHTML(): Promise<string>
-    exportToMarkdown(): Promise<string>
-}
-
+import { EditorKitConfig, EditorKitHandle } from './types/EditorKit'
 /**
  * 编辑器状态
  */
@@ -155,11 +69,11 @@ export const EditorKit = forwardRef<EditorKitHandle, EditorKitConfig>((props, re
     const containerRef = useRef<HTMLDivElement>(null)
     const stateManagerRef = useRef<EditorStateManager | null>(null)
     const pluginSystemRef = useRef<PluginSystem | null>(null)
-    
+
     // 适配器实例
     type AdapterInstance = CoreViewAdapter & Partial<ErrorHandlingMixin & PerformanceMonitoringMixin & AIMixin> & { checkPerformanceHealth?: () => any }
     const [adapter, setAdapter] = useState<AdapterInstance | null>(null)
-    
+
     // 性能优化器
     const performanceOptimizer = useMemo(() => {
         return new PerformanceOptimizer({
@@ -167,7 +81,7 @@ export const EditorKit = forwardRef<EditorKitHandle, EditorKitConfig>((props, re
             ...performanceConfig
         })
     }, [performanceConfig])
-    
+
     // 编辑器状态
     const [state, setState] = useState<EditorState>({
         isReady: false,
@@ -188,28 +102,28 @@ export const EditorKit = forwardRef<EditorKitHandle, EditorKitConfig>((props, re
         // 简化的场景检测逻辑
         const textContent = extractTextContent(content)
         const wordCount = textContent.split(/\s+/).length
-        
+
         // 基于内容特征检测场景
         if (textContent.includes('TODO') || textContent.includes('任务') || textContent.includes('计划')) {
             return SceneTemplate.PLANNING
         }
-        
+
         if (textContent.includes('研究') || textContent.includes('分析') || textContent.includes('调研')) {
             return SceneTemplate.RESEARCH
         }
-        
+
         if (wordCount > 100 && (textContent.includes('文章') || textContent.includes('写作'))) {
             return SceneTemplate.WRITING
         }
-        
+
         if (textContent.includes('学习') || textContent.includes('笔记') || textContent.includes('总结')) {
             return SceneTemplate.LEARNING
         }
-        
+
         if (textContent.includes('创意') || textContent.includes('设计') || textContent.includes('想法')) {
             return SceneTemplate.CREATIVE
         }
-        
+
         return sceneTemplate
     }, [autoDetectScene, sceneTemplate])
 
@@ -221,7 +135,7 @@ export const EditorKit = forwardRef<EditorKitHandle, EditorKitConfig>((props, re
         scene: SceneTemplate
     ): Promise<AdapterInstance> => {
         setState(prev => ({ ...prev, isLoading: true, error: null }))
-        
+
         try {
             const newAdapter = await optimizedAdapterFactory.createAdapter(type, {
                 sceneTemplate: scene,
@@ -247,22 +161,22 @@ export const EditorKit = forwardRef<EditorKitHandle, EditorKitConfig>((props, re
 
             // 设置事件监听
             setupAdapterEvents(newAdapter)
-            
-            setState(prev => ({ 
-                ...prev, 
-                isReady: true, 
+
+            setState(prev => ({
+                ...prev,
+                isReady: true,
                 isLoading: false,
                 currentType: type,
                 sceneTemplate: scene
             }))
-            
+
             return newAdapter
-            
+
         } catch (error) {
-            setState(prev => ({ 
-                ...prev, 
-                isLoading: false, 
-                error: error as Error 
+            setState(prev => ({
+                ...prev,
+                isLoading: false,
+                error: error as Error
             }))
             throw error
         }
@@ -365,20 +279,20 @@ export const EditorKit = forwardRef<EditorKitHandle, EditorKitConfig>((props, re
         try {
             // 保存当前内容
             const currentContent = state.content
-            
+
             // 销毁当前适配器
             await adapter.destroy()
-            
+
             // 创建新适配器
             const newAdapter = await createAdapter(type, state.sceneTemplate)
-            
+
             // 恢复内容
             if (currentContent) {
                 await newAdapter.render(currentContent)
             }
-            
+
             setAdapter(newAdapter)
-            
+
         } catch (error) {
             console.error('[EditorKit] Failed to switch editor:', error)
             setState(prev => ({ ...prev, error: error as Error, isLoading: false }))
@@ -619,19 +533,19 @@ export const EditorKit = forwardRef<EditorKitHandle, EditorKitConfig>((props, re
     }
 
     return (
-        <div 
-            className={`editor-kit ${theme} ${className}`} 
+        <div
+            className={`editor-kit ${theme} ${className}`}
             style={style}
             data-scene={state.sceneTemplate}
             data-editor-type={state.currentType}
         >
             {/* 编辑器容器 */}
-            <div 
-                ref={containerRef} 
+            <div
+                ref={containerRef}
                 className="editor-container"
                 style={{ width: '100%', height: '100%' }}
             />
-            
+
             {/* 状态指示器 */}
             {enablePerformanceMonitoring && (
                 <div className="editor-status-bar">
@@ -654,18 +568,18 @@ EditorKit.displayName = 'EditorKit'
 function extractTextContent(ast: DocumentAST): string {
     const extractFromNode = (node: ASTNode): string => {
         let text = ''
-        
+
         if ('content' in node && typeof node.content === 'string') {
             text += node.content
         }
-        
+
         if (node.children) {
             text += node.children.map(extractFromNode).join(' ')
         }
-        
+
         return text
     }
-    
+
     return extractFromNode(ast.root).trim()
 }
 
