@@ -1,4 +1,4 @@
-import { DocumentAST } from "./EditorAST";
+import { DocumentAST, Selection } from "./EditorAST";
 import { EditorType, SceneTemplate } from "./EditorType";
 
 export interface EditorKitConfig {

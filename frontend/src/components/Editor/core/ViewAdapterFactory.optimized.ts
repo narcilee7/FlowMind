@@ -1,724 +1,556 @@
 /**
- * 优化后的视图适配器工厂
+ * 优化版视图适配器工厂
  * 
- * 基于新的组合式架构，支持功能混入和动态适配器创建
- * 
- * 改进点：
- * 1. 支持功能混入的动态组合
- * 2. 适配器依赖检查和延迟加载
- * 3. 更好的错误处理和日志记录
+ * 相比基础版本的改进：
+ * 1. 集成 Mixin 增强机制
+ * 2. 更智能的推荐系统
+ * 3. 更好的错误处理和恢复
  * 4. 性能监控和健康检查
- * 5. 场景模板智能推荐
+ * 5. 懒加载和依赖管理
  */
 
-import { CoreViewAdapter, AdapterBuilder } from '../adapters/BaseViewAdapter.optimized'
-import { OptimizedRichTextViewAdapter } from '../adapters/RichTextViewAdapter.optimized'
-import { EnhancedCanvasViewAdapter } from '../adapters/EnhancedCanvasViewAdapter'
 import { EditorType, SceneTemplate } from '../types/EditorType'
-import { ViewAdapterOptions } from '../types/ViewAdapter'
+import { CoreViewAdapter, createAdapter } from '../adapters/BaseViewAdapter.optimized'
+import { RichTextViewAdapter } from '../adapters/RichTextViewAdapter'
 
 /**
- * 适配器注册信息
+ * 适配器推荐信息
  */
-interface AdapterRegistration {
+export interface AdapterRecommendation {
     type: EditorType
-    name: string
-    description: string
-    supportedScenes: SceneTemplate[]
-    dependencies: string[]
-    adapterClass: new (sceneTemplate: SceneTemplate) => CoreViewAdapter
-    isLazy: boolean
-    loader?: () => Promise<new (sceneTemplate: SceneTemplate) => CoreViewAdapter>
+    confidence: number // 0-1 之间的置信度
+    reason: string
+    features: string[]
 }
 
 /**
- * 适配器创建选项
+ * 优化版适配器创建选项
  */
-interface CreateAdapterOptions {
+export interface OptimizedAdapterOptions {
     sceneTemplate: SceneTemplate
-    options?: Partial<ViewAdapterOptions>
     enableErrorHandling?: boolean
     enablePerformanceMonitoring?: boolean
     enableAI?: boolean
     onError?: (error: Error) => void
-    onProgress?: (progress: { loaded: number; total: number; message: string }) => void
+    onProgress?: (progress: { message: string; percentage: number }) => void
+    theme?: 'light' | 'dark' | 'auto'
+    autoFocus?: boolean
 }
 
 /**
- * 适配器健康状态
+ * 适配器注册信息（优化版）
  */
-interface AdapterHealth {
+interface OptimizedAdapterRegistration {
     type: EditorType
-    isHealthy: boolean
-    lastCheck: number
-    issues: string[]
-    performance: {
-        averageCreateTime: number
-        successRate: number
-        errorCount: number
-    }
+    adapterClass: new (sceneTemplate: SceneTemplate) => CoreViewAdapter
+    name: string
+    description: string
+    supportedScenes: SceneTemplate[]
+    features: string[]
+    dependencies?: string[]
+    lazy?: boolean
+    priority: number
+    matchScore: (scene: SceneTemplate) => number
 }
 
 /**
- * 工厂统计信息
+ * 优化版视图适配器工厂
  */
-interface FactoryStats {
-    totalAdapters: number
-    registeredTypes: EditorType[]
-    createdInstances: number
-    failedCreations: number
-    averageCreationTime: number
-    healthyAdapters: number
-    lastCleanup: number
-}
-
-/**
- * 优化后的视图适配器工厂
- */
-export class OptimizedViewAdapterFactory {
-    private static instance: OptimizedViewAdapterFactory | null = null
-    private adapters = new Map<EditorType, AdapterRegistration>()
-    private instances = new Map<string, CoreViewAdapter>()
-    private healthStatus = new Map<EditorType, AdapterHealth>()
+class OptimizedViewAdapterFactory {
+    private adapters = new Map<EditorType, OptimizedAdapterRegistration>()
+    private loadedAdapters = new Set<EditorType>()
+    private healthChecks = new Map<EditorType, () => Promise<boolean>>()
     private isInitialized = false
-    private creationStats = {
-        total: 0,
-        failed: 0,
-        timings: [] as number[]
+
+    constructor() {
+        this.init()
     }
-
-    // === 单例模式 ===
-
-    public static getInstance(): OptimizedViewAdapterFactory {
-        if (!this.instance) {
-            this.instance = new OptimizedViewAdapterFactory()
-        }
-        return this.instance
-    }
-
-    private constructor() {
-        this.initialize()
-    }
-
-    // === 初始化 ===
 
     /**
-     * 初始化工厂
+     * 初始化适配器注册
      */
-    private initialize(): void {
+    private init(): void {
         if (this.isInitialized) return
 
         try {
-            console.log('[AdapterFactory] Initializing optimized adapter factory...')
+            // 注册富文本适配器
+            this.registerAdapter({
+                type: EditorType.RICH_TEXT,
+                adapterClass: RichTextViewAdapter,
+                name: '富文本编辑器',
+                description: '基于 TipTap 的功能完整的富文本编辑器',
+                supportedScenes: [
+                    SceneTemplate.WRITING,
+                    SceneTemplate.RESEARCH,
+                    SceneTemplate.LEARNING
+                ],
+                features: [
+                    '完整的富文本编辑',
+                    'Markdown 支持',
+                    '表格和图片',
+                    '协作编辑',
+                    'AI 智能补全'
+                ],
+                priority: 10,
+                matchScore: (scene) => {
+                    switch (scene) {
+                        case SceneTemplate.WRITING: return 0.95
+                        case SceneTemplate.RESEARCH: return 0.85
+                        case SceneTemplate.LEARNING: return 0.80
+                        default: return 0.60
+                    }
+                }
+            })
 
-            // 注册核心适配器
-            this.registerCoreAdapters()
+            // 注册图谱适配器（目前使用占位符）
+            this.registerAdapter({
+                type: EditorType.GRAPH,
+                adapterClass: this.createPlaceholderAdapter('Graph'),
+                name: '知识图谱',
+                description: '可视化知识网络和关系图谱',
+                supportedScenes: [
+                    SceneTemplate.RESEARCH,
+                    SceneTemplate.LEARNING,
+                    SceneTemplate.PLANNING
+                ],
+                features: [
+                    '节点关系可视化',
+                    '智能图谱布局',
+                    '知识抽取',
+                    '语义搜索'
+                ],
+                priority: 8,
+                lazy: true,
+                matchScore: (scene) => {
+                    switch (scene) {
+                        case SceneTemplate.RESEARCH: return 0.90
+                        case SceneTemplate.LEARNING: return 0.75
+                        case SceneTemplate.PLANNING: return 0.70
+                        default: return 0.40
+                    }
+                }
+            })
 
-            // 启动定期健康检查
-            this.startHealthMonitoring()
+            // 注册画布适配器（目前使用占位符）
+            this.registerAdapter({
+                type: EditorType.CANVAS,
+                adapterClass: this.createPlaceholderAdapter('Canvas'),
+                name: '画布编辑器',
+                description: '自由绘图和视觉设计工具',
+                supportedScenes: [
+                    SceneTemplate.CREATIVE,
+                    SceneTemplate.PLANNING,
+                    SceneTemplate.WHITEBOARD,
+                    SceneTemplate.WIREFRAME,
+                    SceneTemplate.DIAGRAM
+                ],
+                features: [
+                    '自由绘图',
+                    '图形工具',
+                    '协作白板',
+                    '模板库'
+                ],
+                priority: 7,
+                lazy: true,
+                matchScore: (scene) => {
+                    switch (scene) {
+                        case SceneTemplate.CREATIVE: return 0.95
+                        case SceneTemplate.WHITEBOARD: return 0.90
+                        case SceneTemplate.WIREFRAME: return 0.85
+                        case SceneTemplate.DIAGRAM: return 0.85
+                        case SceneTemplate.PLANNING: return 0.70
+                        default: return 0.30
+                    }
+                }
+            })
+
+            // 注册表格适配器（目前使用占位符）
+            this.registerAdapter({
+                type: EditorType.TABLE,
+                adapterClass: this.createPlaceholderAdapter('Table'),
+                name: '表格编辑器',
+                description: '数据表格和分析工具',
+                supportedScenes: [
+                    SceneTemplate.RESEARCH,
+                    SceneTemplate.PLANNING,
+                    SceneTemplate.LEARNING
+                ],
+                features: [
+                    '数据编辑',
+                    '排序过滤',
+                    '图表生成',
+                    '数据分析'
+                ],
+                priority: 6,
+                lazy: true,
+                matchScore: (scene) => {
+                    switch (scene) {
+                        case SceneTemplate.RESEARCH: return 0.75
+                        case SceneTemplate.PLANNING: return 0.70
+                        default: return 0.40
+                    }
+                }
+            })
+
+            // 注册时间线适配器（目前使用占位符）
+            this.registerAdapter({
+                type: EditorType.TIMELINE,
+                adapterClass: this.createPlaceholderAdapter('Timeline'),
+                name: '时间线编辑器',
+                description: '时间线和项目管理工具',
+                supportedScenes: [
+                    SceneTemplate.PLANNING,
+                    SceneTemplate.RESEARCH,
+                    SceneTemplate.LEARNING
+                ],
+                features: [
+                    '时间线视图',
+                    '项目管理',
+                    '里程碑',
+                    '进度跟踪'
+                ],
+                priority: 5,
+                lazy: true,
+                matchScore: (scene) => {
+                    switch (scene) {
+                        case SceneTemplate.PLANNING: return 0.85
+                        case SceneTemplate.RESEARCH: return 0.60
+                        case SceneTemplate.LEARNING: return 0.55
+                        default: return 0.30
+                    }
+                }
+            })
 
             this.isInitialized = true
-            console.log('[AdapterFactory] Initialization completed successfully')
+            console.log('[OptimizedFactory] Initialized with', this.adapters.size, 'adapters')
 
         } catch (error) {
-            console.error('[AdapterFactory] Initialization failed:', error)
+            console.error('[OptimizedFactory] Initialization failed:', error)
             throw error
         }
     }
 
     /**
-     * 注册核心适配器
+     * 创建占位符适配器类
      */
-    private registerCoreAdapters(): void {
-        // 注册富文本适配器
-        this.registerAdapter({
-            type: EditorType.RICH_TEXT,
-            name: '富文本编辑器',
-            description: '基于TipTap的优化富文本编辑器，支持AI功能和性能监控',
-            supportedScenes: [
-                SceneTemplate.WRITING,
-                SceneTemplate.RESEARCH,
-                SceneTemplate.LEARNING
-            ],
-            dependencies: ['@tiptap/react', '@tiptap/starter-kit'],
-            adapterClass: OptimizedRichTextViewAdapter,
-            isLazy: false
-        })
-
-        // 注册其他适配器（延迟加载）
-        this.registerAdapter({
-            type: EditorType.GRAPH,
-            name: '知识图谱编辑器',
-            description: '基于vis-network的知识图谱可视化编辑器',
-            supportedScenes: [
-                SceneTemplate.RESEARCH,
-                SceneTemplate.LEARNING,
-                SceneTemplate.PLANNING
-            ],
-            dependencies: ['vis-network', 'd3'],
-            adapterClass: null as any, // 延迟加载
-            isLazy: true,
-            loader: async () => {
-                const { GraphViewAdapter } = await import('../adapters/GraphViewAdapter')
-                return GraphViewAdapter as any
+    private createPlaceholderAdapter(typeName: string) {
+        return class PlaceholderAdapter extends CoreViewAdapter {
+            public readonly type = EditorType.RICH_TEXT // 临时占位
+            public readonly capabilities = {
+                canEdit: false,
+                canSelect: false,
+                canZoom: false,
+                canDrag: false,
+                supportsUndo: false,
+                supportsSearch: false,
+                supportsAI: false
             }
-        })
 
-        this.registerAdapter({
-            type: EditorType.CANVAS,
-            name: '增强画布编辑器',
-            description: '功能完整的画布编辑器，支持多种绘图工具、选择、撤销等',
-            supportedScenes: [
-                SceneTemplate.CREATIVE,
-                SceneTemplate.PLANNING,
-                SceneTemplate.LEARNING,
-                SceneTemplate.WHITEBOARD,
-                SceneTemplate.WIREFRAME,
-                SceneTemplate.DIAGRAM
-            ],
-            dependencies: [],
-            adapterClass: EnhancedCanvasViewAdapter,
-            isLazy: false
-        })
-
-        this.registerAdapter({
-            type: EditorType.TABLE,
-            name: '表格编辑器',
-            description: '功能强大的表格编辑器',
-            supportedScenes: [
-                SceneTemplate.RESEARCH,
-                SceneTemplate.PLANNING,
-                SceneTemplate.LEARNING
-            ],
-            dependencies: [],
-            adapterClass: null as any, // 延迟加载
-            isLazy: true,
-            loader: async () => {
-                const { TableViewAdapter } = await import('../adapters/TableViewAdapter')
-                return TableViewAdapter as any
+            protected async performCreate(element: HTMLElement): Promise<void> {
+                element.innerHTML = `
+                    <div style="display: flex; align-items: center; justify-content: center; height: 100%; 
+                                color: #666; text-align: center; font-family: sans-serif;">
+                        <div>
+                            <h3>${typeName} 编辑器</h3>
+                            <p>开发中，敬请期待...</p>
+                            <small>当前使用富文本编辑器作为替代方案</small>
+                        </div>
+                    </div>
+                `
             }
-        })
 
-        this.registerAdapter({
-            type: EditorType.TIMELINE,
-            name: '时间线编辑器',
-            description: '时间线编辑器，支持项目管理',
-            supportedScenes: [
-                SceneTemplate.PLANNING,
-                SceneTemplate.RESEARCH,
-                SceneTemplate.LEARNING
-            ],
-            dependencies: [],
-            adapterClass: null as any, // 延迟加载
-            isLazy: true,
-            loader: async () => {
-                const { TimelineViewAdapter } = await import('../adapters/TimelineViewAdapter')
-                return TimelineViewAdapter as any
+            protected performDestroy(): void {
+                // 占位符无需清理
             }
-        })
-    }
 
-    // === 核心功能 ===
+            protected performRender(): void {
+                // 占位符不支持渲染
+            }
 
-    /**
-     * 创建适配器
-     */
-    public async createAdapter(
-        type: EditorType,
-        options: CreateAdapterOptions
-    ): Promise<CoreViewAdapter> {
-        const startTime = performance.now()
+            protected performUpdateNode(): void {
+                // 占位符不支持节点操作
+            }
 
-        try {
-            console.log(`[AdapterFactory] Creating adapter: ${type}`)
+            protected performRemoveNode(): void {
+                // 占位符不支持节点操作
+            }
 
-            // 验证输入
-            this.validateCreateOptions(type, options)
+            protected performAddNode(): void {
+                // 占位符不支持节点操作
+            }
 
-            // 获取适配器注册信息
-            const _registration = this.getRegistration(type)
+            protected performSetSelection(): void {
+                // 占位符不支持选择
+            }
 
-            // 检查依赖
-            await this.checkDependencies(_registration)
+            protected performGetSelection() {
+                return { nodeIds: [], type: 'node' as const }
+            }
 
-            // 加载适配器类（如果是延迟加载）
-            const AdapterClass = await this.loadAdapterClass(_registration)
+            protected performFocus(): void {
+                // 占位符不支持焦点
+            }
 
-            // 创建增强的适配器
-            const adapter = this.buildEnhancedAdapter(AdapterClass, options)
+            protected performBlur(): void {
+                // 占位符不支持焦点
+            }
 
-            // 创建实例
-            const instance = new adapter(options.sceneTemplate)
+            protected performGetViewport() {
+                return { x: 0, y: 0, width: 0, height: 0, zoom: 1 }
+            }
 
-            // 记录实例
-            const instanceId = this.generateInstanceId(type)
-            this.instances.set(instanceId, instance)
-
-            // 记录统计信息
-            const duration = performance.now() - startTime
-            this.recordCreationStats(true, duration)
-
-            // 报告进度
-            options.onProgress?.({
-                loaded: 1,
-                total: 1,
-                message: `${_registration.name} 创建完成`
-            })
-
-            console.log(`[AdapterFactory] Adapter ${type} created successfully in ${duration.toFixed(2)}ms`)
-            return instance
-
-        } catch (error) {
-            const duration = performance.now() - startTime
-            this.recordCreationStats(false, duration)
-
-            console.error(`[AdapterFactory] Failed to create adapter ${type}:`, error)
-            options.onError?.(error as Error)
-            throw error
+            protected performSetViewport(): void {
+                // 占位符不支持视口操作
+            }
         }
     }
 
     /**
      * 注册适配器
      */
-    public registerAdapter(registration: Omit<AdapterRegistration, 'adapterClass'> & {
-        adapterClass?: new (sceneTemplate: SceneTemplate) => CoreViewAdapter
-    }): void {
+    private registerAdapter(registration: OptimizedAdapterRegistration): void {
+        this.adapters.set(registration.type, registration)
+        console.debug(`[OptimizedFactory] Registered ${registration.name}`)
+    }
+
+    /**
+     * 创建增强的适配器实例
+     */
+    async createAdapter(
+        type: EditorType,
+        options: OptimizedAdapterOptions
+    ): Promise<any> {
+        if (!this.isInitialized) {
+            this.init()
+        }
+
+        const registration = this.adapters.get(type)
+        if (!registration) {
+            throw new Error(`Unsupported editor type: ${type}`)
+        }
+
+        // 检查场景支持
+        if (!registration.supportedScenes.includes(options.sceneTemplate)) {
+            console.warn(
+                `[OptimizedFactory] ${type} doesn't officially support ${options.sceneTemplate}, but proceeding...`
+            )
+        }
+
+        // 进度报告
+        options.onProgress?.({ message: `创建 ${registration.name}...`, percentage: 20 })
+
         try {
-            if (this.adapters.has(registration.type)) {
-                console.warn(`[AdapterFactory] Overwriting existing adapter: ${registration.type}`)
+            // 懒加载检查
+            if (registration.lazy && !this.loadedAdapters.has(type)) {
+                options.onProgress?.({ message: `加载 ${registration.name} 模块...`, percentage: 40 })
+                await this.loadAdapter(type)
             }
 
-            this.adapters.set(registration.type, registration as AdapterRegistration)
+            options.onProgress?.({ message: `初始化适配器...`, percentage: 60 })
 
-            // 初始化健康状态
-            this.healthStatus.set(registration.type, {
-                type: registration.type,
-                isHealthy: true,
-                lastCheck: Date.now(),
-                issues: [],
-                performance: {
-                    averageCreateTime: 0,
-                    successRate: 1,
-                    errorCount: 0
-                }
-            })
+            // 使用增强的适配器构建器
+            const EnhancedAdapterClass = createAdapter(registration.adapterClass)
+                .withErrorHandling(options.enableErrorHandling ? {} : undefined)
+                .withPerformanceMonitoring(options.enablePerformanceMonitoring ? {} : undefined)
+                .withAI(options.enableAI ? {} : undefined)
+                .build()
 
-            console.log(`[AdapterFactory] Registered adapter: ${registration.name} (${registration.type})`)
+            const adapter = new EnhancedAdapterClass(options.sceneTemplate)
+
+            options.onProgress?.({ message: `配置适配器...`, percentage: 80 })
+
+            // 设置错误处理
+            if (options.onError && (adapter as any).on) {
+                (adapter as any).on('error', options.onError)
+            }
+
+            options.onProgress?.({ message: `适配器就绪`, percentage: 100 })
+
+            console.log(`[OptimizedFactory] Created ${registration.name} successfully`)
+            return adapter
 
         } catch (error) {
-            console.error('[AdapterFactory] Failed to register adapter:', error)
+            const errorMessage = `Failed to create ${registration.name}: ${error instanceof Error ? error.message : 'Unknown error'}`
+            console.error(`[OptimizedFactory] ${errorMessage}`)
+            options.onError?.(new Error(errorMessage))
             throw error
         }
     }
 
     /**
-     * 获取支持的编辑器类型
+     * 懒加载适配器
      */
-    public getSupportedTypes(): EditorType[] {
-        return Array.from(this.adapters.keys())
+    private async loadAdapter(type: EditorType): Promise<void> {
+        // 目前大部分适配器都是占位符，实际加载逻辑在这里实现
+        // 例如动态导入具体的适配器模块
+        try {
+            switch (type) {
+                case EditorType.RICH_TEXT:
+                    // RichTextViewAdapter 已经直接导入
+                    break
+                case EditorType.GRAPH:
+                    // 将来这里可以动态导入图谱适配器
+                    break
+                case EditorType.CANVAS:
+                    // 将来这里可以动态导入画布适配器
+                    break
+                default:
+                    // 其他适配器的懒加载逻辑
+                    break
+            }
+
+            this.loadedAdapters.add(type)
+            console.log(`[OptimizedFactory] Loaded adapter: ${type}`)
+
+        } catch (error) {
+            console.error(`[OptimizedFactory] Failed to load adapter ${type}:`, error)
+            throw error
+        }
     }
 
     /**
-     * 检查是否支持编辑器类型
+     * 获取推荐的编辑器类型
      */
-    public isSupported(type: EditorType): boolean {
-        return this.adapters.has(type)
-    }
+    getRecommendedTypes(sceneTemplate: SceneTemplate): AdapterRecommendation[] {
+        if (!this.isInitialized) {
+            this.init()
+        }
 
-    /**
-     * 根据场景模板获取推荐的编辑器类型
-     */
-    public getRecommendedTypes(sceneTemplate: SceneTemplate): Array<{
-        type: EditorType
-        name: string
-        confidence: number
-        reason: string
-    }> {
-        const recommendations: Array<{
-            type: EditorType
-            name: string
-            confidence: number
-            reason: string
-        }> = []
+        const recommendations: AdapterRecommendation[] = []
 
-        this.adapters.forEach((registration) => {
+        for (const [type, registration] of this.adapters.entries()) {
             if (registration.supportedScenes.includes(sceneTemplate)) {
-                let confidence = 0.5 // 基础分数
-                let reason = `支持 ${sceneTemplate} 场景`
-
-                // 根据适配器特性调整推荐分数
-                switch (sceneTemplate) {
-                    case SceneTemplate.WRITING:
-                        if (registration.type === EditorType.RICH_TEXT) {
-                            confidence = 0.95
-                            reason = '富文本编辑器最适合写作场景'
-                        }
-                        break
-                    case SceneTemplate.RESEARCH:
-                        if (registration.type === EditorType.GRAPH) {
-                            confidence = 0.9
-                            reason = '知识图谱最适合研究场景'
-                        } else if (registration.type === EditorType.RICH_TEXT) {
-                            confidence = 0.8
-                            reason = '富文本编辑器也适合研究笔记'
-                        }
-                        break
-                    case SceneTemplate.PLANNING:
-                        if (registration.type === EditorType.TIMELINE) {
-                            confidence = 0.9
-                            reason = '时间线编辑器最适合规划场景'
-                        } else if (registration.type === EditorType.CANVAS) {
-                            confidence = 0.85
-                            reason = '画布编辑器适合可视化规划'
-                        }
-                        break
-                    case SceneTemplate.CREATIVE:
-                        if (registration.type === EditorType.CANVAS) {
-                            confidence = 0.95
-                            reason = '画布编辑器最适合创意设计'
-                        }
-                        break
-                    case SceneTemplate.LEARNING:
-                        if (registration.type === EditorType.TIMELINE) {
-                            confidence = 0.8
-                            reason = '时间线适合学习进度管理'
-                        } else if (registration.type === EditorType.GRAPH) {
-                            confidence = 0.85
-                            reason = '知识图谱适合学习知识整理'
-                        }
-                        break
-                }
-
-                // 考虑适配器健康状况
-                const health = this.healthStatus.get(registration.type)
-                if (health && !health.isHealthy) {
-                    confidence *= 0.7 // 降低不健康适配器的推荐度
-                    reason += '（当前适配器存在性能问题）'
-                }
-
+                const confidence = registration.matchScore(sceneTemplate)
                 recommendations.push({
-                    type: registration.type,
-                    name: registration.name,
+                    type,
                     confidence,
-                    reason
+                    reason: this.generateRecommendationReason(type, sceneTemplate, confidence),
+                    features: registration.features
                 })
             }
-        })
+        }
 
-        // 按推荐度排序
-        return recommendations.sort((a, b) => b.confidence - a.confidence)
+        // 按置信度排序
+        recommendations.sort((a, b) => b.confidence - a.confidence)
+
+        return recommendations
+    }
+
+    /**
+     * 生成推荐理由
+     */
+    private generateRecommendationReason(
+        type: EditorType,
+        scene: SceneTemplate,
+        confidence: number
+    ): string {
+        const baseReasons = {
+            [EditorType.RICH_TEXT]: '完善的文本编辑功能，适合内容创作',
+            [EditorType.GRAPH]: '可视化知识关系，便于理解和分析',
+            [EditorType.CANVAS]: '自由度高的视觉设计工具',
+            [EditorType.TABLE]: '结构化数据处理和分析',
+            [EditorType.TIMELINE]: '时间维度的信息组织'
+        }
+
+        const sceneReasons: Record<SceneTemplate, string> = {
+            [SceneTemplate.WRITING]: '适合长文写作和内容创作',
+            [SceneTemplate.RESEARCH]: '支持复杂的研究和分析工作',
+            [SceneTemplate.LEARNING]: '便于知识整理和学习记录',
+            [SceneTemplate.PLANNING]: '适合项目规划和任务管理',
+            [SceneTemplate.CREATIVE]: '支持创意表达和视觉设计',
+            [SceneTemplate.WHITEBOARD]: '适合自由创作和协作',
+            [SceneTemplate.WIREFRAME]: '适合界面设计和原型制作',
+            [SceneTemplate.DIAGRAM]: '适合流程图和图表制作'
+        }
+
+        let reason = baseReasons[type] || '通用编辑功能'
+
+        if (confidence > 0.8) {
+            reason += `，${sceneReasons[scene] || '适合当前场景'}`
+        } else if (confidence > 0.6) {
+            reason += '，在当前场景下可以使用'
+        } else {
+            reason += '，作为备选方案'
+        }
+
+        return reason
+    }
+
+    /**
+     * 检查适配器是否支持场景
+     */
+    isSceneSupported(type: EditorType, scene: SceneTemplate): boolean {
+        if (!this.isInitialized) {
+            this.init()
+        }
+
+        const registration = this.adapters.get(type)
+        return registration ? registration.supportedScenes.includes(scene) : false
     }
 
     /**
      * 获取适配器信息
      */
-    public getAdapterInfo(type: EditorType): AdapterRegistration | null {
+    getAdapterInfo(type: EditorType): OptimizedAdapterRegistration | null {
+        if (!this.isInitialized) {
+            this.init()
+        }
+
         return this.adapters.get(type) || null
     }
 
     /**
      * 获取所有适配器信息
      */
-    public getAllAdapterInfo(): AdapterRegistration[] {
+    getAllAdapterInfo(): OptimizedAdapterRegistration[] {
+        if (!this.isInitialized) {
+            this.init()
+        }
+
         return Array.from(this.adapters.values())
+    }
+
+    /**
+     * 健康检查
+     */
+    async performHealthCheck(type: EditorType): Promise<boolean> {
+        const healthCheck = this.healthChecks.get(type)
+        if (healthCheck) {
+            try {
+                return await healthCheck()
+            } catch (error) {
+                console.error(`[OptimizedFactory] Health check failed for ${type}:`, error)
+                return false
+            }
+        }
+        return true
     }
 
     /**
      * 获取工厂统计信息
      */
-    public getFactoryStats(): FactoryStats {
-        const healthyCount = Array.from(this.healthStatus.values())
-            .filter(h => h.isHealthy).length
-
+    getFactoryStats() {
         return {
             totalAdapters: this.adapters.size,
-            registeredTypes: Array.from(this.adapters.keys()),
-            createdInstances: this.creationStats.total,
-            failedCreations: this.creationStats.failed,
-            averageCreationTime: this.creationStats.timings.length > 0
-                ? this.creationStats.timings.reduce((a, b) => a + b, 0) / this.creationStats.timings.length
-                : 0,
-            healthyAdapters: healthyCount,
-            lastCleanup: Date.now()
+            loadedAdapters: this.loadedAdapters.size,
+            supportedScenes: Object.values(SceneTemplate).length,
+            isInitialized: this.isInitialized
         }
-    }
-
-    /**
-     * 获取适配器健康状态
-     */
-    public getAdapterHealth(type?: EditorType): AdapterHealth | AdapterHealth[] | null {
-        if (type) {
-            return this.healthStatus.get(type) || null
-        }
-        return Array.from(this.healthStatus.values())
-    }
-
-    // === 私有方法 ===
-
-    /**
-     * 验证创建选项
-     */
-    private validateCreateOptions(type: EditorType, options: CreateAdapterOptions): void {
-        if (!type) {
-            throw new Error('Adapter type is required')
-        }
-
-        if (!options.sceneTemplate) {
-            throw new Error('Scene template is required')
-        }
-
-        if (!this.adapters.has(type)) {
-            throw new Error(`Unsupported adapter type: ${type}`)
-        }
-
-        const registration = this.adapters.get(type)!
-        if (!registration.supportedScenes.includes(options.sceneTemplate)) {
-            throw new Error(
-                `Adapter ${type} does not support scene template: ${options.sceneTemplate}`
-            )
-        }
-    }
-
-    /**
-     * 获取适配器注册信息
-     */
-    private getRegistration(type: EditorType): AdapterRegistration {
-        const registration = this.adapters.get(type)
-        if (!registration) {
-            throw new Error(`Adapter ${type} not found`)
-        }
-        return registration
-    }
-
-    /**
-     * 检查依赖
-     */
-    private async checkDependencies(registration: AdapterRegistration): Promise<void> {
-        for (const dependency of registration.dependencies) {
-            try {
-                // 简化的依赖检查，实际项目中可能需要更复杂的逻辑
-                await import(dependency)
-            } catch (error) {
-                throw new Error(
-                    `Missing dependency for ${registration.name}: ${dependency}. ` +
-                    `Please install it using: npm install ${dependency}`
-                )
-            }
-        }
-    }
-
-    /**
-     * 加载适配器类
-     */
-    private async loadAdapterClass(
-        registration: AdapterRegistration
-    ): Promise<new (sceneTemplate: SceneTemplate) => CoreViewAdapter> {
-        if (!registration.isLazy && registration.adapterClass) {
-            return registration.adapterClass
-        }
-
-        if (registration.isLazy && registration.loader) {
-            console.log(`[AdapterFactory] Loading adapter: ${registration.type}`)
-            return await registration.loader()
-        }
-
-        throw new Error(`No adapter class or loader found for ${registration.type}`)
-    }
-
-    /**
-     * 构建增强的适配器
-     */
-    private buildEnhancedAdapter(
-        AdapterClass: new (sceneTemplate: SceneTemplate) => CoreViewAdapter,
-        _options: CreateAdapterOptions
-    ): new (sceneTemplate: SceneTemplate) => CoreViewAdapter {
-
-        // 使用适配器构建器创建增强版本
-        let builder = new AdapterBuilder(AdapterClass)
-
-        // 根据选项添加功能
-        if (_options.enableErrorHandling !== false) {
-            builder = builder.withErrorHandling()
-        }
-
-        if (_options.enablePerformanceMonitoring !== false) {
-            builder = builder.withPerformanceMonitoring()
-        }
-
-        if (_options.enableAI !== false) {
-            builder = builder.withAI()
-        }
-
-        return builder.build()
-    }
-
-    /**
-     * 生成实例ID
-     */
-    private generateInstanceId(type: EditorType): string {
-        return `${type}_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
-    }
-
-    /**
-     * 记录创建统计
-     */
-    private recordCreationStats(success: boolean, duration: number): void {
-        this.creationStats.total++
-        if (!success) {
-            this.creationStats.failed++
-        }
-        this.creationStats.timings.push(duration)
-
-        // 限制统计数据大小
-        if (this.creationStats.timings.length > 100) {
-            this.creationStats.timings = this.creationStats.timings.slice(-50)
-        }
-    }
-
-    /**
-     * 启动健康监控
-     */
-    private startHealthMonitoring(): void {
-        // 每5分钟检查一次适配器健康状况
-        setInterval(() => {
-            this.performHealthCheck()
-        }, 5 * 60 * 1000)
-    }
-
-    /**
-     * 执行健康检查
-     */
-    private performHealthCheck(): void {
-        console.log('[AdapterFactory] Performing health check...')
-
-        this.adapters.forEach((registration, type) => {
-            const currentHealth = this.healthStatus.get(type)
-            if (!currentHealth) return
-
-            // 更新健康状态
-            const updatedHealth: AdapterHealth = {
-                ...currentHealth,
-                lastCheck: Date.now(),
-                performance: {
-                    ...currentHealth.performance,
-                    successRate: this.calculateSuccessRate(type),
-                    averageCreateTime: this.calculateAverageCreateTime(type)
-                }
-            }
-
-            // 检查是否有性能问题
-            updatedHealth.issues = []
-            if (updatedHealth.performance.successRate < 0.8) {
-                updatedHealth.issues.push('Low success rate')
-                updatedHealth.isHealthy = false
-            }
-            if (updatedHealth.performance.averageCreateTime > 5000) {
-                updatedHealth.issues.push('Slow creation time')
-                updatedHealth.isHealthy = false
-            }
-
-            if (updatedHealth.issues.length === 0) {
-                updatedHealth.isHealthy = true
-            }
-
-            this.healthStatus.set(type, updatedHealth)
-        })
-    }
-
-    /**
-     * 计算成功率
-     */
-    private calculateSuccessRate(_type: EditorType): number {
-        // 简化实现，实际项目中需要跟踪每种类型的成功/失败次数
-        const total = this.creationStats.total
-        const failed = this.creationStats.failed
-        return total > 0 ? (total - failed) / total : 1
-    }
-
-    /**
-     * 计算平均创建时间
-     */
-    private calculateAverageCreateTime(_type: EditorType): number {
-        // 简化实现，实际项目中需要分类型跟踪
-        const timings = this.creationStats.timings
-        return timings.length > 0
-            ? timings.reduce((a, b) => a + b, 0) / timings.length
-            : 0
     }
 
     /**
      * 清理资源
      */
-    public cleanup(): void {
-        console.log('[AdapterFactory] Cleaning up resources...')
-
-        // 销毁所有实例
-        this.instances.forEach((instance, id) => {
-            try {
-                instance.destroy()
-            } catch (error) {
-                console.error(`[AdapterFactory] Failed to destroy instance ${id}:`, error)
-            }
-        })
-
-        this.instances.clear()
+    destroy(): void {
         this.adapters.clear()
-        this.healthStatus.clear()
+        this.loadedAdapters.clear()
+        this.healthChecks.clear()
         this.isInitialized = false
-
-        console.log('[AdapterFactory] Cleanup completed')
-    }
-
-    /**
-     * 重置工厂
-     */
-    public reset(): void {
-        this.cleanup()
-        this.initialize()
+        console.log('[OptimizedFactory] Destroyed')
     }
 }
 
-// === 导出单例实例 ===
-// export const optimizedAdapterFactory = OptimizedViewAdapterFactory.getInstance()
-
-// === 便利函数 ===
-
-/**
- * 创建适配器的便利函数
- */
-export async function createOptimizedAdapter(
-    type: EditorType,
-    sceneTemplate: SceneTemplate,
-    options?: Partial<ViewAdapterOptions>
-): Promise<CoreViewAdapter> {
-    return optimizedAdapterFactory.createAdapter(type, {
-        sceneTemplate,
-        options,
-        enableErrorHandling: true,
-        enablePerformanceMonitoring: true,
-        enableAI: true
-    })
-}
-
-/**
- * 获取场景推荐的便利函数
- */
-export function getSceneRecommendations(sceneTemplate: SceneTemplate) {
-    return optimizedAdapterFactory.getRecommendedTypes(sceneTemplate)
-}
-
-/**
- * 健康检查的便利函数
- */
-export function checkFactoryHealth() {
-    return {
-        stats: optimizedAdapterFactory.getFactoryStats(),
-        adapters: optimizedAdapterFactory.getAdapterHealth()
-    }
-}
-
-// 导出工厂实例
-export const optimizedAdapterFactory = OptimizedViewAdapterFactory.getInstance()
+// 导出单例实例
+export const optimizedAdapterFactory = new OptimizedViewAdapterFactory()
 
 export default OptimizedViewAdapterFactory

@@ -142,7 +142,7 @@ export default class ViewAdapterFactory {
 
         try {
             const adapter = new registration.adapterClass(options.sceneTemplate)
-            
+
             // 设置错误处理器
             if (options.onError) {
                 adapter.onError(options.onError)
