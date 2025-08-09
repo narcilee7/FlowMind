@@ -5,7 +5,7 @@
 /**
  * 性能监控混入接口
  */
-export interface PerformanceMonitoringMixin {
+export interface IPerformanceMonitoringMixin {
   // 获取性能统计数据
   getPerformanceStats(): any
   // 开始性能分析
@@ -20,7 +20,7 @@ export interface PerformanceMonitoringMixin {
  * AI 功能混入接口
  * TODO: 下沉后端，前端只负责调用
  */
-export interface AIMixin {
+export interface IAIMixin {
   requestAICompletion(context: string, position: number): Promise<string>
   requestAIRewrite(content: string, style: string): Promise<string>
   getAISuggestions(context?: string): Promise<string[]>
@@ -30,7 +30,7 @@ export interface AIMixin {
 /**
  * 错误处理接口
  */
-export interface ErrorHandlingMixin {
+export interface IErrorHandlingMixin {
   getErrorHistory(): any
   clearErrorHistory(): void
   setErrorHandler(handler: (error: Error) => void): void

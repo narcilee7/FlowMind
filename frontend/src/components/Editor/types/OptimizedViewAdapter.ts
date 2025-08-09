@@ -6,7 +6,7 @@
  * 
  */
 
-import { DocumentAST } from "./EditorAST"
+import { DocumentAST, Selection } from "./EditorAST"
 
 /**
  * 适配器状态枚举

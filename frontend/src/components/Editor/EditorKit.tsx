@@ -20,7 +20,7 @@ import React, {
     useMemo
 } from 'react'
 import { optimizedAdapterFactory } from './core/ViewAdapterFactory.optimized'
-import { CoreViewAdapter, ErrorHandlingMixin, PerformanceMonitoringMixin, AIMixin } from './adapters/BaseViewAdapter.optimized'
+import { CoreViewAdapter } from './adapters/BaseViewAdapter.optimized'
 import EditorStateManager from './state/EditorStateManager'
 import PluginSystem from './plugins/PluginSystem'
 import { EditorType, SceneTemplate } from './types/EditorType'
@@ -71,8 +71,7 @@ export const EditorKit = forwardRef<EditorKitHandle, EditorKitConfig>((props, re
     const pluginSystemRef = useRef<PluginSystem | null>(null)
 
     // 适配器实例
-    type AdapterInstance = CoreViewAdapter & Partial<ErrorHandlingMixin & PerformanceMonitoringMixin & AIMixin> & { checkPerformanceHealth?: () => any }
-    const [adapter, setAdapter] = useState<AdapterInstance | null>(null)
+    const [adapter, setAdapter] = useState<CoreViewAdapter | null>(null)
 
     // 性能优化器
     const performanceOptimizer = useMemo(() => {
@@ -133,7 +132,7 @@ export const EditorKit = forwardRef<EditorKitHandle, EditorKitConfig>((props, re
     const createAdapter = useCallback(async (
         type: EditorType,
         scene: SceneTemplate
-    ): Promise<AdapterInstance> => {
+    ): Promise<CoreViewAdapter> => {
         setState(prev => ({ ...prev, isLoading: true, error: null }))
 
         try {
@@ -149,7 +148,7 @@ export const EditorKit = forwardRef<EditorKitHandle, EditorKitConfig>((props, re
                 onProgress: (progress) => {
                     console.log('[EditorKit] Loading progress:', progress.message)
                 }
-            }) as AdapterInstance
+            }) as CoreViewAdapter
 
             // 配置适配器
             if (containerRef.current) {
@@ -185,9 +184,9 @@ export const EditorKit = forwardRef<EditorKitHandle, EditorKitConfig>((props, re
     /**
      * 设置适配器事件监听
      */
-    const setupAdapterEvents = useCallback((adapterInstance: AdapterInstance) => {
+    const setupAdapterEvents = useCallback((adapterInstance: CoreViewAdapter) => {
         // 内容变化事件
-        adapterInstance.on('viewChange', (data) => {
+        adapterInstance.on('viewChange', (data: any) => {
             if (data.type === 'contentUpdate') {
                 // 优先从适配器读取结构化 AST；否则回退到状态
                 const nextAST = typeof (adapterInstance as any).getAST === 'function'
@@ -217,7 +216,7 @@ export const EditorKit = forwardRef<EditorKitHandle, EditorKitConfig>((props, re
         })
 
         // 选择变化事件
-        adapterInstance.on('selectionChange', (selection) => {
+        adapterInstance.on('selectionChange', (selection: Selection) => {
             setState(prev => ({ ...prev, selection }))
             onSelectionChange?.(selection)
 
@@ -234,14 +233,14 @@ export const EditorKit = forwardRef<EditorKitHandle, EditorKitConfig>((props, re
         })
 
         // 错误事件
-        adapterInstance.on('error', (error) => {
+        adapterInstance.on('error', (error: Error) => {
             setState(prev => ({ ...prev, error }))
             onError?.(error)
         })
 
         // 性能监控
-        if (enablePerformanceMonitoring && 'getPerformanceStats' in adapterInstance && adapterInstance.getPerformanceStats) {
-            const stats = adapterInstance.getPerformanceStats()
+        if (enablePerformanceMonitoring && (adapterInstance as any).getPerformanceStats) {
+            const stats = (adapterInstance as any).getPerformanceStats()
             console.log('[EditorKit] Performance stats:', stats)
         }
     }, [state.content, state.sceneTemplate, onChange, onSelectionChange, onError, autoDetectScene, detectScene, enablePerformanceMonitoring])
@@ -360,20 +359,20 @@ export const EditorKit = forwardRef<EditorKitHandle, EditorKitConfig>((props, re
                     switchEditor,
                     getRecommendedEditors: () => optimizedAdapterFactory.getRecommendedTypes(state.sceneTemplate),
                     requestAICompletion: async (context) => {
-                        if (adapterInstance && 'requestAICompletion' in adapterInstance && adapterInstance.requestAICompletion) {
-                            return await adapterInstance.requestAICompletion(context || '', 0)
+                        if (adapterInstance && typeof (adapterInstance as any).requestAICompletion === 'function') {
+                            return await (adapterInstance as any).requestAICompletion(context || '', 0)
                         }
                         throw new Error('AI completion not available')
                     },
                     requestAIRewrite: async (style) => {
-                        if (adapterInstance && 'requestAIRewrite' in adapterInstance && adapterInstance.requestAIRewrite) {
-                            return await adapterInstance.requestAIRewrite(extractTextContent(state.content), style || 'improve')
+                        if (adapterInstance && typeof (adapterInstance as any).requestAIRewrite === 'function') {
+                            return await (adapterInstance as any).requestAIRewrite(extractTextContent(state.content), style || 'improve')
                         }
                         throw new Error('AI rewrite not available')
                     },
                     getAISuggestions: async () => {
-                        if (adapterInstance && 'getAISuggestions' in adapterInstance && adapterInstance.getAISuggestions) {
-                            const suggestions = await adapterInstance.getAISuggestions()
+                        if (adapterInstance && typeof (adapterInstance as any).getAISuggestions === 'function') {
+                            const suggestions = await (adapterInstance as any).getAISuggestions()
                             return (suggestions as any[]).map((s: any) => typeof s === 'string' ? s : s.text || '')
                         }
                         return []
@@ -382,14 +381,14 @@ export const EditorKit = forwardRef<EditorKitHandle, EditorKitConfig>((props, re
                     getAdapterType: () => state.currentType,
                     getSceneTemplate: () => state.sceneTemplate,
                     getPerformanceStats: () => {
-                        if (adapterInstance && 'getPerformanceStats' in adapterInstance && adapterInstance.getPerformanceStats) {
-                            return adapterInstance.getPerformanceStats()
+                        if (adapterInstance && typeof (adapterInstance as any).getPerformanceStats === 'function') {
+                            return (adapterInstance as any).getPerformanceStats()
                         }
                         return performanceOptimizer.getPerformanceStats()
                     },
                     getHealthStatus: () => {
-                        if (adapterInstance && 'checkPerformanceHealth' in adapterInstance && adapterInstance.checkPerformanceHealth) {
-                            return adapterInstance.checkPerformanceHealth()
+                        if (adapterInstance && typeof (adapterInstance as any).checkPerformanceHealth === 'function') {
+                            return (adapterInstance as any).checkPerformanceHealth()
                         }
                         return { isHealthy: true, issues: [] }
                     },
@@ -419,6 +418,19 @@ export const EditorKit = forwardRef<EditorKitHandle, EditorKitConfig>((props, re
                         const { ASTExporter } = await import('./utils/ASTExporter')
                         const result = ASTExporter.exportToMarkdown(state.content)
                         return result.success ? result.content : `# 导出失败: ${result.error}`
+                    },
+                    executeCommand: async (command: string, ...args: any[]) => {
+                        if (adapterInstance && typeof (adapterInstance as any)[command] === 'function') {
+                            await (adapterInstance as any)[command](...args)
+                        } else {
+                            console.warn(`[EditorKit] Command ${command} not available on current adapter`)
+                        }
+                    },
+                    getFormatState: () => {
+                        if (adapterInstance && typeof (adapterInstance as any).getFormatState === 'function') {
+                            return (adapterInstance as any).getFormatState()
+                        }
+                        return {}
                     }
                 } as EditorKitHandle)
             })
@@ -455,19 +467,19 @@ export const EditorKit = forwardRef<EditorKitHandle, EditorKitConfig>((props, re
         switchEditor,
         getRecommendedEditors: () => optimizedAdapterFactory.getRecommendedTypes(state.sceneTemplate),
         requestAICompletion: async (context) => {
-            if (adapter && (adapter as any).requestAICompletion) {
+            if (adapter && typeof (adapter as any).requestAICompletion === 'function') {
                 return await (adapter as any).requestAICompletion(context || '', 0)
             }
             throw new Error('AI completion not available')
         },
         requestAIRewrite: async (style) => {
-            if (adapter && (adapter as any).requestAIRewrite) {
+            if (adapter && typeof (adapter as any).requestAIRewrite === 'function') {
                 return await (adapter as any).requestAIRewrite(extractTextContent(state.content), style || 'improve')
             }
             throw new Error('AI rewrite not available')
         },
         getAISuggestions: async () => {
-            if (adapter && (adapter as any).getAISuggestions) {
+            if (adapter && typeof (adapter as any).getAISuggestions === 'function') {
                 const suggestions = await (adapter as any).getAISuggestions()
                 return suggestions.map((s: any) => typeof s === 'string' ? s : s.text || '')
             }
@@ -477,13 +489,13 @@ export const EditorKit = forwardRef<EditorKitHandle, EditorKitConfig>((props, re
         getAdapterType: () => state.currentType,
         getSceneTemplate: () => state.sceneTemplate,
         getPerformanceStats: () => {
-            if (adapter && (adapter as any).getPerformanceStats) {
+            if (adapter && typeof (adapter as any).getPerformanceStats === 'function') {
                 return (adapter as any).getPerformanceStats()
             }
             return performanceOptimizer.getPerformanceStats()
         },
         getHealthStatus: () => {
-            if (adapter && (adapter as any).checkPerformanceHealth) {
+            if (adapter && typeof (adapter as any).checkPerformanceHealth === 'function') {
                 return (adapter as any).checkPerformanceHealth()
             }
             return { isHealthy: true, issues: [] }
@@ -502,6 +514,19 @@ export const EditorKit = forwardRef<EditorKitHandle, EditorKitConfig>((props, re
             const { ASTExporter } = await import('./utils/ASTExporter')
             const result = ASTExporter.exportToMarkdown(state.content)
             return result.success ? result.content : `# 导出失败: ${result.error}`
+        },
+        executeCommand: async (command: string, ...args: any[]) => {
+            if (adapter && typeof (adapter as any)[command] === 'function') {
+                await (adapter as any)[command](...args)
+            } else {
+                console.warn(`[EditorKit] Command ${command} not available on current adapter`)
+            }
+        },
+        getFormatState: () => {
+            if (adapter && typeof (adapter as any).getFormatState === 'function') {
+                return (adapter as any).getFormatState()
+            }
+            return {}
         }
     } as EditorKitHandle), [adapter, state, switchEditor, performanceOptimizer])
 
