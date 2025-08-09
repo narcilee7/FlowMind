@@ -11,60 +11,10 @@
 import { ViewAdapterOptions, Viewport } from '@/components/Editor/types/ViewAdapter'
 import { EditorType, SceneTemplate } from '@/components/Editor/types/EditorType'
 import { DocumentAST, ASTNode, Selection } from '@/components/Editor/types/EditorAST'
-
-// === 核心接口定义 ===
-
-/**
- * 适配器状态枚举
- */
-export enum AdapterState {
-    UNINITIALIZED = 'uninitialized',
-    INITIALIZING = 'initializing',
-    READY = 'ready',
-    UPDATING = 'updating',
-    DESTROYING = 'destroying',
-    DESTROYED = 'destroyed',
-    ERROR = 'error'
-}
-
-/**
- * 生命周期钩子接口
- */
-export interface LifecycleHooks {
-    beforeCreate?: () => Promise<void>
-    created?: () => Promise<void>
-    beforeDestroy?: () => Promise<void>
-    destroyed?: () => Promise<void>
-    beforeUpdate?: (ast: DocumentAST) => Promise<boolean>
-    updated?: (ast: DocumentAST) => Promise<void>
-}
-
-/**
- * 适配器能力接口
- */
-export interface AdapterCapabilities {
-    readonly canEdit: boolean
-    readonly canSelect: boolean
-    readonly canZoom: boolean
-    readonly canDrag: boolean
-    readonly supportsUndo: boolean
-    readonly supportsSearch: boolean
-    readonly supportsAI: boolean
-}
-
-/**
- * 事件回调类型映射
- */
-export interface AdapterEventMap {
-    stateChange: (state: AdapterState) => void
-    nodeClick: (data: { nodeId: string; event: MouseEvent }) => void
-    nodeDoubleClick: (data: { nodeId: string; event: MouseEvent }) => void
-    selectionChange: (selection: Selection) => void
-    viewChange: (viewData: any) => void
-    focus: () => void
-    blur: () => void
-    error: (error: Error) => void
-}
+import { AdapterCapabilities, AdapterEventMap, AdapterState, LifecycleHooks } from '../types/OptimizedViewAdapter'
+import { ErrorHandlingMixin } from '../mixins/ErrorHandlingMixin'
+import { PerformanceMonitoringMixin } from '../mixins/PerformanceMonitoringMixin'
+import { AIMixin } from '../mixins/AIMixin'
 
 // === 核心基类 ===
 
@@ -113,24 +63,36 @@ export abstract class CoreViewAdapter {
      * 创建适配器
      */
     async create(element: HTMLElement, options: ViewAdapterOptions): Promise<void> {
-        this.validateState([AdapterState.UNINITIALIZED])
+        // 验证状态
+        // TODO：思考是否需要这一步
+        if (this.state !== AdapterState.UNINITIALIZED) {
+            throw new Error(`Invalid state: ${this.state}. Expected: ${AdapterState.UNINITIALIZED}`)
+        }
+        // // 验证输入
         this.validateInput(element, 'element')
         this.validateInput(options, 'options')
 
+        // 修改状态为初始化中
         this.setState(AdapterState.INITIALIZING)
 
         try {
+            // 执行生命周期钩子
             await this.hooks.beforeCreate?.()
 
+            // 设置元素和选项
             this.element = element
             this.options = { ...options }
 
+            // 执行真正的实体类创建方法
             await this.performCreate(element, options)
 
+            // 修改状态为就绪
             this.setState(AdapterState.READY)
+            // 执行生命周期钩子
             await this.hooks.created?.()
 
         } catch (error) {
+            // 设置状态为错误
             this.setState(AdapterState.ERROR)
             throw error
         }
@@ -145,12 +107,18 @@ export abstract class CoreViewAdapter {
         this.setState(AdapterState.DESTROYING)
 
         try {
+            // 执行生命周期钩子
             await this.hooks.beforeDestroy?.()
+            // 执行真正的实体类销毁方法
             this.performDestroy()
+            // 清理资源
             this.cleanup()
+            // 修改状态为已销毁
             this.setState(AdapterState.DESTROYED)
+            // 执行生命周期钩子
             await this.hooks.destroyed?.()
         } catch (error) {
+            // 设置状态为错误
             this.setState(AdapterState.ERROR)
             throw error
         }
@@ -160,19 +128,24 @@ export abstract class CoreViewAdapter {
      * 渲染 AST
      */
     async render(ast: DocumentAST): Promise<void> {
+        // 验证状态
         this.validateState([AdapterState.READY])
+        // 验证输入
         this.validateInput(ast, 'ast')
 
+        // 保存当前状态
         const previousState = this.state
         this.setState(AdapterState.UPDATING)
 
         try {
+            // 执行生命周期钩子
             const shouldContinue = await this.hooks.beforeUpdate?.(ast) ?? true
             if (!shouldContinue) return
-
+            // 执行真正的实体类渲染方法
             this.performRender(ast)
-
+            // 恢复状态
             this.setState(previousState)
+            // 执行生命周期钩子
             await this.hooks.updated?.(ast)
 
         } catch (error) {
@@ -421,37 +394,6 @@ export abstract class CoreViewAdapter {
             return fallback
         }
     }
-}
-
-// === 功能混入接口 ===
-
-/**
- * 错误处理混入接口
- */
-export interface ErrorHandlingMixin {
-    getErrorHistory(): any[]
-    clearErrorHistory(): void
-    setErrorHandler(handler: (error: Error) => void): void
-}
-
-/**
- * 性能监控混入接口
- */
-export interface PerformanceMonitoringMixin {
-    getPerformanceStats(): any
-    startProfiling(): void
-    stopProfiling(): void
-    clearMetrics(): void
-}
-
-/**
- * AI 功能混入接口
- */
-export interface AIMixin {
-    requestAICompletion(context: string, position: number): Promise<string>
-    requestAIRewrite(content: string, style: string): Promise<string>
-    getAISuggestions(context?: string): Promise<string[]>
-    applyAISuggestion(suggestion: string): Promise<void>
 }
 
 // === 实用工具 ===

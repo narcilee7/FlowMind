@@ -442,7 +442,7 @@ export class AIMixin {
             // 使用真实的AI服务
             const { AIServiceManager } = await import('../services/AIService')
             const aiService = AIServiceManager.getInstance()
-            
+
             switch (endpoint) {
                 case 'completion':
                     const completionResult = await aiService.completion({
@@ -451,7 +451,7 @@ export class AIMixin {
                         format: 'text'
                     })
                     return completionResult.success ? completionResult.data?.text : this.simulateCompletion(payload)
-                    
+
                 case 'rewrite':
                     const rewriteResult = await aiService.rewrite({
                         content: payload.content,
@@ -459,7 +459,7 @@ export class AIMixin {
                         language: 'zh-CN'
                     })
                     return rewriteResult.success ? rewriteResult.data?.text : this.simulateRewrite(payload)
-                    
+
                 case 'research':
                     const researchResult = await aiService.research({
                         query: payload.query,
@@ -467,8 +467,8 @@ export class AIMixin {
                         includeReferences: true,
                         language: 'zh-CN'
                     })
-                    return rewriteResult.success ? researchResult.data : this.simulateResearch(payload)
-                    
+                    return researchResult.success ? researchResult.data : this.simulateResearch(payload)
+
                 case 'knowledge-extraction':
                     const knowledgeResult = await aiService.extractKnowledge({
                         content: payload.content,
@@ -476,7 +476,7 @@ export class AIMixin {
                         language: 'zh-CN'
                     })
                     return knowledgeResult.success ? knowledgeResult.data : this.simulateKnowledgeExtraction(payload)
-                    
+
                 case 'content-analysis':
                 case 'smart-format':
                 case 'suggestions':

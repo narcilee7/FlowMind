@@ -9,89 +9,33 @@
  * 5. 实时状态广播
  */
 
-import { DocumentAST, ASTNode, Selection } from '../types/EditorAST'
+import { DocumentAST, Selection } from '../types/EditorAST'
+import { StateChangeEvent, StateManagerConfig, StateSnapshot } from '../types/EditorState'
 import { EditorType, SceneTemplate } from '../types/EditorType'
-import { createDocumentAST } from '../utils/ASTUtils'
-
-/**
- * 状态快照
- */
-export interface StateSnapshot {
-    id: string
-    timestamp: number
-    ast: DocumentAST
-    selection: Selection
-    editorType: EditorType
-    sceneTemplate: SceneTemplate
-    metadata: {
-        version: string
-        operation: string
-        userId?: string
-        sessionId: string
-    }
-}
-
-/**
- * 状态变更事件
- */
-export interface StateChangeEvent {
-    type: 'content' | 'selection' | 'editor' | 'scene'
-    before: StateSnapshot
-    after: StateSnapshot
-    operation: string
-    timestamp: number
-}
-
-/**
- * 协作状态 - 暂时注释，专注个人使用
- */
-// export interface CollaborationState {
-//     users: Array<{
-//         id: string
-//         name: string
-//         cursor?: Selection
-//         color: string
-//         lastSeen: number
-//     }>
-//     conflicts: Array<{
-//         id: string
-//         nodeId: string
-//         users: string[]
-//         timestamp: number
-//     }>
-// }
-
-/**
- * 状态管理配置
- */
-export interface StateManagerConfig {
-    maxHistorySize: number
-    autoSaveInterval: number
-    enableCollaboration: boolean
-    enablePersistence: boolean
-    persistenceKey: string
-    debounceDelay: number
-    compressionEnabled: boolean
-}
+import { generateRandomId } from '../../../utils/common'
 
 /**
  * 状态管理器主类
  */
 export class EditorStateManager {
-    private history: StateSnapshot[] = []
-    private currentIndex = -1
-    private listeners = new Map<string, Function[]>()
-    private autoSaveTimer: NodeJS.Timeout | null = null
-    private lastSaveTime = 0
-    private sessionId: string
-    // 协作相关状态 - 暂时注释
-    // private isCollaborating = false
-    // private collaborationState: CollaborationState = { users: [], conflicts: [] }
 
+    // 历史快照
+    private stateSnapshotHistory: StateSnapshot[] = []
+    // 当前的索引
+    private currentIndex = -1
+    // 事件监听表
+    private eventListeners = new Map<string, Function[]>()
+    // 自动保存定时器
+    private autoSaveTimer: NodeJS.Timeout | null = null
+    // 最后保存时间
+    private lastSaveTime = 0
+    // 会话ID
+    private sessionId: string = ''
+
+    // 配置
     private config: StateManagerConfig = {
         maxHistorySize: 100,
-        autoSaveInterval: 30000, // 30秒
-        enableCollaboration: false,
+        autoSaveInterval: 30 * 1000, // 30秒
         enablePersistence: true,
         persistenceKey: 'editorState',
         debounceDelay: 500,
@@ -99,13 +43,18 @@ export class EditorStateManager {
     }
 
     constructor(config?: Partial<StateManagerConfig>) {
-        this.config = { ...this.config, ...config }
-        this.sessionId = this.generateSessionId()
+        this.config = {
+            ...this.config,
+            ...config
+        }
 
+        // 加载本地存储
+        // TODO: 持久化应该是DB层面的持久化或者多级缓存
         if (this.config.enablePersistence) {
             this.loadFromStorage()
         }
 
+        // 开启自动保存
         if (this.config.autoSaveInterval > 0) {
             this.startAutoSave()
         }
@@ -130,7 +79,7 @@ export class EditorStateManager {
             id: this.generateSnapshotId(),
             timestamp: Date.now(),
             ast: this.deepClone(ast),
-            selection: this.deepClone(selection),
+            selection: this.deepClone(selection) as any,
             editorType,
             sceneTemplate,
             metadata: {
@@ -141,24 +90,24 @@ export class EditorStateManager {
         }
 
         // 如果不是在历史末尾，删除后续历史
-        if (this.currentIndex < this.history.length - 1) {
-            this.history = this.history.slice(0, this.currentIndex + 1)
+        if (this.currentIndex < this.stateSnapshotHistory.length - 1) {
+            this.stateSnapshotHistory = this.stateSnapshotHistory.slice(0, this.currentIndex + 1)
         }
 
-        this.history.push(snapshot)
-        this.currentIndex = this.history.length - 1
+        this.stateSnapshotHistory.push(snapshot)
+        this.currentIndex = this.stateSnapshotHistory.length - 1
 
         // 限制历史大小
-        if (this.history.length > this.config.maxHistorySize) {
-            this.history = this.history.slice(-this.config.maxHistorySize)
-            this.currentIndex = this.history.length - 1
+        if (this.stateSnapshotHistory.length > this.config.maxHistorySize) {
+            this.stateSnapshotHistory = this.stateSnapshotHistory.slice(-this.config.maxHistorySize)
+            this.currentIndex = this.stateSnapshotHistory.length - 1
         }
 
         // 触发状态变更事件
         this.emitStateChange('content', snapshot, operation)
 
         // 压缩历史记录
-        if (this.config.compressionEnabled && this.history.length % 10 === 0) {
+        if (this.config.compressionEnabled && this.stateSnapshotHistory.length % 10 === 0) {
             this.compressHistory()
         }
 
@@ -172,7 +121,7 @@ export class EditorStateManager {
         if (!this.canUndo()) return null
 
         this.currentIndex--
-        const snapshot = this.history[this.currentIndex]
+        const snapshot = this.stateSnapshotHistory[this.currentIndex]
 
         this.emitStateChange('content', snapshot, 'undo')
         return snapshot
@@ -185,7 +134,7 @@ export class EditorStateManager {
         if (!this.canRedo()) return null
 
         this.currentIndex++
-        const snapshot = this.history[this.currentIndex]
+        const snapshot = this.stateSnapshotHistory[this.currentIndex]
 
         this.emitStateChange('content', snapshot, 'redo')
         return snapshot
@@ -202,28 +151,28 @@ export class EditorStateManager {
      * 检查是否可以重做
      */
     public canRedo(): boolean {
-        return this.currentIndex < this.history.length - 1
+        return this.currentIndex < this.stateSnapshotHistory.length - 1
     }
 
     /**
      * 获取当前状态快照
      */
     public getCurrentSnapshot(): StateSnapshot | null {
-        return this.currentIndex >= 0 ? this.history[this.currentIndex] : null
+        return this.currentIndex >= 0 ? this.stateSnapshotHistory[this.currentIndex] : null
     }
 
     /**
      * 获取历史记录
      */
     public getHistory(): StateSnapshot[] {
-        return [...this.history]
+        return [...this.stateSnapshotHistory]
     }
 
     /**
      * 清空历史记录
      */
     public clearHistory(): void {
-        this.history = []
+        this.stateSnapshotHistory = []
         this.currentIndex = -1
         this.emit('historyCleared', {})
     }
@@ -232,11 +181,11 @@ export class EditorStateManager {
      * 跳转到指定快照
      */
     public jumpToSnapshot(snapshotId: string): StateSnapshot | null {
-        const index = this.history.findIndex(s => s.id === snapshotId)
+        const index = this.stateSnapshotHistory.findIndex(s => s.id === snapshotId)
         if (index === -1) return null
 
         this.currentIndex = index
-        const snapshot = this.history[index]
+        const snapshot = this.stateSnapshotHistory[index]
 
         this.emitStateChange('content', snapshot, 'jump')
         return snapshot
@@ -255,7 +204,7 @@ export class EditorStateManager {
                 name,
                 baseSnapshot: currentSnapshot.id,
                 createdAt: Date.now(),
-                history: [...this.history]
+                history: [...this.stateSnapshotHistory]
             }
 
             this.saveBranch(branchData)
@@ -276,8 +225,8 @@ export class EditorStateManager {
         this.saveCurrentBranch()
 
         // 加载分支历史
-        this.history = branchData.history
-        this.currentIndex = this.history.length - 1
+        this.stateSnapshotHistory = branchData.history
+        this.currentIndex = this.stateSnapshotHistory.length - 1
 
         this.emit('branchSwitched', { branchId, snapshot: this.getCurrentSnapshot() })
         return true
@@ -287,17 +236,17 @@ export class EditorStateManager {
      * 监听状态变更
      */
     public on(event: string, callback: Function): void {
-        if (!this.listeners.has(event)) {
-            this.listeners.set(event, [])
+        if (!this.eventListeners.has(event)) {
+            this.eventListeners.set(event, [])
         }
-        this.listeners.get(event)!.push(callback)
+        this.eventListeners.get(event)!.push(callback)
     }
 
     /**
      * 取消监听
      */
     public off(event: string, callback: Function): void {
-        const callbacks = this.listeners.get(event)
+        const callbacks = this.eventListeners.get(event)
         if (callbacks) {
             const index = callbacks.indexOf(callback)
             if (index > -1) {
@@ -305,74 +254,6 @@ export class EditorStateManager {
             }
         }
     }
-
-    // 协作相关方法 - 暂时注释，专注个人使用
-    // /**
-    //  * 启动协作模式
-    //  */
-    // public startCollaboration(config: {
-    //     userId: string
-    //     userName: string
-    //     websocketUrl?: string
-    // }): void {
-    //     if (this.isCollaborating) return
-
-    //     this.isCollaborating = true
-    //     this.config.enableCollaboration = true
-
-    //     // TODO: 实现WebSocket连接和协作逻辑
-    //     console.log('[StateManager] Collaboration mode started', config)
-
-    //     this.emit('collaborationStarted', config)
-    // }
-
-    // /**
-    //  * 停止协作模式
-    //  */
-    // public stopCollaboration(): void {
-    //     if (!this.isCollaborating) return
-
-    //     this.isCollaborating = false
-    //     this.config.enableCollaboration = false
-    //     this.collaborationState = { users: [], conflicts: [] }
-
-    //     this.emit('collaborationStopped', {})
-    // }
-
-    // /**
-    //  * 获取协作状态
-    //  */
-    // public getCollaborationState(): CollaborationState {
-    //     return { ...this.collaborationState }
-    // }
-
-    // /**
-    //  * 处理协作事件
-    //  */
-    // public handleCollaborationEvent(event: {
-    //     type: 'userJoin' | 'userLeave' | 'cursorMove' | 'contentChange' | 'conflict'
-    //     data: any
-    // }): void {
-    //     switch (event.type) {
-    //         case 'userJoin':
-    //             this.addCollaborationUser(event.data)
-    //             break
-    //         case 'userLeave':
-    //             this.removeCollaborationUser(event.data.userId)
-    //             break
-    //         case 'cursorMove':
-    //             this.updateUserCursor(event.data.userId, event.data.selection)
-    //             break
-    //         case 'contentChange':
-    //             this.handleRemoteContentChange(event.data)
-    //             break
-    //         case 'conflict':
-    //             this.handleConflict(event.data)
-    //             break
-    //     }
-
-    //     this.emit('collaborationEvent', event)
-    // }
 
     /**
      * 保存到本地存储
@@ -382,7 +263,7 @@ export class EditorStateManager {
 
         try {
             const data = {
-                history: this.history,
+                history: this.stateSnapshotHistory,
                 currentIndex: this.currentIndex,
                 sessionId: this.sessionId,
                 timestamp: Date.now()
@@ -409,15 +290,17 @@ export class EditorStateManager {
         if (!this.config.enablePersistence) return false
 
         try {
+            // TODO: localforage
             const stored = localStorage.getItem(this.config.persistenceKey)
             if (!stored) return false
 
             const data = JSON.parse(stored)
+            // 解压
             const decompressed = this.config.compressionEnabled
                 ? this.decompressData(data)
                 : data
 
-            this.history = decompressed.history || []
+            this.stateSnapshotHistory = decompressed.history || []
             this.currentIndex = decompressed.currentIndex ?? -1
 
             // 验证历史记录
@@ -429,7 +312,6 @@ export class EditorStateManager {
 
             console.log('[StateManager] State loaded from storage')
             return true
-
         } catch (error) {
             console.error('[StateManager] Failed to load from storage:', error)
             return false
@@ -444,7 +326,7 @@ export class EditorStateManager {
             version: '1.0.0',
             timestamp: Date.now(),
             sessionId: this.sessionId,
-            history: this.history,
+            history: this.stateSnapshotHistory,
             currentIndex: this.currentIndex,
             config: this.config
         }
@@ -464,7 +346,7 @@ export class EditorStateManager {
                 throw new Error('Invalid import data format')
             }
 
-            this.history = importData.history
+            this.stateSnapshotHistory = importData.history
             this.currentIndex = importData.currentIndex ?? -1
 
             if (!this.validateHistory()) {
@@ -473,7 +355,7 @@ export class EditorStateManager {
 
             this.emit('stateImported', {
                 snapshot: this.getCurrentSnapshot(),
-                historySize: this.history.length
+                historySize: this.stateSnapshotHistory.length
             })
 
             return true
@@ -497,17 +379,17 @@ export class EditorStateManager {
     } {
         const operationCounts: Record<string, number> = {}
 
-        this.history.forEach(snapshot => {
+        this.stateSnapshotHistory.forEach(snapshot => {
             const op = snapshot.metadata.operation
             operationCounts[op] = (operationCounts[op] || 0) + 1
         })
 
         return {
-            historySize: this.history.length,
+            historySize: this.stateSnapshotHistory.length,
             currentIndex: this.currentIndex,
             memoryUsage: this.calculateMemoryUsage(),
             lastSaveTime: this.lastSaveTime,
-            sessionDuration: Date.now() - (this.history[0]?.timestamp || Date.now()),
+            sessionDuration: Date.now() - (this.stateSnapshotHistory[0]?.timestamp || Date.now()),
             operationCounts
         }
     }
@@ -527,13 +409,8 @@ export class EditorStateManager {
             this.autoSaveTimer = null
         }
 
-        // 停止协作 - 暂时注释
-        // if (this.isCollaborating) {
-        //     this.stopCollaboration()
-        // }
-
         // 清理监听器
-        this.listeners.clear()
+        this.eventListeners.clear()
 
         // 移除浏览器事件监听
         if (typeof window !== 'undefined') {
@@ -544,17 +421,12 @@ export class EditorStateManager {
     }
 
     // === 私有方法 ===
-
-    private generateSessionId(): string {
-        return `session_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
-    }
-
     private generateSnapshotId(): string {
-        return `snapshot_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
+        return generateRandomId('snapshot')
     }
 
     private generateBranchId(): string {
-        return `branch_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
+        return generateRandomId('branch')
     }
 
     private deepClone<T>(obj: T): T {
@@ -562,7 +434,7 @@ export class EditorStateManager {
     }
 
     private emit(event: string, data: any): void {
-        const callbacks = this.listeners.get(event) || []
+        const callbacks = this.eventListeners.get(event) || []
         callbacks.forEach(callback => {
             try {
                 callback(data)
@@ -573,15 +445,15 @@ export class EditorStateManager {
     }
 
     private emitStateChange(type: string, snapshot: StateSnapshot, operation: string): void {
-        const event: StateChangeEvent = {
+        const newEvent: StateChangeEvent = {
             type: type as any,
-            before: this.history[this.currentIndex - 1] || snapshot,
+            before: this.stateSnapshotHistory[this.currentIndex - 1] || snapshot,
             after: snapshot,
             operation,
             timestamp: Date.now()
         }
 
-        this.emit('stateChange', event)
+        this.emit('stateChange', newEvent)
     }
 
     private startAutoSave(): void {
@@ -606,7 +478,7 @@ export class EditorStateManager {
         let lastOperation = ''
         let operationCount = 0
 
-        for (const snapshot of this.history) {
+        for (const snapshot of this.stateSnapshotHistory) {
             const operation = snapshot.metadata.operation
 
             if (operation === lastOperation && operationCount < 5) {
@@ -620,9 +492,9 @@ export class EditorStateManager {
             operationCount = 1
         }
 
-        if (compressed.length < this.history.length) {
-            this.history = compressed
-            this.currentIndex = Math.min(this.currentIndex, this.history.length - 1)
+        if (compressed.length < this.stateSnapshotHistory.length) {
+            this.stateSnapshotHistory = compressed
+            this.currentIndex = Math.min(this.currentIndex, this.stateSnapshotHistory.length - 1)
             console.log('[StateManager] History compressed')
         }
     }
@@ -640,9 +512,9 @@ export class EditorStateManager {
     }
 
     private validateHistory(): boolean {
-        if (!Array.isArray(this.history)) return false
+        if (!Array.isArray(this.stateSnapshotHistory)) return false
 
-        return this.history.every(snapshot =>
+        return this.stateSnapshotHistory.every(snapshot =>
             snapshot.id &&
             snapshot.timestamp &&
             snapshot.ast &&
@@ -652,40 +524,8 @@ export class EditorStateManager {
     }
 
     private calculateMemoryUsage(): number {
-        return JSON.stringify(this.history).length * 2 // 粗略估算
+        return JSON.stringify(this.stateSnapshotHistory).length * 2 // 粗略估算
     }
-
-    // 协作辅助方法 - 暂时注释
-    // private addCollaborationUser(user: any): void {
-    //     const existingIndex = this.collaborationState.users.findIndex(u => u.id === user.id)
-    //     if (existingIndex >= 0) {
-    //         this.collaborationState.users[existingIndex] = { ...user, lastSeen: Date.now() }
-    //     } else {
-    //         this.collaborationState.users.push({ ...user, lastSeen: Date.now() })
-    //     }
-    // }
-
-    // private removeCollaborationUser(userId: string): void {
-    //     this.collaborationState.users = this.collaborationState.users.filter(u => u.id !== userId)
-    // }
-
-    // private updateUserCursor(userId: string, selection: Selection): void {
-    //     const user = this.collaborationState.users.find(u => u.id === userId)
-    //     if (user) {
-    //         user.cursor = selection
-    //         user.lastSeen = Date.now()
-    //     }
-    // }
-
-    // private handleRemoteContentChange(data: any): void {
-    //     // TODO: 实现远程内容变更处理
-    //     console.log('[StateManager] Remote content change:', data)
-    // }
-
-    // private handleConflict(data: any): void {
-    //     // TODO: 实现冲突处理
-    //     console.log('[StateManager] Conflict detected:', data)
-    // }
 
     private saveBranch(branchData: any): void {
         const key = `${this.config.persistenceKey}_branch_${branchData.id}`
@@ -704,7 +544,7 @@ export class EditorStateManager {
             name: 'Main Branch',
             baseSnapshot: null,
             createdAt: Date.now(),
-            history: [...this.history]
+            history: [...this.stateSnapshotHistory]
         }
         this.saveBranch(branchData)
     }
