@@ -37,6 +37,8 @@ export default function Header({ mode }: { mode?: string }) {
         <Link href="/" className="font-bold text-sm text-primary">
           FlowMind
         </Link>
+      </div>
+      <div className="flex items-center gap-2">
         {viewModes.map((m) => (
           <Link key={m.value} href={makeHref(m.value)}>
             <Button
@@ -48,11 +50,6 @@ export default function Header({ mode }: { mode?: string }) {
             </Button>
           </Link>
         ))}
-      </div>
-      <div className="flex items-center gap-2">
-        <Link href="/search">
-          <Button variant="ghost" size="icon" className="text-xs">🔍</Button>
-        </Link>
       </div>
     </header>
   )

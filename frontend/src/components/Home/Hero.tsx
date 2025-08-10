@@ -17,7 +17,7 @@ export default function Hero() {
       <Button
         size="lg"
         onClick={() => {
-          window.location.href = '/writing'
+          window.location.href = '/editor'
         }}
         aria-label="开始创作"
       >

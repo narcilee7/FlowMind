@@ -31,6 +31,8 @@ import { TaskItem } from '@tiptap/extension-task-item'
 import { CharacterCount } from '@tiptap/extension-character-count'
 import { Typography } from '@tiptap/extension-typography'
 
+
+
 // 额外的TipTap扩展
 import { TextAlign } from '@tiptap/extension-text-align'
 import { Underline } from '@tiptap/extension-underline'
@@ -44,6 +46,7 @@ import { Focus } from '@tiptap/extension-focus'
 import { Gapcursor } from '@tiptap/extension-gapcursor'
 import { HardBreak } from '@tiptap/extension-hard-break'
 import { History } from '@tiptap/extension-history'
+import { generateRandomId } from '@/utils/common'
 
 /**
  * 富文本适配器配置
@@ -100,6 +103,7 @@ export interface RichTextAdapterConfig extends ViewAdapterOptions {
  * 富文本视图适配器实现
  */
 export class RichTextViewAdapter extends CoreViewAdapter {
+
     // === 适配器属性 ===
     public readonly type = EditorType.RICH_TEXT
     public readonly capabilities: AdapterCapabilities = {
@@ -450,27 +454,17 @@ export class RichTextViewAdapter extends CoreViewAdapter {
     }
 
     /**
-     * 创建 TipTap 扩展
-     */
+ * 创建 TipTap 扩展
+ */
     private createExtensions() {
         const extensions: any[] = []
 
-        // 基础扩展包 - 但我们需要单独配置历史
-        extensions.push(
-            StarterKit.configure({
-                // StarterKit 的默认配置
-            })
-        )
+        // 直接使用 StarterKit，不添加额外的 History 扩展
+        extensions.push(StarterKit.configure({}))
 
-        // 添加历史扩展
-        if (this.config.enableHistory) {
-            extensions.push(
-                History.configure({
-                    depth: this.config.historyDepth || 100,
-                    newGroupDelay: this.config.historyNewGroupDelay || 500,
-                })
-            )
-        }
+        // 注意：StarterKit 已经包含了 History 扩展，所以我们不需要再添加
+        // 如果需要自定义 History 配置，可以考虑在 StarterKit 配置中覆盖
+        // 但目前先使用默认配置来避免冲突
 
         // 添加占位符
         if (this.config.placeholder) {
@@ -969,7 +963,7 @@ export class RichTextViewAdapter extends CoreViewAdapter {
         return {
             version: '1.0.0',
             type: 'document',
-            id: `doc_${Date.now()}`,
+            id: generateRandomId('doc'),
             title: this.extractDocumentTitle(content),
             root: rootNode,
             metadata: {
@@ -984,7 +978,7 @@ export class RichTextViewAdapter extends CoreViewAdapter {
      * 将 TipTap 节点转换为 AST 节点
      */
     private tipTapNodeToAST(node: any, nodeId?: string): ASTNode {
-        const id = nodeId || `node_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
+        const id = nodeId || generateRandomId('node')
 
         // 基础节点结构
         const baseNode: ASTNode = {
@@ -1002,7 +996,7 @@ export class RichTextViewAdapter extends CoreViewAdapter {
             case 'doc':
                 return {
                     ...baseNode,
-                    type: 'paragraph', // 使用有效的AST节点类型
+                    type: 'paragraph',
                     children: node.content ? node.content.map((child: any) => this.tipTapNodeToAST(child)) : []
                 }
 
@@ -1167,8 +1161,6 @@ export class RichTextViewAdapter extends CoreViewAdapter {
             to: position + 1 // 简化实现，实际应该计算节点的实际长度
         })
     }
-
-
 
 
 
