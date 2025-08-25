@@ -6,7 +6,7 @@ import { cn } from '@/utils/cn'
 const inter = Inter({ subsets: ['latin'] })
 
 export const metadata: Metadata = {
-  title: 'AI Native Editor',
+  title: 'AI Native Workspace',
   description: '沉浸式、多模态、AI 原生内容创作平台',
   // TODO: SEO深度优化 & 国际化
 }

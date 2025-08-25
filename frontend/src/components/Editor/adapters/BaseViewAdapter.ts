@@ -348,7 +348,7 @@ export abstract class BaseViewAdapter implements ViewAdapter {
 
     // 协作方法已移除 - 面向C端，不需要协同编辑功能
 
-    // AI Native Editor 核心方法
+    // AI Native Workspace 核心方法
     /**
      * 请求AI补全 - 智能文本补全
      */

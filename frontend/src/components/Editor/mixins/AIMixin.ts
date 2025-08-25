@@ -1,7 +1,7 @@
 /**
  * AI 功能混入
  * 
- * 提供 AI Native Editor 的核心 AI 能力
+ * 提供 AI Native Workspace 的核心 AI 能力
  * 包括智能补全、内容重写、研究助手、知识提取等功能
  */
 

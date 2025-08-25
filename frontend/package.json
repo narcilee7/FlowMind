@@ -1,7 +1,7 @@
 {
   "name": "flowmind-client",
   "version": "1.0.0",
-  "description": "AI Native Editor",
+  "description": "AI Native Workspace",
   "type": "module",
   "main": "dist/main.js",
   "scripts": {

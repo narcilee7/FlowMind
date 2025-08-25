@@ -7,7 +7,7 @@
  * 3. 统一的 API 接口
  * 4. 内置性能优化和监控
  * 5. 完整的错误处理和恢复
- * 6. AI Native Editor 开箱即用
+ * 6. AI Native Workspace 开箱即用
  */
 
 import React, {

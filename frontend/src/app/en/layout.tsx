@@ -8,7 +8,7 @@ import FloatingAgent from '@/components/FloatingAgent'
 const inter = Inter({ subsets: ['latin'] })
 
 export const metadata: Metadata = {
-  title: 'AI Native Editor',
+  title: 'AI Native Workspace',
   description: 'Immersive, multi-modal, AI-native content creation platform',
 }
 

@@ -1,4 +1,4 @@
-# **AI Native Editor 产品线 & 架构设计文档**
+# **AI Native Workspace 产品线 & 架构设计文档**
 
 ## **1. 产品定位**
 

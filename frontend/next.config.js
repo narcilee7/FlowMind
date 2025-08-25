@@ -16,7 +16,7 @@ const nextConfig = {
     unoptimized: true,
   },
   env: {
-    APP_NAME: 'AI Native Editor',
+    APP_NAME: 'AI Native Workspace',
   },
 }
 

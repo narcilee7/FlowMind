@@ -148,7 +148,7 @@ private attemptErrorRecovery(errorInfo: EditorErrorInfo): void {
 }
 ```
 
-### 🎯 AI Native Editor集成
+### 🎯 AI Native Workspace集成
 
 **1. AI功能接口**
 ```typescript

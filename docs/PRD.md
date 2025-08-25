@@ -1,4 +1,4 @@
-# **AI Native Editor 全功能产品设计文档**
+# **AI Native Workspace 全功能产品设计文档**
 
 ## **1. 产品定位**
 
